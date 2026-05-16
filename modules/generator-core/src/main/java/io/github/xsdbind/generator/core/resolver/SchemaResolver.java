@@ -93,7 +93,8 @@ public final class SchemaResolver {
     ParsedSchema parsed = parse(path, diagnostics);
     if (parsed != null) {
       schemas.add(
-          new ResolvedSchema(resourceId(path), parsed.targetNamespace(), parsed.references()));
+          new ResolvedSchema(
+              resourceId(path), path, parsed.targetNamespace(), parsed.references()));
       for (SchemaReference reference : parsed.references()) {
         resolveUri(
             toUri(reference.target()), path.getParent(), stack, visited, schemas, diagnostics);

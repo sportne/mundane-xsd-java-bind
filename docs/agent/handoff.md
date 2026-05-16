@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Product implementation is intentionally absent.
+- Initial `generator-core` schema resource-resolution and syntax frontend implementation is present.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
 ## Task sequence
@@ -15,11 +15,12 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 3. `TASK-0003`: Run and harden Gradle quality-gate wiring without product code. Completed for the scaffold.
 4. `TASK-0004`: Convert staged build policies into failing gates where meaningful. Partially complete; coverage thresholds remain intentionally staged while modules are empty.
 5. `TASK-0005`: Perform phase-one readiness review and open implementation task cards. Completed for the accepted phase-one baseline.
-6. `TASK-0006`: Implement the schema resource-resolution vertical slice in `generator-core`. Approved next task.
-7. `TASK-0007` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
-8. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
+6. `TASK-0006`: Implement the schema resource-resolution vertical slice in `generator-core`. Completed and accepted.
+7. `TASK-0007`: Implement the XSD syntax frontend subset in `generator-core`. Approved next task.
+8. `TASK-0008` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
+9. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
 
-Only `TASK-0006` may introduce the first product implementation source, and only inside its allowed files. It must not implement binding, generated model emission, XML readers, XML writers, or validation behavior.
+`TASK-0007` may build on resolver-approved schema resources to parse raw XSD syntax. It must not implement component graph resolution, binding, generated model emission, XML readers, XML writers, or validation behavior.
 
 ## Draft completion backlog
 
@@ -27,8 +28,8 @@ The draft backlog covers the project charter's first success milestone: CLI or G
 
 | Task | Phase | Status | Purpose |
 |---|---|---|---|
-| `TASK-0006` | 2 | approved | Schema resource resolution and resolved-schema manifest. |
-| `TASK-0007` | 2 | draft | XSD syntax frontend for the supported data-structure subset. |
+| `TASK-0006` | 2 | accepted | Schema resource resolution and resolved-schema manifest. |
+| `TASK-0007` | 2 | approved | XSD syntax frontend for the supported data-structure subset. |
 | `TASK-0008` | 2 | draft | Component graph, QName resolution, and normalized schema IR. |
 | `TASK-0009` | 2 | draft | Binding model planning for names, packages, fields, and validation shape. |
 | `TASK-0010` | 3 | draft | `runtime-core` public primitives and XML event/output interfaces. |
@@ -78,11 +79,11 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Implementation unlock criteria
 
-Implementation for `TASK-0006` may begin because:
+Implementation for `TASK-0007` may begin because:
 
 - Design-Control Pack v0.1 scaffold acceptance is recorded through the completed scaffold tasks.
 - Build scaffold sanity tasks pass.
 - ADRs are approved.
 - Phase-one requirement IDs are accepted, except deferred `REQ-SCHEMA-007`.
-- Module boundary and security tests are required by `TASK-0006`.
-- A phase-one implementation task card with allowed files is approved.
+- `TASK-0006` resolver implementation is accepted as the local-resource baseline.
+- `TASK-0007` is approved with scoped resolver access only to expose resolver-approved source paths.
