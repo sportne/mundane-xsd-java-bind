@@ -18,7 +18,7 @@ jobs:
           java-version: '21'
           distribution: 'graalvm'
           native-image-job-reports: 'true'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Native wiring check
         run: ./gradlew designControlStatus
       # Product native tests are enabled after generated binding samples exist.
