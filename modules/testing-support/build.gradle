@@ -1,0 +1,21 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+    id 'xsdbind.publishing-conventions'
+    id 'xsdbind.native-conventions'
+}
+
+description = 'Test helpers for generated bindings; intentionally empty in v0.1.'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'xsdbind-testing-support'
+        }
+    }
+}
+
+dependencies {
+    api project(':modules:runtime-core')
+}

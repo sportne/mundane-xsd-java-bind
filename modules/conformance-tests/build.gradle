@@ -1,0 +1,11 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+}
+
+description = 'Internal conformance test harness; not published.'
+
+dependencies {
+    testImplementation project(':modules:testing-support')
+}

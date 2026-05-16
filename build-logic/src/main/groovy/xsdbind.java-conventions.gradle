@@ -1,0 +1,49 @@
+plugins {
+    id 'java-library'
+    id 'checkstyle'
+    id 'jacoco'
+    id 'net.ltgt.errorprone'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:6.0.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.2'
+    errorprone 'com.google.errorprone:error_prone_core:2.49.0'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs.addAll(['-Xlint:all', '-Werror'])
+    options.errorprone.disableWarningsInGeneratedCode.set(true)
+    options.errorprone.excludedPaths.set('.*/build/generated/.*')
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    systemProperty 'file.encoding', 'UTF-8'
+    testLogging {
+        events 'failed', 'skipped'
+        exceptionFormat 'full'
+    }
+}
+
+checkstyle {
+    toolVersion = '13.4.2'
+    configDirectory = rootProject.file('config/checkstyle')
+    maxWarnings = 0
+}
+
+jacoco {
+    toolVersion = '0.8.14'
+}

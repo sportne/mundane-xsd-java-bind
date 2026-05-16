@@ -1,0 +1,40 @@
+pluginManagement {
+    def offlineRepoPath = providers.gradleProperty('xsdbind.offlineRepo').orNull
+    includeBuild 'build-logic'
+    repositories {
+        if (offlineRepoPath != null && !offlineRepoPath.isBlank()) {
+            maven { url = uri(offlineRepoPath) }
+            mavenLocal()
+        } else {
+            gradlePluginPortal()
+            mavenCentral()
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    def offlineRepoPath = providers.gradleProperty('xsdbind.offlineRepo').orNull
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        if (offlineRepoPath != null && !offlineRepoPath.isBlank()) {
+            maven { url = uri(offlineRepoPath) }
+            mavenLocal()
+        } else {
+            mavenCentral()
+        }
+    }
+}
+
+rootProject.name = 'xsd-bind-java'
+
+include ':modules:xsdbind-bom'
+include ':modules:runtime-core'
+include ':modules:runtime-jdkxml'
+include ':modules:generator-api'
+include ':modules:generator-core'
+include ':modules:generator-cli'
+include ':modules:generator-gradle-plugin'
+include ':modules:testing-support'
+include ':modules:conformance-tests'
+include ':examples:purchase-order'
+include ':examples:multi-namespace'

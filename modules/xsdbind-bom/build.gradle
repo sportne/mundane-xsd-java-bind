@@ -1,0 +1,31 @@
+plugins {
+    id 'java-platform'
+    id 'maven-publish'
+}
+
+description = 'Dependency alignment BOM for xsd-bind-java.'
+
+javaPlatform {
+    allowDependencies()
+}
+
+dependencies {
+    constraints {
+        api project(':modules:runtime-core')
+        api project(':modules:runtime-jdkxml')
+        api project(':modules:generator-api')
+        api project(':modules:generator-core')
+        api project(':modules:generator-cli')
+        api project(':modules:generator-gradle-plugin')
+        api project(':modules:testing-support')
+    }
+}
+
+publishing {
+    publications {
+        mavenBom(MavenPublication) {
+            from components.javaPlatform
+            artifactId = 'xsdbind-bom'
+        }
+    }
+}

@@ -1,0 +1,14 @@
+plugins {
+    id 'org.graalvm.buildtools.native'
+}
+
+graalvmNative {
+    toolchainDetection = true
+    binaries {
+        test {
+            quickBuild = true
+            buildArgs.add('--no-fallback')
+            buildArgs.add('-H:+ReportExceptionStackTraces')
+        }
+    }
+}

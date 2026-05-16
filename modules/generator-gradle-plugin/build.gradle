@@ -1,0 +1,20 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+    id 'xsdbind.publishing-conventions'
+}
+
+description = 'Gradle integration for schema generation; intentionally empty in v0.1.'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'xsdbind-gradle-plugin'
+        }
+    }
+}
+
+dependencies {
+    implementation project(':modules:generator-api')
+}

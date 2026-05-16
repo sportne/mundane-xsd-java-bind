@@ -1,0 +1,12 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+}
+
+description = 'Multi-namespace schema example placeholder.'
+
+dependencies {
+    implementation project(':modules:runtime-core')
+    testImplementation project(':modules:testing-support')
+}

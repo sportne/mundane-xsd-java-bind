@@ -1,0 +1,21 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+    id 'xsdbind.publishing-conventions'
+    id 'xsdbind.native-conventions'
+}
+
+description = 'Optional adapters for JDK XML APIs.'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'xsdbind-runtime-jdkxml'
+        }
+    }
+}
+
+dependencies {
+    api project(':modules:runtime-core')
+}

@@ -1,0 +1,55 @@
+plugins {
+    id 'base'
+}
+
+group = 'io.github.xsdbind'
+version = providers.gradleProperty('xsdbind.version').getOrElse('0.1.0-SNAPSHOT')
+
+allprojects {
+    group = rootProject.group
+    version = rootProject.version
+}
+
+tasks.register('designControlStatus') {
+    group = 'verification'
+    description = 'Checks that Design-Control Pack v0.1 files are present.'
+    doLast {
+        def requiredFiles = [
+            'DESIGN_CONTROL_PACK_v0.1.md',
+            'AGENT.md',
+            'docs/charter.md',
+            'docs/scope-and-non-goals.md',
+            'docs/standards-baseline.md',
+            'docs/compatibility-profiles.md',
+            'docs/requirements/index.md',
+            'docs/architecture/overview.md',
+            'docs/verification/verification-plan.md',
+            'docs/infrastructure/build-plan.md',
+            'docs/agent/handoff.md',
+            'docs/adr/index.md'
+        ]
+        def missing = requiredFiles.findAll { !rootProject.file(it).exists() }
+        if (!missing.empty) {
+            throw new GradleException('Design-control files missing: ' + missing.join(', '))
+        }
+        println 'Design-Control Pack v0.1 scaffold files are present.'
+        println 'Product implementation remains gated by docs/agent/handoff.md and AGENT.md.'
+    }
+}
+
+tasks.register('listPublishedArtifacts') {
+    group = 'help'
+    description = 'Prints planned artifact coordinates.'
+    doLast {
+        println '''
+:modules:xsdbind-bom              -> io.github.xsdbind:xsdbind-bom
+:modules:runtime-core             -> io.github.xsdbind:xsdbind-runtime-core
+:modules:runtime-jdkxml           -> io.github.xsdbind:xsdbind-runtime-jdkxml
+:modules:generator-api            -> io.github.xsdbind:xsdbind-generator-api
+:modules:generator-core           -> io.github.xsdbind:xsdbind-generator-core
+:modules:generator-cli            -> io.github.xsdbind:xsdbind-cli
+:modules:generator-gradle-plugin  -> io.github.xsdbind:xsdbind-gradle-plugin
+:modules:testing-support          -> io.github.xsdbind:xsdbind-testing-support
+'''.stripIndent()
+    }
+}

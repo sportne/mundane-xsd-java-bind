@@ -1,0 +1,20 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+    id 'xsdbind.publishing-conventions'
+}
+
+description = 'Schema compiler implementation module; intentionally empty in v0.1.'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'xsdbind-generator-core'
+        }
+    }
+}
+
+dependencies {
+    api project(':modules:generator-api')
+}

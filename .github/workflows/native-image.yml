@@ -1,0 +1,24 @@
+name: native-image
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          native-image-job-reports: 'true'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Native wiring check
+        run: ./gradlew designControlStatus
+      # Product native tests are enabled after generated binding samples exist.

@@ -1,0 +1,12 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+}
+
+description = 'Purchase-order data-structure schema example placeholder.'
+
+dependencies {
+    implementation project(':modules:runtime-core')
+    testImplementation project(':modules:testing-support')
+}

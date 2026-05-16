@@ -1,0 +1,16 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+    id 'xsdbind.publishing-conventions'
+}
+
+description = 'Public generator configuration and API.'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'xsdbind-generator-api'
+        }
+    }
+}

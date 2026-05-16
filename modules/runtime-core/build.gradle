@@ -1,0 +1,17 @@
+plugins {
+    id 'xsdbind.java-conventions'
+    id 'xsdbind.quality-conventions'
+    id 'xsdbind.coverage-conventions'
+    id 'xsdbind.publishing-conventions'
+    id 'xsdbind.native-conventions'
+}
+
+description = 'Runtime core API and primitives; no third-party dependencies.'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'xsdbind-runtime-core'
+        }
+    }
+}
