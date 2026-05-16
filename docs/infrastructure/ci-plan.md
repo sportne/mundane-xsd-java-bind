@@ -20,4 +20,4 @@
 
 ## Native Image lane
 
-Native Image CI is allowed to be placeholder-only until generated binding samples exist, then it becomes required for phase-one release candidates.
+Native Image CI is allowed to be placeholder-only until runtime or generated-code tasks create meaningful executable native tests. Runtime primitive native tests start with `TASK-0010` when runtime-core behavior exists, generated-code smoke starts with `TASK-0013` when generated code can execute with runtime primitives, and generated binding round-trip/native sample checks become required before phase-one release candidates.

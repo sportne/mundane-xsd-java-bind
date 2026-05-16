@@ -28,5 +28,5 @@
 | `REQ-BUILD-002` | `ADR-0011` | `build-plan.md`, `toolchain-matrix.md` | Toolchain config and CI | accepted |
 | `REQ-BUILD-003` | `ADR-0011` | `toolchain-matrix.md` | CI Java 25 lane | accepted |
 | `REQ-QA-001` | `ADR-0011` | `build-plan.md` | Quality gate tasks and CI | accepted |
-| `REQ-NI-001` | `ADR-0010` | `native-image-architecture.md` | Native workflow and smoke tests | accepted |
+| `REQ-NI-001` | `ADR-0010` | `native-image-architecture.md`, `native-image-test-plan.md` | Native workflow and smoke tests beginning with the first executable runtime/generated-code surfaces (`TASK-0010`, `TASK-0013`, `TASK-0017`) and hardening in `TASK-0020`/`TASK-0044` | accepted |
 | `REQ-AGENT-001` | `ADR-0013` | `AGENT.md`, `docs/agent/handoff.md` | Task-card review | accepted |

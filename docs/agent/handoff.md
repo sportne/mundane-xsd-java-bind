@@ -13,7 +13,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 1. `TASK-0001`: Validate Design-Control Pack v0.1 file presence and consistency. Completed for the scaffold.
 2. `TASK-0002`: Hydrate and verify the Gradle wrapper and dependency metadata. Completed for the scaffold; repeat when dependencies change.
 3. `TASK-0003`: Run and harden Gradle quality-gate wiring without product code. Completed for the scaffold.
-4. `TASK-0004`: Convert staged build policies into failing gates where meaningful. Partially complete; coverage thresholds remain intentionally staged while modules are empty.
+4. `TASK-0004`: Convert staged build policies into failing gates where meaningful. Completed for implemented modules; empty modules retain explicit staged skips until they contain compiled production classes.
 5. `TASK-0005`: Perform phase-one readiness review and open implementation task cards. Completed for the accepted phase-one baseline.
 6. `TASK-0006`: Implement the schema resource-resolution vertical slice in `generator-core`. Completed and accepted.
 7. `TASK-0007`: Implement the XSD syntax frontend subset in `generator-core`. Completed and accepted.
@@ -43,7 +43,7 @@ The draft backlog covers the project charter's first success milestone: CLI or G
 | `TASK-0017` | 4 | draft | Round-trip examples and conformance fixture expansion. |
 | `TASK-0018` | 5 | draft | Public generator API and CLI vertical slice. |
 | `TASK-0019` | 5 | draft | Gradle plugin vertical slice. |
-| `TASK-0020` | 5 | draft | Native Image, coverage, and quality-gate hardening. |
+| `TASK-0020` | 5 | draft | Native Image and quality-gate hardening. |
 | `TASK-0021` | 5 | draft | First public vertical slice release-readiness review. |
 
 ## Post-0.1.0 draft vertical-slice backlog
@@ -88,4 +88,5 @@ Implementation for `TASK-0008` may begin because:
 - Phase-one requirement IDs are accepted, except deferred `REQ-SCHEMA-007`.
 - `TASK-0007` frontend implementation is accepted as the raw syntax baseline.
 - Generator-core coverage enforcement is active for implemented production classes.
+- Native Image trigger points are documented for the first meaningful runtime and generated-code executable surfaces.
 - `TASK-0008` is approved for scoped internal graph and IR implementation.

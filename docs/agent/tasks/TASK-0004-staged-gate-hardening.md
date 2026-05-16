@@ -1,6 +1,6 @@
 # TASK-0004: staged-gate-hardening
 
-Status: partially completed for the current scaffold; coverage thresholds remain intentionally staged while implementation modules are empty.
+Status: completed for the scaffold and implemented generator-core source; empty modules retain explicit staged skips until they contain compiled production classes.
 
 Requirement IDs: `REQ-QA-001`, `REQ-NI-001`
 ADR IDs: `ADR-0010`, `ADR-0011`

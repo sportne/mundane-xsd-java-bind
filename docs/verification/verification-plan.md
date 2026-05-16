@@ -14,7 +14,7 @@
 | Architecture tests | Enforce module boundaries and forbidden runtime behavior. |
 | Static analysis | Checkstyle, Spotless, SpotBugs, Error Prone. |
 | Coverage gates | JaCoCo aggregate and per-file thresholds. |
-| Native tests | Compile and execute generated sample bindings as native images. |
+| Native tests | Compile and execute runtime primitives and generated sample bindings as native images when each surface becomes executable. |
 | Security tests | XXE, entity expansion, resolver denial, excessive nesting. |
 | Documentation tests | Verify examples, commands, requirement and ADR trace links. |
 
