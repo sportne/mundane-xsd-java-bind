@@ -8,7 +8,10 @@
 | `xs:complexType` | XSD 1.0 | `XP-DATA-10` | designed | `T-COMPLEX-*` | phase one |
 | `xs:sequence` | XSD 1.0 | `XP-DATA-10` | designed | `T-SEQUENCE-*` | phase one |
 | `xs:choice` | XSD 1.0 | `XP-DATA-10-CHOICE` | future | `T-CHOICE-*` | feasibility gate |
-| `xs:include`/`xs:import` | XSD 1.0 | `XP-DATA-10` | designed | `T-RES-*` | phase one resolver |
+| `xs:include`/`xs:import` | XSD 1.0 | `XP-DATA-10` | designed | `T-RES-*` | phase one resolver; first implementation card is `TASK-0006` |
+| Schema resource policy | XML Base / XSD resource resolution | `XP-DATA-10` | designed | `T-RES-POLICY-*` | local roots and catalog mappings only unless explicitly configured |
+| Network-denied resolver behavior | XML security | `XP-DATA-10` | designed | `T-SEC-RES-*` | default resolver must not open network resources |
+| Include/import cycle diagnostics | XSD 1.0 | `XP-DATA-10` | designed | `T-RES-CYCLE-*` | deterministic diagnostic for recursive schema graphs |
 | simple facets basic | XSD 1.0 Datatypes | `XP-VALIDATION-10-BASIC` | future | `T-FACET-*` | practical subset |
 | substitution groups | XSD 1.0 | `XP-XSD10-FULL` | future | W3C subset | not phase one |
 | identity constraints | XSD 1.0 | `XP-XSD10-FULL` | future | W3C subset | not phase one |

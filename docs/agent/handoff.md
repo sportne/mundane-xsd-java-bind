@@ -4,7 +4,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 
 ## Current repository state
 
-- Design-Control Pack v0.1 scaffold exists.
+- Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
 - Product implementation is intentionally absent.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -14,17 +14,75 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 2. `TASK-0002`: Hydrate and verify the Gradle wrapper and dependency metadata. Completed for the scaffold; repeat when dependencies change.
 3. `TASK-0003`: Run and harden Gradle quality-gate wiring without product code. Completed for the scaffold.
 4. `TASK-0004`: Convert staged build policies into failing gates where meaningful. Partially complete; coverage thresholds remain intentionally staged while modules are empty.
-5. `TASK-0005`: Perform phase-one readiness review and open implementation task cards. Still pending.
+5. `TASK-0005`: Perform phase-one readiness review and open implementation task cards. Completed for the accepted phase-one baseline.
+6. `TASK-0006`: Implement the schema resource-resolution vertical slice in `generator-core`. Approved next task.
+7. `TASK-0007` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
+8. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
 
-No task in this sequence implements XML schema parsing, binding, reading, writing, or validation.
+Only `TASK-0006` may introduce the first product implementation source, and only inside its allowed files. It must not implement binding, generated model emission, XML readers, XML writers, or validation behavior.
+
+## Draft completion backlog
+
+The draft backlog covers the project charter's first success milestone: CLI or Gradle generation for supported `XP-DATA-10` data-structure schemas, generated model/reader/writer/basic validation code, Java 21 compilation, representative round trips, and Native Image smoke tests.
+
+| Task | Phase | Status | Purpose |
+|---|---|---|---|
+| `TASK-0006` | 2 | approved | Schema resource resolution and resolved-schema manifest. |
+| `TASK-0007` | 2 | draft | XSD syntax frontend for the supported data-structure subset. |
+| `TASK-0008` | 2 | draft | Component graph, QName resolution, and normalized schema IR. |
+| `TASK-0009` | 2 | draft | Binding model planning for names, packages, fields, and validation shape. |
+| `TASK-0010` | 3 | draft | `runtime-core` public primitives and XML event/output interfaces. |
+| `TASK-0011` | 3 | draft | Generated immutable Java model source emission. |
+| `TASK-0012` | 3 | draft | Generated XML writer source emission. |
+| `TASK-0013` | 3 | draft | Generated-source compile, golden, and determinism harness. |
+| `TASK-0014` | 4 | draft | JDK XML adapters for generated-code tests and examples. |
+| `TASK-0015` | 4 | draft | Generated XML reader source emission. |
+| `TASK-0016` | 4 | draft | Basic generated validation and diagnostics. |
+| `TASK-0017` | 4 | draft | Round-trip examples and conformance fixture expansion. |
+| `TASK-0018` | 5 | draft | Public generator API and CLI vertical slice. |
+| `TASK-0019` | 5 | draft | Gradle plugin vertical slice. |
+| `TASK-0020` | 5 | draft | Native Image, coverage, and quality-gate hardening. |
+| `TASK-0021` | 5 | draft | First public vertical slice release-readiness review. |
+
+## Post-0.1.0 draft vertical-slice backlog
+
+Each post-0.1.0 slice must include interop evidence where practical. Interop is a recurring verification expectation, not a final cleanup phase.
+
+| Task | Version slice | Status | Purpose |
+|---|---|---|---|
+| `TASK-0022` | 0.2.0 | draft | Plan Practical Data Contracts support. |
+| `TASK-0023` | 0.2.0 | draft | Implement feasible `xs:choice` support. |
+| `TASK-0024` | 0.2.0 | draft | Expand practical simple restrictions. |
+| `TASK-0025` | 0.2.0 | draft | Practical Data Contracts readiness review. |
+| `TASK-0026` | 0.3.0 | draft | Plan Composed XSD 1.0 schema support. |
+| `TASK-0027` | 0.3.0 | draft | Implement named model groups and attribute groups. |
+| `TASK-0028` | 0.3.0 | draft | Implement accepted simple type composition. |
+| `TASK-0029` | 0.3.0 | draft | Implement initial derivation support. |
+| `TASK-0030` | 0.3.0 | draft | Composed XSD 1.0 readiness review. |
+| `TASK-0031` | 0.4.0 | draft | Plan XSD 1.0 semantic expansion. |
+| `TASK-0032` | 0.4.0 | draft | Implement `nillable`, `default`, and `fixed` semantics. |
+| `TASK-0033` | 0.4.0 | draft | Implement accepted substitution group support. |
+| `TASK-0034` | 0.4.0 | draft | Expand validation semantics for the accepted feature set. |
+| `TASK-0035` | 0.4.0 | draft | XSD 1.0 semantic expansion readiness review. |
+| `TASK-0036` | 0.5.0 | draft | Plan document-oriented and open-content support. |
+| `TASK-0037` | 0.5.0 | draft | Implement accepted wildcard/open-content support. |
+| `TASK-0038` | 0.5.0 | draft | Implement accepted mixed-content support. |
+| `TASK-0039` | 0.5.0 | draft | Add canonicalization and serialization-policy tests. |
+| `TASK-0040` | 0.5.0 | draft | Document-oriented/open-content readiness review. |
+| `TASK-0041` | 0.6.0 | draft | Plan hardening and release maturity. |
+| `TASK-0042` | 0.6.0 | draft | Expand ongoing interop/conformance harness. |
+| `TASK-0043` | 0.6.0 | draft | Add performance, memory, and streaming benchmarks. |
+| `TASK-0044` | 0.6.0 | draft | Harden Native Image conformance lane. |
+| `TASK-0045` | 0.6.0 | draft | Release engineering and publication readiness. |
+| `TASK-0046` | 0.6.0 | draft | Hardening and release maturity readiness review. |
 
 ## Implementation unlock criteria
 
-Implementation may begin only after:
+Implementation for `TASK-0006` may begin because:
 
-- Design-Control Pack v0.1 is accepted.
+- Design-Control Pack v0.1 scaffold acceptance is recorded through the completed scaffold tasks.
 - Build scaffold sanity tasks pass.
 - ADRs are approved.
-- Phase-one requirement IDs are accepted.
-- Module boundary tests are staged.
+- Phase-one requirement IDs are accepted, except deferred `REQ-SCHEMA-007`.
+- Module boundary and security tests are required by `TASK-0006`.
 - A phase-one implementation task card with allowed files is approved.

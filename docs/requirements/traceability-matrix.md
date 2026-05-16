@@ -2,12 +2,31 @@
 
 | Requirement | ADR | Architecture | Verification | Status |
 |---|---|---|---|---|
-| `REQ-SCOPE-001` | `ADR-0002` | `scope-and-non-goals.md` | CLI/API absence tests | proposed |
-| `REQ-RT-001` | `ADR-0003` | `module-boundaries.md` | dependency/ArchUnit tests | proposed |
-| `REQ-RT-002` | `ADR-0004` | `generated-code-contract.md` | source/native tests | proposed |
-| `REQ-SCHEMA-001` | `ADR-0006` | `compiler-pipeline.md` | schema subset tests | proposed |
-| `REQ-GEN-001` | `ADR-0008` | `compiler-pipeline.md` | golden tests | proposed |
-| `REQ-VAL-001` | `ADR-0007` | `validation-architecture.md` | negative XML tests | proposed |
-| `REQ-NI-001` | `ADR-0010` | `native-image-architecture.md` | native workflow | proposed |
-| `REQ-BUILD-001` | `ADR-0011` | `build-plan.md` | Gradle tasks | proposed |
-| `REQ-AGENT-001` | `ADR-0013` | `AGENT.md` | PR review | proposed |
+| `REQ-SCOPE-001` | `ADR-0002` | `scope-and-non-goals.md` | CLI/API absence tests | accepted |
+| `REQ-SCOPE-002` | `ADR-0002` | `scope-and-non-goals.md` | Build and API surface review | accepted |
+| `REQ-RT-001` | `ADR-0003` | `module-boundaries.md` | Dependency and ArchUnit tests | accepted |
+| `REQ-RT-002` | `ADR-0004` | `generated-code-contract.md` | Source inspection, ArchUnit, Native Image tests | accepted |
+| `REQ-SCHEMA-001` | `ADR-0006` | `compiler-pipeline.md` | Golden IR and round-trip tests | accepted |
+| `REQ-SCHEMA-002` | `ADR-0006` | `compiler-pipeline.md`, `generated-code-contract.md` | Golden IR and generated compile tests | accepted |
+| `REQ-SCHEMA-003` | `ADR-0006` | `compiler-pipeline.md`, `validation-architecture.md` | Valid/invalid sequence tests | accepted |
+| `REQ-SCHEMA-004` | `ADR-0006`, `ADR-0007` | `compiler-pipeline.md`, `validation-architecture.md` | Cardinality tests | accepted |
+| `REQ-SCHEMA-005` | `ADR-0014` | `compiler-pipeline.md`, `security-architecture.md` | `TASK-0006` resolver tests with offline fixtures | accepted |
+| `REQ-SCHEMA-006` | `ADR-0009` | `compiler-pipeline.md`, `module-boundaries.md` | Multi-namespace examples | accepted |
+| `REQ-SCHEMA-007` | `ADR-0006`, `ADR-0008` | `generated-code-contract.md`, `conformance/matrix.md` | Profile-gated unsupported diagnostics until approved | deferred |
+| `REQ-RES-001` | `ADR-0014` | `security-architecture.md`, `compiler-pipeline.md` | `TASK-0006` local resolver and catalog tests | accepted |
+| `REQ-SEC-001` | `ADR-0014` | `security-architecture.md` | `TASK-0006` denied-network and cycle tests | accepted |
+| `REQ-NS-001` | `ADR-0009` | `compiler-pipeline.md`, `generated-code-contract.md` | Binding config tests | accepted |
+| `REQ-GEN-001` | `ADR-0008` | `compiler-pipeline.md` | Golden source tests | accepted |
+| `REQ-GEN-002` | `ADR-0008`, `ADR-0011` | `generated-code-contract.md`, `build-plan.md` | Compile and static-analysis tests | accepted |
+| `REQ-MODEL-001` | `ADR-0008` | `generated-code-contract.md` | Source and behavior tests | accepted |
+| `REQ-XML-W-001` | `ADR-0005`, `ADR-0009` | `runtime-architecture.md`, `generated-code-contract.md` | XML output tests | accepted |
+| `REQ-XML-R-001` | `ADR-0005`, `ADR-0007` | `runtime-architecture.md`, `validation-architecture.md` | XML input tests | accepted |
+| `REQ-VAL-001` | `ADR-0007` | `validation-architecture.md` | Negative XML diagnostic tests | accepted |
+| `REQ-VAL-002` | `ADR-0007` | `validation-architecture.md` | Negative structural tests | accepted |
+| `REQ-VAL-003` | `ADR-0007` | `validation-architecture.md` | Simple type tests | accepted |
+| `REQ-BUILD-001` | `ADR-0011` | `build-plan.md` | Gradle task review | accepted |
+| `REQ-BUILD-002` | `ADR-0011` | `build-plan.md`, `toolchain-matrix.md` | Toolchain config and CI | accepted |
+| `REQ-BUILD-003` | `ADR-0011` | `toolchain-matrix.md` | CI Java 25 lane | accepted |
+| `REQ-QA-001` | `ADR-0011` | `build-plan.md` | Quality gate tasks and CI | accepted |
+| `REQ-NI-001` | `ADR-0010` | `native-image-architecture.md` | Native workflow and smoke tests | accepted |
+| `REQ-AGENT-001` | `ADR-0013` | `AGENT.md`, `docs/agent/handoff.md` | Task-card review | accepted |

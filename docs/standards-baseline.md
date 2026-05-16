@@ -26,3 +26,7 @@
 - Each supported feature must map to a compatibility profile.
 - Each supported feature must have tests and conformance matrix entries.
 - Unsupported features must be rejected with explicit diagnostics, not silently ignored.
+
+## Local reference cache
+
+Agents may keep local, non-authoritative copies of dated standards documents under `.repo/standards/`. The `.repo/` directory is ignored by Git, so these files are for offline reading only and must not be cited as project-controlled source material. The normative references remain the public standards named in this document and the accepted ADRs.
