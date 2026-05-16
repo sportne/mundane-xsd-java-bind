@@ -11,7 +11,7 @@ plugins {
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
-description = 'Schema compiler implementation module; intentionally empty in v0.1.'
+description = 'Schema compiler implementation module.'
 
 publishing {
     publications {

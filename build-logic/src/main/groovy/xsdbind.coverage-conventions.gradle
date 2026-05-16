@@ -12,6 +12,22 @@ def libs = extensions.getByType(VersionCatalogsExtension).named('libs')
 // Main class files are the compiled production classes. Empty scaffold modules do not have any yet.
 def mainClasses = sourceSets.main.output.classesDirs
 
+// These thresholds mirror docs/verification/coverage-policy.md.
+// Projects with no compiled production classes still skip coverage verification.
+def coverageThresholdsByProject = [
+    ':modules:runtime-core': [line: '0.90', branch: '0.80', sourceLine: '0.80'],
+    ':modules:runtime-jdkxml': [line: '0.90', branch: '0.80', sourceLine: '0.80'],
+    ':modules:generator-core': [line: '0.85', branch: '0.75', sourceLine: '0.75'],
+    ':modules:generator-api': [line: '0.75', branch: '0.65', sourceLine: '0.65'],
+    ':modules:generator-cli': [line: '0.75', branch: '0.65', sourceLine: '0.65'],
+    ':modules:generator-gradle-plugin': [line: '0.75', branch: '0.65', sourceLine: '0.65'],
+    ':examples:purchase-order': [line: '0.75', branch: '0.65', sourceLine: '0.65'],
+    ':examples:multi-namespace': [line: '0.75', branch: '0.65', sourceLine: '0.65'],
+    ':modules:testing-support': [line: '0.70', branch: '0.60', sourceLine: '0.60'],
+    ':modules:conformance-tests': [line: '0.70', branch: '0.60', sourceLine: '0.60'],
+]
+def coverageThresholds = coverageThresholdsByProject.get(project.path)
+
 jacoco {
     // Pin the JaCoCo version so local machines and CI use the same tool.
     toolVersion = libs.findVersion('jacoco').get().requiredVersion
@@ -38,8 +54,11 @@ tasks.named('jacocoTestReport') {
     }
 }
 
-// Configure coverage verification. The threshold is intentionally staged at zero for scaffold modules.
+// Configure coverage verification. Empty scaffold modules skip this task, but implemented modules
+// enforce the documented thresholds so coverage regressions fail the normal check and qualityGate.
 tasks.named('jacocoTestCoverageVerification') {
+    // Coverage verification needs execution data, so direct calls should run tests first.
+    dependsOn tasks.named('test')
     // Skip empty modules until they contain compiled production classes.
     onlyIf { mainClasses.files.any { it.exists() && it.listFiles() } }
     violationRules {
@@ -49,7 +68,21 @@ tasks.named('jacocoTestCoverageVerification') {
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'
-                minimum = BigDecimal.valueOf(0.00)
+                minimum = new BigDecimal(coverageThresholds.line)
+            }
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = new BigDecimal(coverageThresholds.branch)
+            }
+        }
+        rule {
+            enabled = true
+            element = 'SOURCEFILE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = new BigDecimal(coverageThresholds.sourceLine)
             }
         }
     }

@@ -4,7 +4,7 @@ Schema compiler implementation module.
 
 ## Current status
 
-Scaffold only. Product compiler behavior remains gated by the design-control process.
+Initial schema resource resolution and raw XSD syntax frontend behavior are implemented. Component graph, normalized IR, binding, and source emission remain gated by approved task cards.
 
 ## Contributor notes
 

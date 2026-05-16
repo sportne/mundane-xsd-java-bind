@@ -39,7 +39,7 @@ Most module build files stay short because they apply convention plugins from `b
 - `xsdbind.identity-conventions` sets group/version inheritance, reproducible archives, and dependency locking.
 - `xsdbind.java-conventions` sets Java 21 toolchains, JUnit, Error Prone, UTF-8, and test defaults.
 - `xsdbind.quality-conventions` configures Spotless, Checkstyle, and SpotBugs.
-- `xsdbind.coverage-conventions` configures JaCoCo reports and coverage verification.
+- `xsdbind.coverage-conventions` configures JaCoCo reports and module-specific coverage verification for implemented modules.
 - `xsdbind.publishing-conventions` configures Maven publication for Java libraries.
 - `xsdbind.platform-conventions` configures Java platform BOM publication.
 - `xsdbind.application-conventions` configures application modules.

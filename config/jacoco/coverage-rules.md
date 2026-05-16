@@ -1,6 +1,6 @@
 # JaCoCo coverage rules
 
-Initial staged thresholds:
+Active thresholds:
 
 | Module type | Aggregate line | Aggregate branch | Per-file line |
 |---|---:|---:|---:|
@@ -9,4 +9,4 @@ Initial staged thresholds:
 | CLI/plugin | 75% | 65% | 65% |
 | Build/test support | 70% | 60% | 60% |
 
-The scaffold starts with a low temporary bundle threshold in build logic because there is no implementation. The first implementation PR must replace the staged threshold with module-specific rules matching this policy.
+Modules with no compiled production classes skip JaCoCo verification. Implemented modules enforce module-specific bundle line, bundle branch, and per-source-file line thresholds through `check` and the root `qualityGate`.

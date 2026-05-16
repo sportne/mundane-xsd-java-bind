@@ -13,3 +13,7 @@
 - Phase 2: enforce generator-core thresholds for implemented classes.
 - Phase 3/4: enforce runtime-core and generated-code test coverage.
 - Phase 5: enforce aggregate and per-file thresholds in CI.
+
+## Active enforcement
+
+JaCoCo verification skips modules with no compiled production classes. Once production classes exist, the module-specific bundle line, bundle branch, and per-source-file line thresholds above are enforced by each module's `check` task and the root `qualityGate`.

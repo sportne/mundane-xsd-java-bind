@@ -3,10 +3,10 @@
 | Feature | Standard area | Profile | Status | Tests | Notes |
 |---|---|---|---|---|---|
 | XML 1.0 well-formedness | XML 1.0 | `XP-DATA-10` | future | parser adapter tests | delegated to XML event source initially |
-| Namespaces | Namespaces in XML | `XP-DATA-10` | designed | `T-NS-FRONTEND-*` | required phase one; raw syntax capture in `TASK-0007` |
-| `xs:element` simple | XSD 1.0 | `XP-DATA-10` | designed | `T-ELEMENT-FRONTEND-*` | raw syntax capture in `TASK-0007` |
-| `xs:complexType` | XSD 1.0 | `XP-DATA-10` | designed | `T-COMPLEX-FRONTEND-*` | raw syntax capture in `TASK-0007` |
-| `xs:sequence` | XSD 1.0 | `XP-DATA-10` | designed | `T-SEQUENCE-FRONTEND-*` | raw syntax capture in `TASK-0007` |
+| Namespaces | Namespaces in XML | `XP-DATA-10` | designed | `T-NS-FRONTEND-*`, `T-NS-IR-*` | raw syntax capture in `TASK-0007`; QName resolution in `TASK-0008` |
+| `xs:element` simple | XSD 1.0 | `XP-DATA-10` | designed | `T-ELEMENT-FRONTEND-*`, `T-ELEMENT-IR-*` | raw syntax capture in `TASK-0007`; normalized IR in `TASK-0008` |
+| `xs:complexType` | XSD 1.0 | `XP-DATA-10` | designed | `T-COMPLEX-FRONTEND-*`, `T-COMPLEX-IR-*` | raw syntax capture in `TASK-0007`; normalized IR in `TASK-0008` |
+| `xs:sequence` | XSD 1.0 | `XP-DATA-10` | designed | `T-SEQUENCE-FRONTEND-*`, `T-SEQUENCE-IR-*` | raw syntax capture in `TASK-0007`; normalized IR in `TASK-0008` |
 | `xs:choice` | XSD 1.0 | `XP-DATA-10-CHOICE` | future | `T-CHOICE-FRONTEND-*` | feasibility gate; `TASK-0007` emits unsupported-profile diagnostics |
 | `xs:include`/`xs:import` | XSD 1.0 | `XP-DATA-10` | designed | `T-RES-*` | phase one resolver; first implementation card is `TASK-0006` |
 | Schema resource policy | XML Base / XSD resource resolution | `XP-DATA-10` | designed | `T-RES-POLICY-*` | local roots and catalog mappings only unless explicitly configured |

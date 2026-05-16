@@ -46,7 +46,7 @@ Contributor-facing setup instructions live in `docs/build/README.md`. This file 
 
 1. `help` and `projects` must work after wrapper/dependency hydration.
 2. `validateDesignControlPack` verifies required design-control files.
-3. `qualityGate` runs static analysis, formatting checks, coverage verification, and tests once source exists.
+3. `qualityGate` runs static analysis, formatting checks, tests, and module-specific coverage verification once source exists.
 4. `nativeTest` is enabled for sample/generated-code modules when phase-one generated bindings exist.
 
 ## Source layout policy

@@ -1,6 +1,6 @@
 # TASK-0007: xsd-syntax-frontend-subset
 
-Status: approved.
+Status: accepted.
 
 Task ID: `TASK-0007`
 Gate: Phase 2 schema compiler vertical slice; starts after accepted `TASK-0006`.
