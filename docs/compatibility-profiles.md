@@ -28,6 +28,6 @@
 | Profile | Meaning |
 |---|---|
 | `BUILD-ONLINE` | Normal developer build with remote repositories. |
-| `BUILD-OFFLINE-HYDRATED` | Offline build using hydrated local Maven repo and wrapper JAR. |
+| `BUILD-OFFLINE-HYDRATED` | Offline build using hydrated local Maven repo and provisioned Gradle distribution. |
 | `BUILD-CI-MATRIX` | CI on Java 21 and Java 25. |
 | `BUILD-STRICT` | Full quality, architecture, coverage, docs, generated-code, and native-image gates. |

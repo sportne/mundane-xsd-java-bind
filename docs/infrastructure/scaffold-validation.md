@@ -13,17 +13,27 @@ Generated on 2026-05-16 for Design-Control Pack v0.1.
   - `config/spotbugs/exclude.xml`
 - Confirmed there are no non-placeholder Java source files under `modules/**/src/main/java`, `modules/**/src/test/java`, `examples/**/src/main/java`, or `examples/**/src/test/java`.
 
-## Checks intentionally deferred
+## Current Gradle validation
 
-The generation environment did not have Gradle installed and did not have direct network/DNS access from the filesystem tool, so Gradle execution was not performed here. `TASK-0002` is the first coding-agent handoff task that hydrates the Gradle Wrapper JAR and dependency verification metadata, then runs:
+The Gradle wrapper, dependency verification metadata, and dependency locks have since been hydrated. The current scaffold validation command is:
+
+```bash
+./gradlew validateDesignControlPack qualityGate
+```
+
+This command is expected to pass with configuration-cache reuse on a repeat run.
+
+## Historical first-run commands
+
+The initial artifact environment could not execute Gradle. After hydration, agents used these commands to validate the scaffold:
 
 ```bash
 ./gradlew help
 ./gradlew projects
-./gradlew designControlStatus
-./gradlew check
+./gradlew validateDesignControlPack
+./gradlew qualityGate
 ```
 
 ## Wrapper note
 
-The POSIX `gradlew` script is a bootstrap wrapper script: it downloads `gradle/wrapper/gradle-wrapper.jar` for Gradle 9.5.1 from Gradle's distribution service on first use and verifies the published SHA-256 when `sha256sum` is available. Strict offline use requires placing the verified wrapper JAR in `gradle/wrapper/` before invoking Gradle offline.
+The standard Gradle wrapper scripts and `gradle-wrapper.jar` are committed. Strict offline use requires provisioning the Gradle 9.5.1 distribution or pointing `distributionUrl` at an approved internal mirror before invoking Gradle offline.

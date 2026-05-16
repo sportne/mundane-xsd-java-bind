@@ -1,43 +1,57 @@
+// The root build file defines tasks that apply to the whole repository.
 plugins {
+    // The base plugin gives the root project standard lifecycle tasks like clean and check.
     id 'base'
+    // This plugin adds validateDesignControlPack and the legacy designControlStatus alias.
+    id 'xsdbind.docs-validation-conventions'
+    // This plugin adds printOfflineBuildInstructions for contributors working without internet access.
+    id 'xsdbind.offline-conventions'
 }
 
+// group and version form the first two parts of Maven coordinates: group:name:version.
 group = 'io.github.xsdbind'
+
+// The version normally comes from gradle.properties, but this fallback keeps local experiments usable.
 version = providers.gradleProperty('xsdbind.version').getOrElse('0.1.0-SNAPSHOT')
 
-allprojects {
-    group = rootProject.group
-    version = rootProject.version
-}
+// These projects should be included when someone asks for one whole-repository check.
+// Keeping the list explicit makes the public root tasks easy to audit.
+def checkedProjects = [
+    ':modules:xsdbind-bom',
+    ':modules:runtime-core',
+    ':modules:runtime-jdkxml',
+    ':modules:generator-api',
+    ':modules:generator-core',
+    ':modules:generator-cli',
+    ':modules:generator-gradle-plugin',
+    ':modules:testing-support',
+    ':modules:conformance-tests',
+    ':examples:purchase-order',
+    ':examples:multi-namespace',
+]
 
-tasks.register('designControlStatus') {
+// The BOM has no Java source code, so quality tools such as Spotless and JaCoCo do not run there.
+def qualityProjects = checkedProjects.findAll { it != ':modules:xsdbind-bom' }
+
+// checkAll is a contributor-friendly shortcut for running each included project's check task.
+tasks.register('checkAll') {
     group = 'verification'
-    description = 'Checks that Design-Control Pack v0.1 files are present.'
-    doLast {
-        def requiredFiles = [
-            'DESIGN_CONTROL_PACK_v0.1.md',
-            'AGENT.md',
-            'docs/charter.md',
-            'docs/scope-and-non-goals.md',
-            'docs/standards-baseline.md',
-            'docs/compatibility-profiles.md',
-            'docs/requirements/index.md',
-            'docs/architecture/overview.md',
-            'docs/verification/verification-plan.md',
-            'docs/infrastructure/build-plan.md',
-            'docs/agent/handoff.md',
-            'docs/adr/index.md'
-        ]
-        def missing = requiredFiles.findAll { !rootProject.file(it).exists() }
-        if (!missing.empty) {
-            throw new GradleException('Design-control files missing: ' + missing.join(', '))
-        }
-        println 'Design-Control Pack v0.1 scaffold files are present.'
-        println 'Product implementation remains gated by docs/agent/handoff.md and AGENT.md.'
-    }
+    description = 'Runs check tasks across all included XSD bind projects.'
+    dependsOn checkedProjects.collect { "${it}:check" }
 }
 
-tasks.register('listPublishedArtifacts') {
+// qualityGate is the main local and CI gate: docs must exist, checks must pass, formatting must pass,
+// and coverage verification must run for projects that have compiled classes.
+tasks.register('qualityGate') {
+    group = 'verification'
+    description = 'Runs the default local quality gate.'
+    dependsOn 'validateDesignControlPack', 'checkAll'
+    dependsOn qualityProjects.collect { "${it}:spotlessCheck" }
+    dependsOn qualityProjects.collect { "${it}:jacocoTestCoverageVerification" }
+}
+
+// This help task prints the artifacts that publishToMavenLocal or a real publish will create.
+tasks.register('printPublishedArtifacts') {
     group = 'help'
     description = 'Prints planned artifact coordinates.'
     doLast {
@@ -52,4 +66,11 @@ tasks.register('listPublishedArtifacts') {
 :modules:testing-support          -> io.github.xsdbind:xsdbind-testing-support
 '''.stripIndent()
     }
+}
+
+// Keep the old task name available while docs and scripts move to printPublishedArtifacts.
+tasks.register('listPublishedArtifacts') {
+    group = 'help'
+    description = 'Compatibility alias for printPublishedArtifacts.'
+    dependsOn tasks.named('printPublishedArtifacts')
 }

@@ -1,13 +1,20 @@
+// This plugin configures GraalVM Native Image checks for modules that need native compatibility.
 plugins {
+    // Adds native image build and test tasks.
     id 'org.graalvm.buildtools.native'
 }
 
 graalvmNative {
+    // Let the plugin locate a usable GraalVM toolchain when possible.
     toolchainDetection = true
     binaries {
+        // Configure the native test binary.
         test {
+            // quickBuild trades peak optimization for faster CI feedback.
             quickBuild = true
+            // --no-fallback fails instead of producing a slower JVM fallback executable.
             buildArgs.add('--no-fallback')
+            // More stack trace detail makes native-image failures easier to understand.
             buildArgs.add('-H:+ReportExceptionStackTraces')
         }
     }

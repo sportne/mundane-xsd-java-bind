@@ -1,14 +1,21 @@
+// This module build file is intentionally small. Shared Gradle setup lives in build-logic.
 plugins {
+    // Standard Java 21 library setup, test defaults, and dependency locking.
     id 'xsdbind.java-conventions'
+    // Formatting, Checkstyle, and SpotBugs checks.
     id 'xsdbind.quality-conventions'
+    // JaCoCo coverage reports and verification.
     id 'xsdbind.coverage-conventions'
+    // Maven publication setup for published Java libraries.
     id 'xsdbind.publishing-conventions'
 }
 
+// Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Schema compiler implementation module; intentionally empty in v0.1.'
 
 publishing {
     publications {
+        // Published Maven artifact name for the generator implementation.
         mavenJava(MavenPublication) {
             artifactId = 'xsdbind-generator-core'
         }
@@ -16,5 +23,6 @@ publishing {
 }
 
 dependencies {
+    // api means consumers of generator-core also see the public generator API types.
     api project(':modules:generator-api')
 }

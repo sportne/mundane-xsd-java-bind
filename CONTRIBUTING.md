@@ -22,6 +22,17 @@ Every pull request must include:
 - Native Image impact assessment
 - runtime dependency impact assessment
 
+## Local checks
+
+Before opening a pull request, run:
+
+```bash
+./gradlew validateDesignControlPack
+./gradlew qualityGate
+```
+
+Use `./gradlew projects` to orient yourself in the multi-project build. Shared build conventions are in `build-logic/`; module build files should stay small and apply those conventions instead of duplicating tool configuration.
+
 ## Forbidden without ADR approval
 
 - runtime third-party dependencies

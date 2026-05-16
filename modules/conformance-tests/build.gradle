@@ -1,11 +1,17 @@
+// This module build file is intentionally small. Shared Gradle setup lives in build-logic.
 plugins {
+    // Standard Java 21 library setup, test defaults, and dependency locking.
     id 'xsdbind.java-conventions'
+    // Formatting, Checkstyle, and SpotBugs checks.
     id 'xsdbind.quality-conventions'
+    // JaCoCo coverage reports and verification.
     id 'xsdbind.coverage-conventions'
 }
 
+// Human-readable module purpose shown in Gradle reports and generated metadata.
 description = 'Internal conformance test harness; not published.'
 
 dependencies {
+    // Conformance tests reuse shared test helpers from the testing-support module.
     testImplementation project(':modules:testing-support')
 }

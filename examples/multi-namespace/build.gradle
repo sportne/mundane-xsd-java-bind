@@ -1,12 +1,19 @@
+// Example projects are buildable samples, not published library artifacts.
 plugins {
+    // Standard Java 21 setup so examples compile like real user code.
     id 'xsdbind.java-conventions'
+    // Formatting, Checkstyle, and SpotBugs checks.
     id 'xsdbind.quality-conventions'
+    // JaCoCo coverage reports and verification.
     id 'xsdbind.coverage-conventions'
 }
 
+// Human-readable example purpose shown in Gradle reports.
 description = 'Multi-namespace schema example placeholder.'
 
 dependencies {
+    // Examples use the public runtime the same way a downstream user would.
     implementation project(':modules:runtime-core')
+    // Tests can reuse shared project test helpers.
     testImplementation project(':modules:testing-support')
 }

@@ -9,7 +9,7 @@ Date: 2026-05-16
 
 ## Decision
 
-Support offline builds using a hydrated local Maven repository, dependency verification metadata, dependency locks, and hydrated wrapper JAR.
+Support offline builds using a hydrated local Maven repository, dependency verification metadata, dependency locks, committed wrapper metadata, and a provisioned Gradle distribution.
 
 ## Consequences
 

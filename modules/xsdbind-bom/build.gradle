@@ -1,16 +1,15 @@
+// A BOM module publishes dependency alignment only; it does not contain Java source.
 plugins {
-    id 'java-platform'
-    id 'maven-publish'
+    // Java platform and Maven publishing setup for BOM artifacts.
+    id 'xsdbind.platform-conventions'
 }
 
+// Human-readable BOM purpose shown in Gradle reports and generated Maven metadata.
 description = 'Dependency alignment BOM for xsd-bind-java.'
-
-javaPlatform {
-    allowDependencies()
-}
 
 dependencies {
     constraints {
+        // Each api constraint pins one xsdbind artifact version for users who import the BOM.
         api project(':modules:runtime-core')
         api project(':modules:runtime-jdkxml')
         api project(':modules:generator-api')
@@ -23,8 +22,8 @@ dependencies {
 
 publishing {
     publications {
+        // Published Maven artifact name for the dependency alignment BOM.
         mavenBom(MavenPublication) {
-            from components.javaPlatform
             artifactId = 'xsdbind-bom'
         }
     }

@@ -1,5 +1,5 @@
 # Gradle Wrapper
 
-`gradle-wrapper.properties` pins Gradle 9.5.1. The POSIX `gradlew` script bootstraps `gradle-wrapper.jar` from Gradle's distribution service on first use and verifies the published SHA-256 when `sha256sum` is available.
+`gradle-wrapper.properties` pins Gradle 9.5.1. The standard Gradle wrapper scripts and `gradle-wrapper.jar` are committed so contributors can run the build without a system Gradle installation.
 
-For strict offline repositories, place the verified `gradle-wrapper.jar` here before invoking `./gradlew --offline`.
+For strict offline repositories, pre-provision the Gradle 9.5.1 distribution or point `distributionUrl` at an approved internal mirror before invoking `./gradlew --offline`.

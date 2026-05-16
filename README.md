@@ -4,6 +4,12 @@
 
 `xsd-bind-java` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
 
+## Development model
+
+This project is largely coding-agent driven. Human maintainers set the direction, review the design-control documents, and approve implementation gates; coding agents are expected to do much of the scaffold, documentation, build, and eventually implementation work under the rules in `AGENT.md`.
+
+That workflow is intentional, so the repository is structured to be explicit about requirements, architecture, verification, build behavior, and task handoffs. Contributor-facing documentation is part of the product, not an afterthought.
+
 ## Project mission
 
 Generate Java 21 model, XML reader, XML writer, and validation code from XML Schema documents. Generated code must be explicit, statically analyzable, readable, deterministic, and suitable for Native Image without runtime reflection-based binding.
@@ -43,6 +49,7 @@ The first implementation phase targets schemas that primarily define XML data-st
 - `DESIGN_CONTROL_PACK_v0.1.md` — pack manifest and acceptance checklist.
 - `AGENT.md` — binding rules for coding agents.
 - `docs/charter.md` — project charter.
+- `docs/build/README.md` — contributor-facing build, offline, and toolchain notes.
 - `docs/requirements/` — requirements taxonomy and phase-one requirements.
 - `docs/architecture/` — architecture and module boundaries.
 - `docs/verification/` — verification and validation strategy.
@@ -51,15 +58,18 @@ The first implementation phase targets schemas that primarily define XML data-st
 
 ## Build note
 
-This scaffold is configured for Gradle 9.5.1 with Groovy DSL. The checked-in `gradlew` script bootstraps `gradle/wrapper/gradle-wrapper.jar` on first use from Gradle's distribution service, then delegates to the standard Gradle Wrapper main class. For fully offline builds, hydrate both the wrapper JAR and the local Maven repository as described in `docs/infrastructure/offline-build-plan.md`.
+This scaffold is configured for Gradle 9.5.1 with Groovy DSL. The standard Gradle wrapper scripts and `gradle/wrapper/gradle-wrapper.jar` are committed. Start with `docs/build/README.md`; for fully offline builds, provision the Gradle distribution and local Maven repository as described in `docs/build/offline-build.md`.
 
 Common commands after hydrating the wrapper and dependencies:
 
 ```bash
 ./gradlew help
 ./gradlew projects
-./gradlew designControlStatus
-./gradlew check
+./gradlew validateDesignControlPack
+./gradlew qualityGate
+./gradlew printPublishedArtifacts
 ```
 
 No command is expected to generate XML binding code in this pack.
+
+Build conventions live in `build-logic/` as composable Gradle convention plugins. Published code modules live under `modules/`; non-published examples live under `examples/`.

@@ -1,5 +1,7 @@
 # Offline build plan
 
+Contributor-facing commands live in `docs/build/offline-build.md`.
+
 ## Goal
 
 Support builds with no remote repository access after a local Maven repository and Gradle wrapper have been hydrated.
@@ -15,7 +17,7 @@ Support builds with no remote repository access after a local Maven repository a
 ## Offline invocation
 
 ```bash
-./gradlew --offline -Pxsdbind.offlineRepo=.repo/offline-maven check
+./gradlew --offline -Pxsdbind.offlineRepo=.repo/offline-maven qualityGate
 ```
 
 ## Agent rule
@@ -24,4 +26,4 @@ An agent may not introduce hidden network access. Any remote resource use must b
 
 ## Dependency verification bootstrap
 
-Dependency verification starts in lenient mode in `gradle.properties` so the v0.1 scaffold can hydrate. `TASK-0002` must generate and review full verification metadata, then switch CI to strict mode.
+Dependency verification runs in strict mode once metadata is hydrated. `TASK-0002` must keep verification metadata and dependency locks current whenever build dependencies change.

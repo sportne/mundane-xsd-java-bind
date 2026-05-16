@@ -1,14 +1,23 @@
+// This module build file is intentionally small. Shared Gradle setup lives in build-logic.
 plugins {
-    id 'xsdbind.java-conventions'
+    // Application packaging for a future command-line entry point.
+    id 'xsdbind.application-conventions'
+    // Formatting, Checkstyle, and SpotBugs checks.
     id 'xsdbind.quality-conventions'
+    // JaCoCo coverage reports and verification.
     id 'xsdbind.coverage-conventions'
+    // Maven publication setup for published Java artifacts.
     id 'xsdbind.publishing-conventions'
+    // GraalVM Native Image compatibility checks for the CLI.
+    id 'xsdbind.native-conventions'
 }
 
+// Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Command-line generator entry point; intentionally empty in v0.1.'
 
 publishing {
     publications {
+        // Published Maven artifact name for the command-line tool.
         mavenJava(MavenPublication) {
             artifactId = 'xsdbind-cli'
         }
@@ -16,6 +25,8 @@ publishing {
 }
 
 dependencies {
+    // The CLI reads public configuration types from the generator API.
     implementation project(':modules:generator-api')
+    // The CLI delegates generation work to the core generator implementation.
     implementation project(':modules:generator-core')
 }
