@@ -37,14 +37,14 @@ while IFS= read -r artifact; do
 done
 
 cat > "${TARGET_REPO}/README.txt" <<EOF
-Offline repository staging area for xsd-bind-java.
+Offline repository staging area for mundane XSD Java Binding.
 
 This Maven-layout directory was populated from the local Gradle dependency cache.
 Review and approve contents before using it as a controlled offline repository.
 
 Run:
 
-  ./gradlew --offline -Pxsdbind.offlineRepo=${TARGET_REPO} clean qualityGate
+  ./gradlew --offline -Pmxjb.offlineRepo=${TARGET_REPO} clean qualityGate
 EOF
 
 echo "Prepared offline repository staging area at ${TARGET_REPO}."

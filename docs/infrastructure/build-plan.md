@@ -38,9 +38,9 @@ Contributor-facing setup instructions live in `docs/build/README.md`. This file 
 
 ## Build properties
 
-- `xsdbind.version` controls published artifact versions.
-- `xsdbind.javaRelease` controls Java compile release and toolchain selection.
-- `xsdbind.offlineRepo` selects a local Maven repository for offline dependency resolution.
+- `mxjb.version` controls published artifact versions.
+- `mxjb.javaRelease` controls Java compile release and toolchain selection.
+- `mxjb.offlineRepo` selects a local Maven repository for offline dependency resolution.
 
 ## Build phases
 

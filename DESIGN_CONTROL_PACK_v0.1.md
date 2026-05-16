@@ -1,6 +1,6 @@
 # Design-Control Pack v0.1
 
-This pack establishes the repository, design baseline, requirements taxonomy, architecture, verification strategy, infrastructure plan, ADRs, and agent governance for `xsd-bind-java`.
+This pack establishes the repository, design baseline, requirements taxonomy, architecture, verification strategy, infrastructure plan, ADRs, and agent governance for `mundane XSD Java Binding`.
 
 ## Pack status
 

@@ -8,4 +8,4 @@ if [ ! -x ./gradlew ]; then
   exit 1
 fi
 
-./gradlew --offline -Pxsdbind.offlineRepo="${OFFLINE_REPO}" clean qualityGate
+./gradlew --offline -Pmxjb.offlineRepo="${OFFLINE_REPO}" clean qualityGate

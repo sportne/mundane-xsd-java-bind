@@ -1,8 +1,8 @@
-# xsd-bind-java
+# mundane XSD Java Binding
 
 **Status:** Design-Control Pack v0.1 scaffold. No XML schema compiler, runtime binding, reader, writer, validator, or generated-code implementation exists yet.
 
-`xsd-bind-java` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
+`mundane XSD Java Binding` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
 
 ## Development model
 

@@ -39,6 +39,15 @@ Make the smallest coherent change that satisfies the approved task. Keep edits f
 - Preserve existing requirements, engineering plans, verification plans, validation plans, ADRs, and traceability records unless the task explicitly changes them.
 - When a cleanup is useful but not necessary, document it as follow-up work instead of mixing it into the current change.
 
+## Test-driven implementation standard
+
+For implementation and defect-fix tasks, prefer a test-first loop:
+
+- Add or update one focused behavior test that fails for the missing behavior or defect.
+- Implement the smallest production change that makes that test pass.
+- Repeat in vertical slices instead of writing a broad batch of speculative tests.
+- If test-first work is impractical for a change, explain why in the review notes and still add the closest useful regression coverage before completion.
+
 ## Build-file documentation standard
 
 Gradle files are contributor-facing documentation, not just machine instructions.

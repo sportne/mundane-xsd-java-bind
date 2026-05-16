@@ -1,7 +1,7 @@
 // This file tells Gradle which projects exist and where plugins/dependencies come from.
 pluginManagement {
-    // If xsdbind.offlineRepo is set, Gradle will use that local Maven-style folder instead of the internet.
-    def offlineRepoPath = providers.gradleProperty('xsdbind.offlineRepo').orNull
+    // If mxjb.offlineRepo is set, Gradle will use that local Maven-style folder instead of the internet.
+    def offlineRepoPath = providers.gradleProperty('mxjb.offlineRepo').orNull
 
     // build-logic is an included build that contains our custom convention plugins.
     includeBuild 'build-logic'
@@ -22,7 +22,7 @@ pluginManagement {
 // This block controls normal project dependencies such as JUnit, SpotBugs, and inter-module libraries.
 dependencyResolutionManagement {
     // Read the same offline repository property for regular dependencies.
-    def offlineRepoPath = providers.gradleProperty('xsdbind.offlineRepo').orNull
+    def offlineRepoPath = providers.gradleProperty('mxjb.offlineRepo').orNull
 
     // Keep repository declarations centralized here so subprojects cannot quietly add new repositories.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -40,10 +40,10 @@ dependencyResolutionManagement {
 }
 
 // This is the name Gradle shows for the root project.
-rootProject.name = 'xsd-bind-java'
+rootProject.name = 'mundane-xsd-java-binding'
 
 // Publishable and test-support modules live under modules/.
-include ':modules:xsdbind-bom'
+include ':modules:mxjb-bom'
 include ':modules:runtime-core'
 include ':modules:runtime-jdkxml'
 include ':modules:generator-api'

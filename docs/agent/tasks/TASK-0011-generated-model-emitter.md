@@ -8,7 +8,7 @@ Requirement IDs: `REQ-GEN-001`, `REQ-GEN-002`, `REQ-MODEL-001`, `REQ-NS-001`, `R
 ADR IDs: `ADR-0003`, `ADR-0004`, `ADR-0006`, `ADR-0008`, `ADR-0009`, `ADR-0011`, `ADR-0013`
 Specification references: `docs/architecture/generated-code-contract.md`, `docs/architecture/compiler-pipeline.md`, `docs/architecture/module-boundaries.md`
 Target module: `modules/generator-core`
-Allowed files: `modules/generator-core/src/main/java/io/github/xsdbind/generator/core/emit/**`, generator-core tests/resources/golden generated model fixtures, and directly related docs
+Allowed files: `modules/generator-core/src/main/java/io/github/mundanej/mxjb/generator/core/emit/**`, generator-core tests/resources/golden generated model fixtures, and directly related docs
 Forbidden files: runtime module source except tests depending on accepted runtime-core interfaces, public `generator-api` source, CLI source, Gradle plugin source, XML reader/writer emitter implementation, validation engine implementation, dependency metadata, and committed generated product code outside approved golden fixtures
 Expected behavior: emit deterministic Java 21 model source for supported binding-model constructs using immutable records or final classes/builders where appropriate, defensive copies for repeated fields, null-free collection invariants, stable package/type/member names, and no runtime annotations or reflection-based binding behavior.
 Tests to add/update: golden source tests, generated model compile tests, repeated/optional field behavior tests, name collision tests, static-analysis compatibility tests, and ArchUnit checks for forbidden generated-code dependencies and reflection behavior

@@ -8,7 +8,7 @@ Requirement IDs: `REQ-RT-001`, `REQ-XML-R-001`, `REQ-XML-W-001`, `REQ-VAL-001`, 
 ADR IDs: `ADR-0003`, `ADR-0005`, `ADR-0007`, `ADR-0010`, `ADR-0011`, `ADR-0013`, `ADR-0014`
 Specification references: `docs/architecture/runtime-architecture.md`, `docs/architecture/security-architecture.md`, `docs/verification/security-test-plan.md`
 Target module: `modules/runtime-jdkxml`
-Allowed files: `modules/runtime-jdkxml/src/main/java/io/github/xsdbind/runtime/jdkxml/**`, `modules/runtime-jdkxml/src/test/java/io/github/xsdbind/runtime/jdkxml/**`, module README updates, and directly related docs
+Allowed files: `modules/runtime-jdkxml/src/main/java/io/github/mundanej/mxjb/runtime/jdkxml/**`, `modules/runtime-jdkxml/src/test/java/io/github/mundanej/mxjb/runtime/jdkxml/**`, module README updates, and directly related docs
 Forbidden files: generated-code emitters, generator public API, CLI source, Gradle plugin source, dependency metadata, and any change making `runtime-jdkxml` required by generated code
 Expected behavior: implement optional adapters from JDK XML APIs to `runtime-core` XML event/output interfaces for tests and examples, with secure defaults for entity/resource behavior and stable location/diagnostic propagation where available.
 Tests to add/update: adapter unit tests, XML reading/writing adapter tests, denied external entity/resource tests, location propagation tests, module dependency tests, and Native Image compatibility checks where feasible

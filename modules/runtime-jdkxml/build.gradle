@@ -1,15 +1,15 @@
 // This module build file is intentionally small. Shared Gradle setup lives in build-logic.
 plugins {
     // Standard Java 21 library setup, test defaults, and dependency locking.
-    id 'xsdbind.java-conventions'
+    id 'mxjb.java-conventions'
     // Formatting, Checkstyle, and SpotBugs checks.
-    id 'xsdbind.quality-conventions'
+    id 'mxjb.quality-conventions'
     // JaCoCo coverage reports and verification.
-    id 'xsdbind.coverage-conventions'
+    id 'mxjb.coverage-conventions'
     // Maven publication setup for published Java libraries.
-    id 'xsdbind.publishing-conventions'
+    id 'mxjb.publishing-conventions'
     // GraalVM Native Image compatibility checks for runtime code.
-    id 'xsdbind.native-conventions'
+    id 'mxjb.native-conventions'
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
@@ -19,7 +19,7 @@ publishing {
     publications {
         // Published Maven artifact name for JDK XML adapters.
         mavenJava(MavenPublication) {
-            artifactId = 'xsdbind-runtime-jdkxml'
+            artifactId = 'mxjb-runtime-jdkxml'
         }
     }
 }

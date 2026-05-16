@@ -2,7 +2,7 @@
 
 ## Mission
 
-`xsd-bind-java` shall provide a modern Java XML Schema-to-code generator and runtime that emits explicit Java model, XML writer, XML reader, and validation code from XML Schema documents.
+`mundane XSD Java Binding` shall provide a modern Java XML Schema-to-code generator and runtime that emits explicit Java model, XML writer, XML reader, and validation code from XML Schema documents.
 
 ## Operating principles
 

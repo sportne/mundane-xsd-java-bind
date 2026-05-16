@@ -1,11 +1,11 @@
 // Example projects are buildable samples, not published library artifacts.
 plugins {
     // Standard Java 21 setup so examples compile like real user code.
-    id 'xsdbind.java-conventions'
+    id 'mxjb.java-conventions'
     // Formatting, Checkstyle, and SpotBugs checks.
-    id 'xsdbind.quality-conventions'
+    id 'mxjb.quality-conventions'
     // JaCoCo coverage reports and verification.
-    id 'xsdbind.coverage-conventions'
+    id 'mxjb.coverage-conventions'
 }
 
 // Human-readable example purpose shown in Gradle reports.

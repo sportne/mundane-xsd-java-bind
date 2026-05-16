@@ -6,6 +6,6 @@ Future use:
 
 1. add schema fixture under `src/main/resources/schema`
 2. configure generator Gradle plugin
-3. generate sources into `build/generated/xsdbind`
+3. generate sources into `build/generated/mxjb`
 4. compile generated model/reader/writer
 5. run round-trip and Native Image smoke tests

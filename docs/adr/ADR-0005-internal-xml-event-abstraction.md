@@ -5,7 +5,7 @@ Date: 2026-05-16
 
 ## Context
 
-`xsd-bind-java` is a design-first XML Schema-to-Java generator and runtime project. The repository must establish stable architectural decisions before product implementation.
+`mundane XSD Java Binding` is a design-first XML Schema-to-Java generator and runtime project. The repository must establish stable architectural decisions before product implementation.
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # Security
 
-`xsd-bind-java` treats XML resource handling, generated-code determinism, and runtime dependency control as security-sensitive project areas.
+`mundane XSD Java Binding` treats XML resource handling, generated-code determinism, and runtime dependency control as security-sensitive project areas.
 
 ## Reporting
 

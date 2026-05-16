@@ -2,7 +2,7 @@
 // build-logic compiles the custom convention plugins used by the main build.
 pluginManagement {
     // Allow build-logic plugins to be resolved from an offline repository when needed.
-    def offlineRepoPath = providers.gradleProperty('xsdbind.offlineRepo').orNull
+    def offlineRepoPath = providers.gradleProperty('mxjb.offlineRepo').orNull
     repositories {
         if (offlineRepoPath != null && !offlineRepoPath.isBlank()) {
             // Offline mode for plugin dependencies.
@@ -18,7 +18,7 @@ pluginManagement {
 // Dependencies used while compiling build-logic are also centralized here.
 dependencyResolutionManagement {
     // Use the same offline repository property as the main build.
-    def offlineRepoPath = providers.gradleProperty('xsdbind.offlineRepo').orNull
+    def offlineRepoPath = providers.gradleProperty('mxjb.offlineRepo').orNull
 
     // Prevent build-logic projects from adding their own repositories.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -41,4 +41,4 @@ dependencyResolutionManagement {
 }
 
 // Name shown by Gradle when build-logic is configured.
-rootProject.name = 'xsdbind-build-logic'
+rootProject.name = 'mxjb-build-logic'

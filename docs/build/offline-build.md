@@ -26,7 +26,7 @@ Verify the build can use it:
 The underlying Gradle pattern is:
 
 ```bash
-./gradlew --offline -Pxsdbind.offlineRepo=/path/to/local-maven-repo clean qualityGate
+./gradlew --offline -Pmxjb.offlineRepo=/path/to/local-maven-repo clean qualityGate
 ```
 
 ## Rules

@@ -36,22 +36,22 @@ See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
 
 Most module build files stay short because they apply convention plugins from `build-logic/src/main/groovy`.
 
-- `xsdbind.identity-conventions` sets group/version inheritance, reproducible archives, and dependency locking.
-- `xsdbind.java-conventions` sets Java 21 toolchains, JUnit, Error Prone, UTF-8, and test defaults.
-- `xsdbind.quality-conventions` configures Spotless, Checkstyle, and SpotBugs.
-- `xsdbind.coverage-conventions` configures JaCoCo reports and module-specific coverage verification for implemented modules.
-- `xsdbind.publishing-conventions` configures Maven publication for Java libraries.
-- `xsdbind.platform-conventions` configures Java platform BOM publication.
-- `xsdbind.application-conventions` configures application modules.
-- `xsdbind.native-conventions` configures GraalVM Native Image checks.
-- `xsdbind.docs-validation-conventions` adds design-control validation tasks.
-- `xsdbind.offline-conventions` adds offline build instructions.
+- `mxjb.identity-conventions` sets group/version inheritance, reproducible archives, and dependency locking.
+- `mxjb.java-conventions` sets Java 21 toolchains, JUnit, Error Prone, UTF-8, and test defaults.
+- `mxjb.quality-conventions` configures Spotless, Checkstyle, and SpotBugs.
+- `mxjb.coverage-conventions` configures JaCoCo reports and module-specific coverage verification for implemented modules.
+- `mxjb.publishing-conventions` configures Maven publication for Java libraries.
+- `mxjb.platform-conventions` configures Java platform BOM publication.
+- `mxjb.application-conventions` configures application modules.
+- `mxjb.native-conventions` configures GraalVM Native Image checks.
+- `mxjb.docs-validation-conventions` adds design-control validation tasks.
+- `mxjb.offline-conventions` adds offline build instructions.
 
 ## Build properties
 
-- `xsdbind.version` controls the Maven version for published artifacts.
-- `xsdbind.javaRelease` controls the Java release used by compile tasks.
-- `xsdbind.offlineRepo` points Gradle at a prepared local Maven repository for offline builds.
+- `mxjb.version` controls the Maven version for published artifacts.
+- `mxjb.javaRelease` controls the Java release used by compile tasks.
+- `mxjb.offlineRepo` points Gradle at a prepared local Maven repository for offline builds.
 - `org.gradle.dependency.verification=strict` requires dependency verification metadata to match.
 
 ## Dependency policy

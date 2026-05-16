@@ -1,15 +1,15 @@
 // This module build file is intentionally small. Shared Gradle setup lives in build-logic.
 plugins {
     // Application packaging for a future command-line entry point.
-    id 'xsdbind.application-conventions'
+    id 'mxjb.application-conventions'
     // Formatting, Checkstyle, and SpotBugs checks.
-    id 'xsdbind.quality-conventions'
+    id 'mxjb.quality-conventions'
     // JaCoCo coverage reports and verification.
-    id 'xsdbind.coverage-conventions'
+    id 'mxjb.coverage-conventions'
     // Maven publication setup for published Java artifacts.
-    id 'xsdbind.publishing-conventions'
+    id 'mxjb.publishing-conventions'
     // GraalVM Native Image compatibility checks for the CLI.
-    id 'xsdbind.native-conventions'
+    id 'mxjb.native-conventions'
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
@@ -19,7 +19,7 @@ publishing {
     publications {
         // Published Maven artifact name for the command-line tool.
         mavenJava(MavenPublication) {
-            artifactId = 'xsdbind-cli'
+            artifactId = 'mxjb-cli'
         }
     }
 }

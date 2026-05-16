@@ -1,0 +1,30 @@
+// A BOM module publishes dependency alignment only; it does not contain Java source.
+plugins {
+    // Java platform and Maven publishing setup for BOM artifacts.
+    id 'mxjb.platform-conventions'
+}
+
+// Human-readable BOM purpose shown in Gradle reports and generated Maven metadata.
+description = 'Dependency alignment BOM for mundane XSD Java Binding.'
+
+dependencies {
+    constraints {
+        // Each api constraint pins one mxjb artifact version for users who import the BOM.
+        api project(':modules:runtime-core')
+        api project(':modules:runtime-jdkxml')
+        api project(':modules:generator-api')
+        api project(':modules:generator-core')
+        api project(':modules:generator-cli')
+        api project(':modules:generator-gradle-plugin')
+        api project(':modules:testing-support')
+    }
+}
+
+publishing {
+    publications {
+        // Published Maven artifact name for the dependency alignment BOM.
+        mavenBom(MavenPublication) {
+            artifactId = 'mxjb-bom'
+        }
+    }
+}

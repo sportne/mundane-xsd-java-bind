@@ -3,14 +3,14 @@
 ## Planned artifact coordinates
 
 ```text
-:modules:xsdbind-bom              -> io.github.xsdbind:xsdbind-bom
-:modules:runtime-core             -> io.github.xsdbind:xsdbind-runtime-core
-:modules:runtime-jdkxml           -> io.github.xsdbind:xsdbind-runtime-jdkxml
-:modules:generator-api            -> io.github.xsdbind:xsdbind-generator-api
-:modules:generator-core           -> io.github.xsdbind:xsdbind-generator-core
-:modules:generator-cli            -> io.github.xsdbind:xsdbind-cli
-:modules:generator-gradle-plugin  -> io.github.xsdbind:xsdbind-gradle-plugin
-:modules:testing-support          -> io.github.xsdbind:xsdbind-testing-support
+:modules:mxjb-bom              -> io.github.mundanej:mxjb-bom
+:modules:runtime-core             -> io.github.mundanej:mxjb-runtime-core
+:modules:runtime-jdkxml           -> io.github.mundanej:mxjb-runtime-jdkxml
+:modules:generator-api            -> io.github.mundanej:mxjb-generator-api
+:modules:generator-core           -> io.github.mundanej:mxjb-generator-core
+:modules:generator-cli            -> io.github.mundanej:mxjb-cli
+:modules:generator-gradle-plugin  -> io.github.mundanej:mxjb-gradle-plugin
+:modules:testing-support          -> io.github.mundanej:mxjb-testing-support
 ```
 
 ## Versioning

@@ -8,7 +8,7 @@ Requirement IDs: `REQ-RT-001`, `REQ-RT-002`, `REQ-XML-W-001`, `REQ-XML-R-001`, `
 ADR IDs: `ADR-0003`, `ADR-0004`, `ADR-0005`, `ADR-0007`, `ADR-0010`, `ADR-0011`, `ADR-0013`
 Specification references: `docs/architecture/runtime-architecture.md`, `docs/architecture/module-boundaries.md`, `docs/architecture/native-image-architecture.md`
 Target module: `modules/runtime-core`
-Allowed files: `modules/runtime-core/src/main/java/io/github/xsdbind/runtime/**`, `modules/runtime-core/src/test/java/io/github/xsdbind/runtime/**`, module README updates, and directly related architecture/traceability docs
+Allowed files: `modules/runtime-core/src/main/java/io/github/mundanej/mxjb/runtime/**`, `modules/runtime-core/src/test/java/io/github/mundanej/mxjb/runtime/**`, module README updates, and directly related architecture/traceability docs
 Forbidden files: generator implementation source, `runtime-jdkxml` source, CLI source, Gradle plugin source, generated example source, dependency declarations, dependency locks, and dependency verification metadata
 Expected behavior: add dependency-free runtime-core primitives needed by generated code: XML names, source locations, diagnostics, read/write exceptions, XML event reader/output interfaces, and validation result/error value types.
 Tests to add/update: unit tests for value semantics, null/argument invariants, diagnostic stability, exception data retention, no-third-party dependency enforcement, ArchUnit module-boundary rules, and Native Image execution for runtime-core primitives once behavior exists

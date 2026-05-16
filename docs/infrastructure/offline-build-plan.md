@@ -17,7 +17,7 @@ Support builds with no remote repository access after a local Maven repository a
 ## Offline invocation
 
 ```bash
-./gradlew --offline -Pxsdbind.offlineRepo=.repo/offline-maven qualityGate
+./gradlew --offline -Pmxjb.offlineRepo=.repo/offline-maven qualityGate
 ```
 
 ## Agent rule

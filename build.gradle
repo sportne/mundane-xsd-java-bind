@@ -3,21 +3,21 @@ plugins {
     // The base plugin gives the root project standard lifecycle tasks like clean and check.
     id 'base'
     // This plugin adds validateDesignControlPack and the legacy designControlStatus alias.
-    id 'xsdbind.docs-validation-conventions'
+    id 'mxjb.docs-validation-conventions'
     // This plugin adds printOfflineBuildInstructions for contributors working without internet access.
-    id 'xsdbind.offline-conventions'
+    id 'mxjb.offline-conventions'
 }
 
 // group and version form the first two parts of Maven coordinates: group:name:version.
-group = 'io.github.xsdbind'
+group = 'io.github.mundanej'
 
 // The version normally comes from gradle.properties, but this fallback keeps local experiments usable.
-version = providers.gradleProperty('xsdbind.version').getOrElse('0.1.0-SNAPSHOT')
+version = providers.gradleProperty('mxjb.version').getOrElse('0.1.0-SNAPSHOT')
 
 // These projects should be included when someone asks for one whole-repository check.
 // Keeping the list explicit makes the public root tasks easy to audit.
 def checkedProjects = [
-    ':modules:xsdbind-bom',
+    ':modules:mxjb-bom',
     ':modules:runtime-core',
     ':modules:runtime-jdkxml',
     ':modules:generator-api',
@@ -31,12 +31,12 @@ def checkedProjects = [
 ]
 
 // The BOM has no Java source code, so quality tools such as Spotless and JaCoCo do not run there.
-def qualityProjects = checkedProjects.findAll { it != ':modules:xsdbind-bom' }
+def qualityProjects = checkedProjects.findAll { it != ':modules:mxjb-bom' }
 
 // checkAll is a contributor-friendly shortcut for running each included project's check task.
 tasks.register('checkAll') {
     group = 'verification'
-    description = 'Runs check tasks across all included XSD bind projects.'
+    description = 'Runs check tasks across all included mundane XSD Java Binding projects.'
     dependsOn checkedProjects.collect { "${it}:check" }
 }
 
@@ -56,14 +56,14 @@ tasks.register('printPublishedArtifacts') {
     description = 'Prints planned artifact coordinates.'
     doLast {
         println '''
-:modules:xsdbind-bom              -> io.github.xsdbind:xsdbind-bom
-:modules:runtime-core             -> io.github.xsdbind:xsdbind-runtime-core
-:modules:runtime-jdkxml           -> io.github.xsdbind:xsdbind-runtime-jdkxml
-:modules:generator-api            -> io.github.xsdbind:xsdbind-generator-api
-:modules:generator-core           -> io.github.xsdbind:xsdbind-generator-core
-:modules:generator-cli            -> io.github.xsdbind:xsdbind-cli
-:modules:generator-gradle-plugin  -> io.github.xsdbind:xsdbind-gradle-plugin
-:modules:testing-support          -> io.github.xsdbind:xsdbind-testing-support
+:modules:mxjb-bom                 -> io.github.mundanej:mxjb-bom
+:modules:runtime-core             -> io.github.mundanej:mxjb-runtime-core
+:modules:runtime-jdkxml           -> io.github.mundanej:mxjb-runtime-jdkxml
+:modules:generator-api            -> io.github.mundanej:mxjb-generator-api
+:modules:generator-core           -> io.github.mundanej:mxjb-generator-core
+:modules:generator-cli            -> io.github.mundanej:mxjb-cli
+:modules:generator-gradle-plugin  -> io.github.mundanej:mxjb-gradle-plugin
+:modules:testing-support          -> io.github.mundanej:mxjb-testing-support
 '''.stripIndent()
     }
 }
