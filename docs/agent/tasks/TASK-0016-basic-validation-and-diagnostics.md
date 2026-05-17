@@ -1,6 +1,6 @@
 # TASK-0016: basic-validation-and-diagnostics
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0016`
 Gate: Phase 4 generated reader and basic validation vertical slice; starts only after `TASK-0015` is accepted.

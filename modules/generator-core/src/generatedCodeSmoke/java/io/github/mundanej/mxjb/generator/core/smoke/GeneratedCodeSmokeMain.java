@@ -3,7 +3,9 @@ package io.github.mundanej.mxjb.generator.core.smoke;
 import com.example.lines.Line;
 import com.example.orders.Order;
 import com.example.orders.xml.OrderXmlReader;
+import com.example.orders.xml.OrderXmlValidator;
 import com.example.orders.xml.OrderXmlWriter;
+import io.github.mundanej.mxjb.runtime.ValidationResult;
 import io.github.mundanej.mxjb.runtime.XmlEventKind;
 import io.github.mundanej.mxjb.runtime.XmlEventReader;
 import io.github.mundanej.mxjb.runtime.XmlLocation;
@@ -64,6 +66,16 @@ public final class GeneratedCodeSmokeMain {
         || !"SKU-1".equals(parsed.line().get(0).sku())
         || !"SKU-2".equals(parsed.line().get(1).sku())) {
       throw new AssertionError("Generated-code smoke reader mismatch: " + parsed);
+    }
+
+    ValidationResult objectValidation = OrderXmlValidator.validate(order);
+    ValidationResult xmlValidation = OrderXmlValidator.validate(orderInput());
+    if (!objectValidation.isValid() || !xmlValidation.isValid()) {
+      throw new AssertionError(
+          "Generated-code smoke validator mismatch: "
+              + objectValidation.errors()
+              + " / "
+              + xmlValidation.errors());
     }
   }
 

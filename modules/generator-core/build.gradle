@@ -33,7 +33,7 @@ configurations {
     generatedCodeSmokeCompileClasspath {
         canBeConsumed = false
         canBeResolved = true
-        description = 'Classpath for generated model/writer smoke compilation.'
+        description = 'Classpath for generated model/reader/writer/validator smoke compilation.'
     }
 }
 
@@ -73,7 +73,7 @@ tasks.register('compileGeneratedCodeSmokeJava', JavaCompile) {
 
 tasks.register('generatedCodeSmoke', JavaExec) {
     group = 'verification'
-    description = 'Runs the JVM smoke check for approved generated model/writer sources.'
+    description = 'Runs the JVM smoke check for approved generated model/reader/writer/validator sources.'
     dependsOn tasks.named('compileGeneratedCodeSmokeJava')
     classpath = files(generatedCodeSmokeClassesDirectory) + configurations.generatedCodeSmokeCompileClasspath
     mainClass = generatedCodeSmokeMainClass

@@ -23,8 +23,8 @@
 `TASK-0013` establishes the canonical generated-source verification harness for generated model/writer source and later reader/validation source.
 
 - Golden fixtures live under generator-core test resources with generated relative paths and a `.java.golden` suffix so formatters do not rewrite approved output.
-- Generated source tests compare byte-for-byte against approved golden fixtures, reject duplicate relative output paths, verify deterministic repeated emission, compile with Java 21 `-Xlint:all -Werror`, and execute behavior through loaded generated classes.
-- `:modules:generator-core:generatedCodeSmoke` compiles approved generated fixtures plus a small smoke main and is part of `:modules:generator-core:check`.
+- Generated source tests compare byte-for-byte against approved golden fixtures, reject duplicate relative output paths, verify deterministic repeated emission, compile with Java 21 `-Xlint:all -Werror`, and execute model, reader, writer, and validator behavior through loaded generated classes.
+- `:modules:generator-core:generatedCodeSmoke` compiles approved generated fixtures plus a small smoke main and is part of `:modules:generator-core:check`; after `TASK-0016` it also verifies generated validation results.
 - `:modules:generator-core:generatedCodeNativeSmoke` builds and runs the same approved generated fixture path as a Native Image smoke executable when GraalVM native-image is available.
 
 ## Phase-one verification minimum
@@ -34,6 +34,7 @@
 - Generated source compile test.
 - XML input → object test.
 - Object → XML output test.
+- Object/XML → validation result test.
 - Round-trip test.
 - Negative XML diagnostic test.
 - Basic Native Image smoke test.

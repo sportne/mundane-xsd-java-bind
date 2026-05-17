@@ -20,6 +20,8 @@ Generated writer source emitted by `TASK-0012` targets `XmlOutput` and `XmlName`
 
 Generated reader source emitted by `TASK-0015` targets `XmlEventReader`, `XmlName`, `XmlLocation`, `XmlDiagnostic`, and `XmlReadException` directly. Concrete XML parsing, entity/resource policy, and adapter behavior remain outside generated code; generated readers consume only the project-owned event abstraction.
 
+Generated validator source emitted by `TASK-0016` targets `ValidationResult`, `ValidationError`, `XmlLocation`, `XmlEventReader`, and generated peer readers directly. `runtime-core` supplies validation value objects only; generated validators contain the explicit schema-specific validation logic.
+
 ## `runtime-jdkxml`
 
 Optional adapter module that bridges JDK StAX to `runtime-core` interfaces. Generated code must not require this module; it is a convenience adapter for tests, examples, and user code.

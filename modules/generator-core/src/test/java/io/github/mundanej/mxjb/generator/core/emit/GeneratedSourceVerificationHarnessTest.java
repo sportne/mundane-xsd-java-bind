@@ -12,6 +12,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
 import io.github.mundanej.mxjb.generator.core.bind.BindingValidationPlan;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
+import io.github.mundanej.mxjb.runtime.ValidationResult;
 import io.github.mundanej.mxjb.runtime.XmlEventKind;
 import io.github.mundanej.mxjb.runtime.XmlEventReader;
 import io.github.mundanej.mxjb.runtime.XmlLocation;
@@ -53,6 +54,7 @@ final class GeneratedSourceVerificationHarnessTest {
       Class<?> orderClass = compiledSources.load("com.example.orders.Order");
       Class<?> lineClass = compiledSources.load("com.example.lines.Line");
       Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
       Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
       Object firstLine = lineClass.getConstructor(String.class).newInstance("SKU-1");
       Object secondLine = lineClass.getConstructor(String.class).newInstance("SKU-2");
@@ -65,10 +67,17 @@ final class GeneratedSourceVerificationHarnessTest {
       writerClass.getMethod("write", XmlOutput.class, orderClass).invoke(null, output, order);
       Object parsed =
           readerClass.getMethod("read", XmlEventReader.class).invoke(null, orderInput());
+      ValidationResult objectValidation =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult xmlValidation =
+          (ValidationResult)
+              validatorClass.getMethod("validate", XmlEventReader.class).invoke(null, orderInput());
       assertEquals(Optional.of("v1"), orderClass.getMethod("version").invoke(parsed));
       assertEquals("A-1", orderClass.getMethod("id").invoke(parsed));
       assertEquals(Optional.of("gift"), orderClass.getMethod("note").invoke(parsed));
       assertEquals(2, ((List<?>) orderClass.getMethod("line").invoke(parsed)).size());
+      assertEquals(true, objectValidation.isValid());
+      assertEquals(true, xmlValidation.isValid());
     }
 
     assertEquals(
@@ -98,13 +107,16 @@ final class GeneratedSourceVerificationHarnessTest {
   private List<GeneratedJavaSource> generatedSources(BindingModel model) {
     GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
     GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    GeneratedValidatorEmissionResult validatorResult = new GeneratedValidatorEmitter().emit(model);
     GeneratedWriterEmissionResult writerResult = new GeneratedWriterEmitter().emit(model);
     assertFalse(modelResult.hasErrors());
     assertFalse(readerResult.hasErrors());
+    assertFalse(validatorResult.hasErrors());
     assertFalse(writerResult.hasErrors());
     List<GeneratedJavaSource> sources = new ArrayList<>();
     sources.addAll(modelResult.sources());
     sources.addAll(readerResult.sources());
+    sources.addAll(validatorResult.sources());
     sources.addAll(writerResult.sources());
     return sources;
   }

@@ -50,6 +50,17 @@ The first generated-reader emitter supports root static XML readers for supporte
 - Generated reader source uses fully qualified names for generated model types, `java.util.Objects`, collection helpers, and `runtime-core` `XmlName`, `XmlEventReader`, `XmlDiagnostic`, `XmlDiagnosticSeverity`, and `XmlReadException` to avoid import collisions.
 - Generated reader source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, validation engine behavior, or external resource access.
 
+## `TASK-0016` validator source shape
+
+The first generated-validator emitter supports basic validation for supported data-structure record models.
+
+- One public final validator class is emitted per root element in `<model-package>.xml`, named `<RootTypeSimpleName>XmlValidator`.
+- Validator classes expose `validate(RootType value)` for object validation and `validate(XmlEventReader input)` for location-aware XML validation through the generated peer reader.
+- Object validation checks required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, and nested model values in deterministic binding order; object diagnostics use `XmlLocation.UNKNOWN`.
+- XML validation preserves generated-reader diagnostics by converting `XmlReadException` diagnostics into `ValidationError` values before returning `ValidationResult.invalid(...)`.
+- Generated validator source uses fully qualified names for generated model types and `runtime-core` validation/XML types to avoid import collisions.
+- Generated validator source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, dependency injection, or external resource access.
+
 ## Package layout example
 
 ```text

@@ -25,3 +25,7 @@ Validation is a first-class generated-code concern.
 ## `TASK-0015` reader diagnostics baseline
 
 Generated readers now report deterministic `XmlReadException` diagnostics for root/name mismatches, unexpected attributes/elements, missing required content, repeated singleton content, out-of-order sequence content, invalid scalar lexical values, and malformed event streams. Full generated validation behavior, including richer validation result APIs and facet semantics, remains staged for the basic validation task.
+
+## `TASK-0016` generated validation baseline
+
+Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, and nested model aggregation with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, preserving reader diagnostic code, message, and location as `ValidationError` values. Simple restriction facets, defaults/fixed semantics, identity constraints, and expanded datatype validation remain future validation phases.
