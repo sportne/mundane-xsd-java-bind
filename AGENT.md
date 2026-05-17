@@ -82,6 +82,65 @@ This project has not reached version 1.0, so agents do not need to preserve back
 
 Use `docs/agent/implementation-task-template.md` for implementation tasks.
 
+## Task status and handoff protocol
+
+Before promoting or executing a task:
+
+- Review `docs/agent/handoff.md`, the target task card, `docs/roadmap.md`, `docs/requirements/traceability-matrix.md`, and `docs/conformance/matrix.md`.
+- Confirm the task status, next-task ordering, allowed files, required evidence, and stated scope are still correct.
+- Look for stale statuses, stale completion notes, and documentation that overclaims implemented support.
+
+When a task is executed:
+
+- Promote the task card and handoff before implementation starts.
+- Mark the task accepted/completed only after the task's required verification has passed.
+- Record meaningful command evidence in the task card or handoff when the task changes behavior, gates, readiness status, or public documentation.
+- Advance the handoff to the next draft gate after completion.
+
+## Review-before-commit standard
+
+Before suggesting a commit message or asking for review:
+
+- Inspect `git diff` and review the change as if it came from another contributor.
+- Check for accidental scope expansion, stale documentation, missing tests, missing evidence, overbroad generated diffs, and quality-gate policy drift.
+- Address actionable findings before presenting the change as ready.
+- Run `git diff --check` before final handoff.
+
+## Historical documentation standard
+
+Historical scaffold, readiness, or verification documents may remain in the
+repository when they are useful evidence, but they must not read like current
+state if the project has moved on.
+
+- Label historical snapshots clearly.
+- Update or qualify scaffold-era statements after product implementation exists.
+- Do not leave obsolete "not started", "placeholder only", or "no implementation" wording in contributor-facing docs unless the text is explicitly historical.
+
+## Native Image evidence standard
+
+Native Image compatibility is a project requirement, not an optional polish item.
+
+- Run the documented Native Image checks when a task requires native evidence.
+- If `native-image` is not available on `PATH` or through `JAVA_HOME`, look for SDK-managed Java installations before declaring the lane unavailable.
+- Keep Native Image out of default local `qualityGate` unless a task or ADR changes that policy.
+- Do not mark native-related tasks complete until native command evidence is recorded or a concrete blocker is documented.
+
+## Architecture-rule upkeep
+
+Architecture rules are part of the implementation contract.
+
+- When adding production code, consider whether existing ArchUnit rules cover the new package or module.
+- If a new production surface creates a new architectural boundary, add or update ArchUnit coverage and the architecture rule catalog in the same task when in scope.
+- If a rule-worthy concern is out of scope, record it as follow-up work rather than relying on memory.
+
+## Support-claim discipline
+
+Public documentation must distinguish implemented support from planned support.
+
+- README, compatibility profiles, conformance docs, release docs, examples, and module READMEs must not imply support for XSD features that are still draft or deferred.
+- Use explicit future/deferred language for unsupported schema features, validation semantics, runtime behavior, and release capabilities.
+- When implementation scope changes, update user-facing support claims in the same change.
+
 ## Required pull-request checklist
 
 ```text
@@ -98,6 +157,9 @@ Use `docs/agent/implementation-task-template.md` for implementation tasks.
 [ ] Coverage thresholds pass or staged exceptions are documented
 [ ] Native-image lane considered
 [ ] Docs/conformance matrix updated if scope changed
+[ ] Task status and handoff updated if task state changed
+[ ] Command evidence recorded when required
+[ ] Diff reviewed before commit message or review request
 ```
 
 ## Escalation triggers
