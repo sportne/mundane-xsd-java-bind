@@ -1,6 +1,6 @@
 # TASK-0021: first-public-vertical-slice-readiness
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0021`
 Gate: Phase 5 first complete public vertical slice release-readiness review; starts only after `TASK-0020` is accepted.
@@ -23,3 +23,18 @@ Rollback notes: revert readiness-review docs and any release metadata added by t
 - Native Image: native smoke results are required readiness evidence.
 - Security: security test evidence must cover resolver and XML reader paths.
 - Documentation: this task is primarily documentation and verification alignment, not new implementation.
+
+## Completion Notes
+
+- Verified `TASK-0021` as the correct next gate after accepted `TASK-0020`; `TASK-0022+` remain draft.
+- Normalized `TASK-0006` status from `approved` to accepted to match handoff and implementation evidence.
+- Updated public and contributor docs to distinguish the implemented `XP-DATA-10` slice from future
+  `xs:choice`, simple-type facets, derivation, open content, mixed content, identity constraints,
+  and XSD 1.1 work.
+- Updated requirement, traceability, conformance, security, release, module, and example docs to
+  reflect verified first-slice evidence without claiming publication readiness.
+- Verification: `./gradlew clean validateDesignControlPack qualityGate`,
+  `./gradlew :modules:generator-cli:run --args="generate --schema ${PWD}/examples/purchase-order/src/main/resources/schema/purchase-order.xsd --output ${PWD}/build/generated/mxjb-readiness-cli"`,
+  `./gradlew :examples:purchase-order:check :examples:multi-namespace:check`,
+  `JAVA_HOME=/home/jack/.sdkman/candidates/java/21.0.2-graalce PATH=/home/jack/.sdkman/candidates/java/21.0.2-graalce/bin:$PATH ./gradlew nativeSmoke --console=plain`,
+  and `git diff --check` passed before acceptance was recorded.

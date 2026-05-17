@@ -4,9 +4,10 @@ Representative `XP-DATA-10` purchase-order fixture.
 
 This example keeps generated-style model, reader, writer, and validator sources checked in as
 approved fixture output for the repository's multi-project quality gate. The same schema is covered
-by the public Gradle plugin's functional tests, which generate equivalent sources through
-`generateMxjbSources`. The generated sources depend only on `runtime-core`; tests use the optional
-`runtime-jdkxml` adapter to feed and write JDK StAX events.
+by the public CLI and Gradle plugin generation tests, including equivalent sources generated
+through `generateMxjbSources`. The generated sources depend only on `runtime-core`; tests use the
+optional `runtime-jdkxml` adapter to feed and write JDK StAX events. The example's tests are part
+of the root `nativeSmoke` aggregate.
 
 ## Contents
 
@@ -21,4 +22,10 @@ Run:
 
 ```bash
 ./gradlew :examples:purchase-order:check
+```
+
+With GraalVM native-image available, the representative native lane includes:
+
+```bash
+./gradlew :examples:purchase-order:nativeTest
 ```

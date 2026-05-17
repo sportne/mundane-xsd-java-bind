@@ -11,6 +11,11 @@
 - Diagnostic path sanitization.
 - Explicit opt-in for integration tests requiring network resources.
 
-## First implementation requirement
+## Active evidence
 
-The first schema resolver PR must include negative tests proving denied network access and include/import cycle detection.
+The first public vertical slice includes resolver tests for denied network access, local-root and
+catalog policy, and include/import cycle detection. It also includes runtime-jdkxml tests for
+external entity denial and generated-validator example coverage for secure adapter behavior.
+
+Depth, oversized-token, path-sanitization, and explicitly networked integration scenarios remain
+future hardening work unless a task card accepts them.

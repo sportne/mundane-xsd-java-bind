@@ -22,8 +22,9 @@ The API does not expose parser, IR, binding, or emitter implementation types.
 ```java
 Generator generator = new io.github.mundanej.mxjb.generator.core.CoreGenerator();
 GeneratorRequest request = GeneratorRequest.of(
-    java.util.List.of(java.nio.file.Path.of("schemas/order.xsd")),
-    java.nio.file.Path.of("build/generated/mxjb"));
+    java.util.List.of(java.nio.file.Path.of(
+        "examples/purchase-order/src/main/resources/schema/purchase-order.xsd")),
+    java.nio.file.Path.of("build/generated/mxjb-api"));
 GeneratorResult result = generator.generate(request);
 ```
 

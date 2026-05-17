@@ -1,6 +1,6 @@
 # mundane XSD Java Binding
 
-**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice. The repository now includes generated model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a CLI `generate` command, and a Gradle plugin for the accepted subset.
+**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice. The repository includes generated model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a CLI `generate` command, a Gradle plugin for the accepted subset, representative round-trip examples, and Native Image smoke coverage.
 
 `mundane XSD Java Binding` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
 
@@ -24,25 +24,29 @@ Generate Java 21 model, XML reader, XML writer, and validation code from XML Sch
 - Dependencies are allowed in the generator, build infrastructure, tests, and tooling.
 - Design, requirements, architecture, verification, and infrastructure must be accepted before product implementation begins.
 
-## First accepted implementation target
+## Implemented `XP-DATA-10` slice
 
-The first implementation phase targets schemas that primarily define XML data-structure types:
+The first implementation phase supports schemas that primarily define XML data-structure types:
 
 - simple elements
 - complex types
 - attributes
 - nested elements
 - sequences
-- feasible choices
 - optional and repeated elements
-- practical simple type restrictions
 - imports/includes
 - namespaces
 - generated Java model types
 - generated XML writer/marshaller
 - generated XML reader/unmarshaller
+- basic generated validation for required content, sequence order, cardinality, and common scalar lexical values
 - round-trip tests
-- basic validation or validation-ready architecture
+- CLI and Gradle plugin generation entry points
+- Native Image smoke tests
+
+The following remain future-profile work: `xs:choice`, practical simple-type facets such as
+enumeration/range/pattern, derivation, substitution groups, wildcards, mixed content, identity
+constraints, and XSD 1.1.
 
 ## Repository entry points
 
@@ -58,7 +62,7 @@ The first implementation phase targets schemas that primarily define XML data-st
 
 ## Build note
 
-This scaffold is configured for Gradle 9.5.1 with Groovy DSL. The standard Gradle wrapper scripts and `gradle/wrapper/gradle-wrapper.jar` are committed. Start with `docs/build/README.md`; for fully offline builds, provision the Gradle distribution and local Maven repository as described in `docs/build/offline-build.md`.
+This project is configured for Gradle 9.5.1 with Groovy DSL. The standard Gradle wrapper scripts and `gradle/wrapper/gradle-wrapper.jar` are committed. Start with `docs/build/README.md`; for fully offline builds, provision the Gradle distribution and local Maven repository as described in `docs/build/offline-build.md`.
 
 Common commands after hydrating the wrapper and dependencies:
 
@@ -67,13 +71,17 @@ Common commands after hydrating the wrapper and dependencies:
 ./gradlew projects
 ./gradlew validateDesignControlPack
 ./gradlew qualityGate
+./gradlew nativeSmoke
 ./gradlew printPublishedArtifacts
 ```
+
+`nativeSmoke` requires a GraalVM installation with `native-image`; the documented local path for
+the current environment is in `docs/verification/native-image-test-plan.md`.
 
 Generate Java sources for an approved schema subset with:
 
 ```bash
-./gradlew :modules:generator-cli:run --args='generate --schema schemas/order.xsd --output build/generated/mxjb'
+./gradlew :modules:generator-cli:run --args="generate --schema ${PWD}/examples/purchase-order/src/main/resources/schema/purchase-order.xsd --output ${PWD}/build/generated/mxjb-readme"
 ```
 
 Gradle builds can use the plugin id `io.github.mundanej.mxjb` and configure explicit schema inputs:

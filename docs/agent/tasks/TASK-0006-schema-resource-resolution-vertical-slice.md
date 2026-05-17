@@ -1,6 +1,6 @@
 # TASK-0006: schema-resource-resolution-vertical-slice
 
-Status: approved.
+Status: accepted.
 
 Task ID: `TASK-0006`
 Gate: Phase 2 schema compiler vertical slice.

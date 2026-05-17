@@ -4,9 +4,9 @@
 
 | Profile | Name | Meaning | Phase |
 |---|---|---|---|
-| `XP-DATA-10` | XSD 1.0 data-structure subset | Simple elements, complex types, attributes, nested elements, sequences, optional/repeated elements, namespaces, includes/imports, practical simple restrictions. | 1 |
+| `XP-DATA-10` | XSD 1.0 data-structure subset | Simple elements, complex types, attributes, nested elements, sequences, optional/repeated elements, namespaces, includes/imports, generated model/reader/writer/basic structural validation, and lexical conversion for the currently supported scalar types. | 1 |
 | `XP-DATA-10-CHOICE` | Data subset with choices | Adds generated representation for feasible `xs:choice`. | 1/2 |
-| `XP-VALIDATION-10-BASIC` | Basic generated validation | Required fields, cardinality, lexical conversion, enumeration, length/range/pattern where implemented. | 1/2 |
+| `XP-VALIDATION-10-BASIC` | Basic generated validation | Expands validation beyond the first slice with practical simple-type facets such as enumeration, length/range, and pattern where accepted by planning. | 1/2 |
 | `XP-XSD10-FULL` | Full XSD 1.0 | Substitution groups, derivation, wildcards, identity constraints, nillable, default/fixed, mixed content. | Future |
 | `XP-XSD11-ASSERT` | XSD 1.1 assertions | XSD 1.1 features including assertions and conditional alternatives. | Future |
 | `XP-XML11` | XML 1.1 | XML 1.1 parsing/serialization compatibility. | Future |

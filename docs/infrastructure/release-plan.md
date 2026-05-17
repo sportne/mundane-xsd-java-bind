@@ -15,7 +15,11 @@
 
 ## Versioning
 
-Pre-implementation versions use `0.1.0-SNAPSHOT`. Public alpha/beta releases must state supported compatibility profiles and conformance status.
+The first public vertical slice remains `0.1.0-SNAPSHOT` readiness evidence. It proves the
+supported `XP-DATA-10` generator path can be exercised through API, CLI, Gradle plugin, JVM checks,
+representative round trips, and Native Image smoke tests, but it is not a publication-ready release.
+
+Public alpha/beta releases must state supported compatibility profiles and conformance status.
 
 ## Release gate
 

@@ -8,7 +8,7 @@ Command-line generator entry point.
 schema-to-Java vertical slice.
 
 ```bash
-mxjb generate --schema schemas/order.xsd --output build/generated/mxjb
+mxjb generate --schema examples/purchase-order/src/main/resources/schema/purchase-order.xsd --output build/generated/mxjb-cli
 ```
 
 Supported options:
