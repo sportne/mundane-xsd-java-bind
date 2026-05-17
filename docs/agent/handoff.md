@@ -38,10 +38,11 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 25. `TASK-0024`: Expand practical simple restrictions. Completed and accepted.
 26. `TASK-0025`: Practical Data Contracts readiness review. Completed and accepted.
 27. `TASK-0026`: Plan Composed XSD 1.0 schema support. Completed and accepted.
-28. `TASK-0027` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
+28. `TASK-0027`: Implement named model groups and attribute groups. Completed and accepted.
+29. `TASK-0028` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
 
-`TASK-0026` has accepted the `0.3.0` Composed XSD 1.0 planning scope without adding product
-behavior, release tags, or publication claims. The next implementation gate is `TASK-0027`.
+`TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
+without adding release tags or publication claims. The next implementation gate is `TASK-0028`.
 
 ## Draft completion backlog
 
@@ -78,7 +79,7 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0024` | 0.2.0 | accepted | Expand practical simple restrictions. |
 | `TASK-0025` | 0.2.0 | accepted | Practical Data Contracts readiness review. |
 | `TASK-0026` | 0.3.0 | accepted | Plan Composed XSD 1.0 schema support. |
-| `TASK-0027` | 0.3.0 | draft | Implement named model groups and attribute groups. |
+| `TASK-0027` | 0.3.0 | accepted | Implement named model groups and attribute groups. |
 | `TASK-0028` | 0.3.0 | draft | Implement accepted simple type composition. |
 | `TASK-0029` | 0.3.0 | draft | Implement initial derivation support. |
 | `TASK-0030` | 0.3.0 | draft | Composed XSD 1.0 readiness review. |
@@ -101,9 +102,10 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0027` is the current implementation gate. Before implementation, promote the implementation
-task from draft only after the named model group and attribute group scope remains aligned with the
-accepted `TASK-0026` planning constraints. The remaining work must preserve:
+`TASK-0028` is the current implementation gate. Before implementation, promote the implementation
+task from draft only after the named list/union simple type scope remains aligned with the accepted
+`TASK-0026` planning constraints and the accepted `TASK-0027` composed-profile behavior. The
+remaining work must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
 - `TASK-0015` generated readers are the accepted source-emission baseline for constructing generated models from `runtime-core` `XmlEventReader` input.
@@ -131,5 +133,10 @@ accepted `TASK-0026` planning constraints. The remaining work must preserve:
   slice. The accepted implementation sequence is `TASK-0027` named model groups and attribute
   groups, `TASK-0028` named list/union simple types, `TASK-0029` initial derivation flattening, and
   `TASK-0030` readiness review. The scope remains narrower than full XSD 1.0.
+- `TASK-0027` accepted public profile `XP-XSD10-COMPOSED` and implemented named model groups and
+  attribute groups by flattening accepted refs before binding. Default `XP-DATA-10` and the narrower
+  choice/facet profiles remain unchanged. Positive and negative composed conformance fixtures compare
+  JDK XML Schema validation with generated bindings, and generated-code smoke fixtures exercise a
+  representative composed path for the Native Image smoke lane.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,19 @@ public final class SchemaIrBuilder {
     List<SchemaIrComplexType> complexTypes = new ArrayList<>();
     List<SchemaIrSimpleType> simpleTypes = new ArrayList<>();
     List<SchemaIrAttribute> attributes = new ArrayList<>();
+    List<SchemaIrModelGroup> modelGroups = new ArrayList<>();
+    List<SchemaIrAttributeGroup> attributeGroups = new ArrayList<>();
+
+    for (XsdSyntaxDocument document : model.documents()) {
+      for (XsdSyntaxNode child : document.children()) {
+        if (child.kind() == XsdSyntaxKind.GROUP) {
+          addIfPresent(modelGroups, normalizeModelGroup(document, child, state));
+        } else if (child.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP) {
+          addIfPresent(attributeGroups, normalizeAttributeGroup(document, child, state));
+        }
+      }
+    }
+
     for (XsdSyntaxDocument document : model.documents()) {
       for (XsdSyntaxNode child : document.children()) {
         switch (child.kind()) {
@@ -81,6 +95,10 @@ public final class SchemaIrBuilder {
           case SIMPLE_TYPE ->
               addIfPresent(simpleTypes, normalizeSimpleType(document, child, state));
           case ATTRIBUTE -> addIfPresent(attributes, normalizeAttribute(document, child, state));
+          case GROUP, ATTRIBUTE_GROUP -> {
+            // Normalized in a first pass so complex type references can be flattened
+            // deterministically.
+          }
           case SEQUENCE ->
               diagnostic(
                   state,
@@ -111,7 +129,90 @@ public final class SchemaIrBuilder {
         }
       }
     }
-    return new SchemaIrModel(elements, complexTypes, simpleTypes, attributes);
+    return new SchemaIrModel(
+        elements, complexTypes, simpleTypes, attributes, modelGroups, attributeGroups);
+  }
+
+  private SchemaIrModelGroup normalizeModelGroup(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String ref = node.attributes().get("ref");
+    if (ref != null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Global xs:group declarations must use name, not ref.");
+      return null;
+    }
+    String localName = node.attributes().get("name");
+    if (localName == null || localName.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_MISSING_NAME,
+          document.resourceId(),
+          "group declaration is missing a name.");
+      return null;
+    }
+    if (node.children().size() != 1
+        || node.children().getFirst().kind() != XsdSyntaxKind.SEQUENCE) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:group declarations support exactly one xs:sequence child in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    SchemaIrSequence sequence =
+        normalizeSequence(document, node.children().getFirst(), state, false);
+    if (sequence == null || !requireSingletonGroupCardinality(document, node, state)) {
+      return null;
+    }
+    if (!requireSingletonGroupCardinality(document, node.children().getFirst(), state)) {
+      return null;
+    }
+    SchemaIrModelGroup group =
+        new SchemaIrModelGroup(new SchemaQName(document.targetNamespace(), localName), sequence);
+    state.modelGroups.put(group.name(), group);
+    return group;
+  }
+
+  private SchemaIrAttributeGroup normalizeAttributeGroup(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String ref = node.attributes().get("ref");
+    if (ref != null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Global xs:attributeGroup declarations must use name, not ref.");
+      return null;
+    }
+    String localName = node.attributes().get("name");
+    if (localName == null || localName.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_MISSING_NAME,
+          document.resourceId(),
+          "attributeGroup declaration is missing a name.");
+      return null;
+    }
+    List<SchemaIrAttribute> attributes = new ArrayList<>();
+    for (XsdSyntaxNode child : node.children()) {
+      if (child.kind() == XsdSyntaxKind.ATTRIBUTE) {
+        addIfPresent(attributes, normalizeAttribute(document, child, state));
+      } else {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Only xs:attribute children are supported inside xs:attributeGroup in profile XP-XSD10-COMPOSED.");
+      }
+    }
+    SchemaIrAttributeGroup group =
+        new SchemaIrAttributeGroup(
+            new SchemaQName(document.targetNamespace(), localName), attributes);
+    state.attributeGroups.put(group.name(), group);
+    return group;
   }
 
   private SchemaIrElement normalizeElement(
@@ -229,11 +330,18 @@ public final class SchemaIrBuilder {
     List<SchemaIrSequence> sequences = new ArrayList<>();
     int contentParticleCount = 0;
     boolean directChoiceSeen = false;
+    boolean directGroupSeen = false;
+    boolean sequenceGroupSeen = false;
+    boolean attributeGroupSeen = false;
     for (XsdSyntaxNode child : node.children()) {
       if (child.kind() == XsdSyntaxKind.ATTRIBUTE) {
         addIfPresent(attributes, normalizeAttribute(document, child, state));
+      } else if (child.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP) {
+        attributeGroupSeen = true;
+        addAttributeGroupReference(document, child, attributes, state);
       } else if (child.kind() == XsdSyntaxKind.SEQUENCE) {
         contentParticleCount++;
+        sequenceGroupSeen = sequenceGroupSeen || containsGroupReference(child);
         addIfPresent(sequences, normalizeSequence(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.CHOICE) {
         contentParticleCount++;
@@ -243,6 +351,10 @@ public final class SchemaIrBuilder {
           sequences.add(
               new SchemaIrSequence(SchemaCardinality.ONE, List.<SchemaIrParticle>of(choice)));
         }
+      } else if (child.kind() == XsdSyntaxKind.GROUP) {
+        contentParticleCount++;
+        directGroupSeen = true;
+        addIfPresent(sequences, normalizeGroupReferenceAsSequence(document, child, state));
       } else {
         diagnostic(
             state,
@@ -260,11 +372,36 @@ public final class SchemaIrBuilder {
           document.resourceId(),
           "Direct xs:choice is supported only as the sole complexType content particle or inside xs:sequence.");
     }
+    if (directGroupSeen && contentParticleCount > 1) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Direct xs:group ref is supported only as the sole complexType content particle or inside xs:sequence.");
+    }
+    if (directGroupSeen || sequenceGroupSeen) {
+      validateDuplicateElementNames(document, sequences, state);
+    }
+    if (attributeGroupSeen) {
+      validateDuplicateAttributeNames(document, attributes, state);
+    }
     return new SchemaIrComplexType(name, attributes, sequences, anonymous);
+  }
+
+  private boolean containsGroupReference(XsdSyntaxNode node) {
+    return node.children().stream().anyMatch(child -> child.kind() == XsdSyntaxKind.GROUP);
   }
 
   private SchemaIrSequence normalizeSequence(
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    return normalizeSequence(document, node, state, true);
+  }
+
+  private SchemaIrSequence normalizeSequence(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      BuildState state,
+      boolean allowGroupReferences) {
     SchemaCardinality cardinality = cardinality(document, node, state);
     if (cardinality == null) {
       return null;
@@ -275,15 +412,152 @@ public final class SchemaIrBuilder {
         addIfPresent(particles, normalizeElement(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.CHOICE) {
         addIfPresent(particles, normalizeChoice(document, child, state));
+      } else if (child.kind() == XsdSyntaxKind.GROUP && allowGroupReferences) {
+        SchemaIrSequence groupSequence = normalizeGroupReferenceAsSequence(document, child, state);
+        if (groupSequence != null) {
+          particles.addAll(groupSequence.particles());
+        }
       } else {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "Only xs:element and accepted xs:choice are supported inside xs:sequence for normalized IR.");
+            "Only xs:element, accepted xs:choice, and accepted xs:group refs are supported "
+                + "inside xs:sequence for normalized IR.");
       }
     }
     return new SchemaIrSequence(cardinality, particles);
+  }
+
+  private SchemaIrSequence normalizeGroupReferenceAsSequence(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    if (node.attributes().containsKey("name")) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Local xs:group use must reference a global group with ref.");
+      return null;
+    }
+    if (!requireSingletonGroupCardinality(document, node, state)) {
+      return null;
+    }
+    String ref = node.attributes().get("ref");
+    if (ref == null || ref.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE,
+          document.resourceId(),
+          "xs:group ref is required.");
+      return null;
+    }
+    SchemaQName refName = resolveQName(document, ref, state);
+    if (refName == null) {
+      return null;
+    }
+    requireComponent(
+        state,
+        document.resourceId(),
+        new SchemaComponentKey(SchemaComponentKind.MODEL_GROUP, refName));
+    SchemaIrModelGroup group = state.modelGroups.get(refName);
+    if (group == null) {
+      return null;
+    }
+    return new SchemaIrSequence(SchemaCardinality.ONE, group.sequence().particles());
+  }
+
+  private void addAttributeGroupReference(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      List<SchemaIrAttribute> attributes,
+      BuildState state) {
+    if (node.attributes().containsKey("name")) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Local xs:attributeGroup use must reference a global attributeGroup with ref.");
+      return;
+    }
+    String ref = node.attributes().get("ref");
+    if (ref == null || ref.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE,
+          document.resourceId(),
+          "xs:attributeGroup ref is required.");
+      return;
+    }
+    SchemaQName refName = resolveQName(document, ref, state);
+    if (refName == null) {
+      return;
+    }
+    requireComponent(
+        state,
+        document.resourceId(),
+        new SchemaComponentKey(SchemaComponentKind.ATTRIBUTE_GROUP, refName));
+    SchemaIrAttributeGroup group = state.attributeGroups.get(refName);
+    if (group != null) {
+      attributes.addAll(group.attributes());
+    }
+  }
+
+  private boolean requireSingletonGroupCardinality(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    SchemaCardinality cardinality = cardinality(document, node, state);
+    if (cardinality == null) {
+      return false;
+    }
+    if (cardinality.minOccurs() != 1 || !"1".equals(cardinality.maxOccurs())) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:group supports only minOccurs=1 and maxOccurs=1 in profile XP-XSD10-COMPOSED.");
+      return false;
+    }
+    return true;
+  }
+
+  private void validateDuplicateElementNames(
+      XsdSyntaxDocument document, List<SchemaIrSequence> sequences, BuildState state) {
+    Set<SchemaQName> names = new HashSet<>();
+    for (SchemaIrSequence sequence : sequences) {
+      for (SchemaIrParticle particle : sequence.particles()) {
+        if (particle instanceof SchemaIrElement element) {
+          addUniqueElementName(document, names, element.name(), state);
+        } else if (particle instanceof SchemaIrChoice choice) {
+          for (SchemaIrElement branch : choice.branches()) {
+            addUniqueElementName(document, names, branch.name(), state);
+          }
+        }
+      }
+    }
+  }
+
+  private void addUniqueElementName(
+      XsdSyntaxDocument document, Set<SchemaQName> names, SchemaQName name, BuildState state) {
+    if (!names.add(name)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Duplicate flattened XML element " + name.toText() + " in complexType.");
+    }
+  }
+
+  private void validateDuplicateAttributeNames(
+      XsdSyntaxDocument document, List<SchemaIrAttribute> attributes, BuildState state) {
+    Set<SchemaQName> names = new HashSet<>();
+    for (SchemaIrAttribute attribute : attributes) {
+      if (!names.add(attribute.name())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Duplicate flattened XML attribute " + attribute.name().toText() + " in complexType.");
+      }
+    }
   }
 
   private SchemaIrChoice normalizeChoice(
@@ -375,7 +649,7 @@ public final class SchemaIrBuilder {
             document.resourceId(),
             "xs:"
                 + child.kind().manifestName()
-                + " is not supported in profile XP-VALIDATION-10-BASIC.");
+                + " is not supported by the accepted simple-type subset.");
       } else {
         diagnostic(
             state,
@@ -825,6 +1099,8 @@ public final class SchemaIrBuilder {
       case COMPLEX_TYPE -> SchemaComponentKind.COMPLEX_TYPE;
       case SIMPLE_TYPE -> SchemaComponentKind.SIMPLE_TYPE;
       case ATTRIBUTE -> SchemaComponentKind.ATTRIBUTE;
+      case GROUP -> SchemaComponentKind.MODEL_GROUP;
+      case ATTRIBUTE_GROUP -> SchemaComponentKind.ATTRIBUTE_GROUP;
       case RESTRICTION,
           ENUMERATION,
           LENGTH,
@@ -863,6 +1139,8 @@ public final class SchemaIrBuilder {
 
   private static final class BuildState {
     private final Map<SchemaComponentKey, SchemaComponent> components = new LinkedHashMap<>();
+    private final Map<SchemaQName, SchemaIrModelGroup> modelGroups = new LinkedHashMap<>();
+    private final Map<SchemaQName, SchemaIrAttributeGroup> attributeGroups = new LinkedHashMap<>();
     private final List<SchemaDiagnostic> diagnostics = new ArrayList<>();
   }
 

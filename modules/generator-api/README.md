@@ -12,8 +12,8 @@ Public generator configuration and extension API.
   namespace/package mappings, local roots, and catalog mappings.
 - `GeneratorResult` reports generated relative source paths and public diagnostics.
 - `GeneratorDiagnostic` uses stable `code`, `resource`, and `message` fields.
-- `GeneratorProfile` exposes supported profile tokens: `XP-DATA-10`, `XP-DATA-10-CHOICE`, and
-  `XP-VALIDATION-10-BASIC`.
+- `GeneratorProfile` exposes supported profile tokens: `XP-DATA-10`, `XP-DATA-10-CHOICE`,
+  `XP-VALIDATION-10-BASIC`, and `XP-XSD10-COMPOSED`.
 
 The API does not expose parser, IR, binding, or emitter implementation types.
 

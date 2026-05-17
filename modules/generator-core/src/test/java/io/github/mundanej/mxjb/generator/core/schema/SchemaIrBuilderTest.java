@@ -421,6 +421,123 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
+  void buildsIrForFlattenedModelGroupAndAttributeGroupRefs() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:group name="OrderFields">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:choice minOccurs="0">
+                      <xs:element name="domestic" type="xs:string"/>
+                      <xs:element name="international" type="xs:string"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:group>
+                <xs:attributeGroup name="OrderAttributes">
+                  <xs:attribute name="version" type="xs:string" use="required"/>
+                </xs:attributeGroup>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:group ref="tns:OrderFields"/>
+                    <xs:element name="total" type="xs:decimal"/>
+                  </xs:sequence>
+                  <xs:attributeGroup ref="tns:OrderAttributes"/>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("modelGroup {urn:orders}OrderFields"), irText);
+    assertTrue(irText.contains("attributeGroup {urn:orders}OrderAttributes"), irText);
+    assertTrue(irText.contains("element {urn:orders}id type=xs:string cardinality=1..1"), irText);
+    assertTrue(irText.contains("choice cardinality=0..1"), irText);
+    assertTrue(
+        irText.contains("element {urn:orders}total type=xs:decimal cardinality=1..1"), irText);
+    assertTrue(
+        irText.contains("attribute {urn:orders}version type=xs:string use=required"), irText);
+  }
+
+  @Test
+  void reportsUnsupportedGroupAndAttributeGroupShapes() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:group name="Nested">
+                  <xs:sequence>
+                    <xs:group ref="tns:Missing"/>
+                  </xs:sequence>
+                </xs:group>
+                <xs:group name="Repeated">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:group>
+                <xs:attributeGroup name="Attrs">
+                  <xs:attributeGroup ref="tns:OtherAttrs"/>
+                </xs:attributeGroup>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:group ref="tns:Repeated" minOccurs="0"/>
+                  </xs:sequence>
+                  <xs:attributeGroup ref="tns:MissingAttrs"/>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE),
+        diagnosticCodes(result));
+  }
+
+  @Test
+  void reportsDuplicateFlattenedElementAndAttributeNames() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:group name="OrderFields">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:group>
+                <xs:attributeGroup name="OrderAttributes">
+                  <xs:attribute name="version" type="xs:string"/>
+                </xs:attributeGroup>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:group ref="tns:OrderFields"/>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                  <xs:attributeGroup ref="tns:OrderAttributes"/>
+                  <xs:attribute name="version" type="xs:string"/>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
+    assertTrue(result.diagnostics().get(0).message().contains("Duplicate flattened XML attribute"));
+    assertTrue(result.diagnostics().get(1).message().contains("Duplicate flattened XML element"));
+  }
+
+  @Test
   void reportsDuplicateGlobalDeclarations() throws IOException {
     write(
         "main.xsd",

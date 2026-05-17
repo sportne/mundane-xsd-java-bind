@@ -62,6 +62,9 @@ final class GeneratorApiContractTest {
     assertEquals(
         GeneratorProfile.XP_VALIDATION_10_BASIC,
         GeneratorProfile.fromCliToken("XP-VALIDATION-10-BASIC").orElseThrow());
+    assertEquals(
+        GeneratorProfile.XP_XSD10_COMPOSED,
+        GeneratorProfile.fromCliToken("XP-XSD10-COMPOSED").orElseThrow());
     assertTrue(GeneratorProfile.fromCliToken("XP-DATA-11").isEmpty());
     assertTrue(GeneratorProfile.fromCliToken(null).isEmpty());
   }

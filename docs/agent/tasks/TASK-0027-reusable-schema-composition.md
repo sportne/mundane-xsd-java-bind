@@ -1,6 +1,6 @@
 # TASK-0027: reusable-schema-composition
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0027`
 Gate: `0.3.0` Composed XSD 1.0 Schemas; starts only after `TASK-0026` is accepted.
@@ -16,6 +16,34 @@ Documentation to update: conformance matrix, compiler pipeline docs, traceabilit
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, targeted generator/conformance/example checks, `git diff --check`
 Acceptance criteria: accepted group constructs work end to end; invalid or unsupported group constructs fail deterministically; interop evidence is recorded
 Rollback notes: revert composition implementation, tests, fixtures, golden outputs, and docs
+
+## Acceptance Evidence
+
+Implemented in this task:
+
+- Added public profile `XP-XSD10-COMPOSED` across generator API, CoreGenerator, CLI help/parsing,
+  and Gradle plugin profile handling.
+- Frontend parsing now accepts `xs:group` and `xs:attributeGroup` only under
+  `XP-XSD10-COMPOSED`; the default and narrower profiles keep deterministic unsupported-profile
+  diagnostics.
+- Normalized IR records named model groups and attribute groups, resolves accepted refs, flattens
+  group particles and attribute-group attributes before binding, and rejects unsupported shapes with
+  deterministic diagnostics.
+- Binding and generated source reuse the flattened field/attribute model; generated records,
+  readers, writers, and validators require no new runtime binding mechanism.
+- Added positive/negative composed conformance fixtures compared against JDK XML Schema validation
+  and generated bindings.
+- Added representative composed generated-code smoke coverage for the Native Image smoke lane.
+
+Verification run:
+
+- `./gradlew :modules:generator-api:check :modules:generator-cli:check :modules:generator-gradle-plugin:check :modules:generator-core:check :modules:conformance-tests:check --console=plain`
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `./gradlew nativeSmoke --console=plain` was attempted locally but blocked because
+  `/usr/lib/jvm/java-21-openjdk-amd64/bin/native-image` is unavailable. The generated-code smoke
+  fixture for the composed path is included, and CI/GraalVM native-lane expectations remain
+  unchanged.
 
 ## Impact Notes
 

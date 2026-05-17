@@ -79,6 +79,7 @@ public final class GeneratedCodeSmokeMain {
     }
     runChoiceSmoke();
     runFacetSmoke();
+    runComposedSmoke();
   }
 
   private static void runChoiceSmoke() throws XmlReadException, XmlWriteException {
@@ -160,6 +161,46 @@ public final class GeneratedCodeSmokeMain {
     }
   }
 
+  private static void runComposedSmoke() throws XmlReadException, XmlWriteException {
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    com.example.composed.Order order =
+        new com.example.composed.Order("v1", "PO-100", new java.math.BigDecimal("42.50"));
+
+    com.example.composed.xml.OrderXmlWriter.write(output, order);
+
+    List<String> expected =
+        List.of(
+            "start:{urn:composed}order",
+            "attr:{urn:composed}version=v1",
+            "start:{urn:composed}id",
+            "text:PO-100",
+            "end:{urn:composed}id",
+            "start:{urn:composed}total",
+            "text:42.50",
+            "end:{urn:composed}total",
+            "end:{urn:composed}order");
+    if (!expected.equals(output.events)) {
+      throw new AssertionError("Generated-code composed smoke output mismatch: " + output.events);
+    }
+
+    com.example.composed.Order parsed =
+        com.example.composed.xml.OrderXmlReader.read(composedInput());
+    if (!order.equals(parsed)) {
+      throw new AssertionError("Generated-code composed smoke reader mismatch: " + parsed);
+    }
+
+    ValidationResult objectValidation = com.example.composed.xml.OrderXmlValidator.validate(order);
+    ValidationResult xmlValidation =
+        com.example.composed.xml.OrderXmlValidator.validate(composedInput());
+    if (!objectValidation.isValid() || !xmlValidation.isValid()) {
+      throw new AssertionError(
+          "Generated-code composed smoke validator mismatch: "
+              + objectValidation.errors()
+              + " / "
+              + xmlValidation.errors());
+    }
+  }
+
   private static EventXmlReader orderInput() {
     return new EventXmlReader(
         List.of(
@@ -215,6 +256,24 @@ public final class GeneratedCodeSmokeMain {
             text("3"),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:facet", "priority")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:facet", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
+  private static EventXmlReader composedInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(
+                XmlEventKind.START_ELEMENT,
+                new XmlName("urn:composed", "order"),
+                Map.of(new XmlName("urn:composed", "version"), "v1")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:composed", "id")),
+            text("PO-100"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:composed", "id")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:composed", "total")),
+            text("42.50"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:composed", "total")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:composed", "order")),
             event(XmlEventKind.END_DOCUMENT, null)));
   }
 

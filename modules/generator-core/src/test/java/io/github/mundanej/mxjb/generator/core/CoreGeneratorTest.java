@@ -197,6 +197,57 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void defaultProfileRejectsGroupAndAttributeGroupWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("composed-order.xsd", composedOrderSchema());
+    Path output = tempDirectory.resolve("composed-default");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    null,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+    assertTrue(result.generatedSources().isEmpty());
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
+  void composedProfileGeneratesFlattenedGroupSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("composed-order.xsd", composedOrderSchema());
+    Path output = tempDirectory.resolve("composed-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_COMPOSED,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertTrue(result.generatedSources().contains(Path.of("com/acme/orders/Order.java")));
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    assertTrue(order.contains("String id"));
+    assertTrue(order.contains("BigDecimal total"));
+    assertTrue(order.contains("String version"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
   void deniesNetworkResolutionAndWritesNoSources() throws IOException {
     Path schema = writeSchema("order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path output = tempDirectory.resolve("network-denied");
@@ -426,6 +477,33 @@ final class CoreGeneratorTest {
               <xs:element name="code" type="o:OrderCode"/>
               <xs:element name="priority" type="o:Priority"/>
             </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String composedOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:group name="OrderFields">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:element name="total" type="xs:decimal"/>
+            </xs:sequence>
+          </xs:group>
+          <xs:attributeGroup name="OrderAttributes">
+            <xs:attribute name="version" type="xs:string" use="required"/>
+          </xs:attributeGroup>
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:group ref="o:OrderFields"/>
+            </xs:sequence>
+            <xs:attributeGroup ref="o:OrderAttributes"/>
           </xs:complexType>
         </xs:schema>
         """;

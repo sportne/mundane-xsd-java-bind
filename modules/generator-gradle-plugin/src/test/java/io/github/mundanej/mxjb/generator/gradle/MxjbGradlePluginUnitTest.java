@@ -94,6 +94,25 @@ final class MxjbGradlePluginUnitTest {
   }
 
   @Test
+  void taskAcceptsComposedProfileToken() throws IOException {
+    Project project = configuredProject();
+    Path schema =
+        writeSchema("src/main/resources/schema/composed-order.xsd", composedOrderSchema());
+
+    MxjbExtension extension = extension(project);
+    extension.schema(schema.toFile());
+    extension.localRoot(requireParent(schema).toFile());
+    extension.namespacePackage("urn:orders", "com.example.orders");
+    extension.getProfile().set("XP-XSD10-COMPOSED");
+    task(project).generate();
+
+    assertTrue(Files.exists(generatedPath("com/example/orders/Order.java")));
+    assertTrue(
+        Files.readString(generatedPath("com/example/orders/Order.java"))
+            .contains("String version"));
+  }
+
+  @Test
   void taskResolvesCatalogMappings() throws IOException {
     Project project = configuredProject();
     Path order =
@@ -244,6 +263,32 @@ final class MxjbGradlePluginUnitTest {
             <xs:sequence>
               <xs:element name="code" type="o:OrderCode"/>
             </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String composedOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:group name="OrderFields">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+            </xs:sequence>
+          </xs:group>
+          <xs:attributeGroup name="OrderAttributes">
+            <xs:attribute name="version" type="xs:string" use="required"/>
+          </xs:attributeGroup>
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:group ref="o:OrderFields"/>
+            </xs:sequence>
+            <xs:attributeGroup ref="o:OrderAttributes"/>
           </xs:complexType>
         </xs:schema>
         """;

@@ -110,7 +110,8 @@ public final class CoreGenerator implements Generator {
     }
     if (request.profile() != GeneratorProfile.XP_DATA_10
         && request.profile() != GeneratorProfile.XP_DATA_10_CHOICE
-        && request.profile() != GeneratorProfile.XP_VALIDATION_10_BASIC) {
+        && request.profile() != GeneratorProfile.XP_VALIDATION_10_BASIC
+        && request.profile() != GeneratorProfile.XP_XSD10_COMPOSED) {
       diagnostics.add(
           diagnostic(
               REQUEST_INVALID,

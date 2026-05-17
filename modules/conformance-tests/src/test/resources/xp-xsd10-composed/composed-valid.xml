@@ -1,0 +1,4 @@
+<order xmlns="urn:composed" xmlns:c="urn:composed" c:version="v1">
+  <id>PO-100</id>
+  <total>42.50</total>
+</order>

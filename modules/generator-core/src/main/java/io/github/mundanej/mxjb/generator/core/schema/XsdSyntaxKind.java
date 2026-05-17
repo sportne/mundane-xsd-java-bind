@@ -16,6 +16,8 @@ public enum XsdSyntaxKind {
   LIST("list"),
   UNION("union"),
   ATTRIBUTE("attribute"),
+  GROUP("group"),
+  ATTRIBUTE_GROUP("attributeGroup"),
   SEQUENCE("sequence"),
   CHOICE("choice");
 

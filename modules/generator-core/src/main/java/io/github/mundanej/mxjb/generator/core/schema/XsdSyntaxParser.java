@@ -138,7 +138,7 @@ public final class XsdSyntaxParser {
       skipSubtree(reader);
       return null;
     }
-    if ("choice".equals(localName) && profile != GeneratorProfile.XP_DATA_10_CHOICE) {
+    if ("choice".equals(localName) && !supportsChoice(profile)) {
       diagnostics.add(
           new SchemaDiagnostic(
               DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
@@ -147,13 +147,21 @@ public final class XsdSyntaxParser {
       skipSubtree(reader);
       return null;
     }
-    if (isSimpleRestrictionConstruct(localName)
-        && profile != GeneratorProfile.XP_VALIDATION_10_BASIC) {
+    if (isSimpleRestrictionConstruct(localName) && !supportsSimpleRestrictions(profile)) {
       diagnostics.add(
           new SchemaDiagnostic(
               DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
               resourceId,
               "xs:" + localName + " requires profile XP-VALIDATION-10-BASIC."));
+      skipSubtree(reader);
+      return null;
+    }
+    if (isComposedSchemaConstruct(localName) && !supportsComposedSchema(profile)) {
+      diagnostics.add(
+          new SchemaDiagnostic(
+              DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+              resourceId,
+              "xs:" + localName + " requires profile XP-XSD10-COMPOSED."));
       skipSubtree(reader);
       return null;
     }
@@ -164,7 +172,11 @@ public final class XsdSyntaxParser {
           new SchemaDiagnostic(
               DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT,
               resourceId,
-              "Unsupported XSD construct xs:" + localName + " for profile XP-DATA-10."));
+              "Unsupported XSD construct xs:"
+                  + localName
+                  + " for profile "
+                  + profile.cliToken()
+                  + "."));
       skipSubtree(reader);
       return null;
     }
@@ -191,6 +203,24 @@ public final class XsdSyntaxParser {
     };
   }
 
+  private boolean isComposedSchemaConstruct(String localName) {
+    return "group".equals(localName) || "attributeGroup".equals(localName);
+  }
+
+  private boolean supportsChoice(GeneratorProfile profile) {
+    return profile == GeneratorProfile.XP_DATA_10_CHOICE
+        || profile == GeneratorProfile.XP_XSD10_COMPOSED;
+  }
+
+  private boolean supportsSimpleRestrictions(GeneratorProfile profile) {
+    return profile == GeneratorProfile.XP_VALIDATION_10_BASIC
+        || profile == GeneratorProfile.XP_XSD10_COMPOSED;
+  }
+
+  private boolean supportsComposedSchema(GeneratorProfile profile) {
+    return profile == GeneratorProfile.XP_XSD10_COMPOSED;
+  }
+
   private XsdSyntaxKind kindFor(String localName) {
     return switch (localName) {
       case "element" -> XsdSyntaxKind.ELEMENT;
@@ -207,6 +237,8 @@ public final class XsdSyntaxParser {
       case "list" -> XsdSyntaxKind.LIST;
       case "union" -> XsdSyntaxKind.UNION;
       case "attribute" -> XsdSyntaxKind.ATTRIBUTE;
+      case "group" -> XsdSyntaxKind.GROUP;
+      case "attributeGroup" -> XsdSyntaxKind.ATTRIBUTE_GROUP;
       case "sequence" -> XsdSyntaxKind.SEQUENCE;
       case "choice" -> XsdSyntaxKind.CHOICE;
       default -> null;
@@ -232,6 +264,15 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
         addIfPresent(attributes, "type", reader.getAttributeValue(null, "type"));
         addIfPresent(attributes, "use", reader.getAttributeValue(null, "use"));
+      }
+      case GROUP -> {
+        addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+        addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
+        addCardinality(attributes, reader);
+      }
+      case ATTRIBUTE_GROUP -> {
+        addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+        addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
       }
       case SEQUENCE, CHOICE -> addCardinality(attributes, reader);
       case LIST, UNION -> {

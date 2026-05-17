@@ -325,6 +325,53 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsFlattenedGroupAndAttributeGroupFieldsInReferenceOrder() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:group name="OrderFields">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:group>
+                <xs:attributeGroup name="OrderAttributes">
+                  <xs:attribute name="version" type="xs:string" use="required"/>
+                </xs:attributeGroup>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:group ref="tns:OrderFields"/>
+                    <xs:element name="total" type="xs:decimal"/>
+                  </xs:sequence>
+                  <xs:attributeGroup ref="tns:OrderAttributes"/>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertFalse(result.hasErrors());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains("element id xml={urn:orders}id type=scalar:string"), bindingText);
+    assertTrue(
+        bindingText.contains("element total xml={urn:orders}total type=scalar:decimal"),
+        bindingText);
+    assertTrue(
+        bindingText.contains("attribute version xml={urn:orders}version type=scalar:string"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "element id xml={urn:orders}id type=scalar:string cardinality=required 1..1 order=1"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "element total xml={urn:orders}total type=scalar:decimal cardinality=required 1..1 order=2"),
+        bindingText);
+  }
+
+  @Test
   void reportsUnsupportedBuiltInScalarTypesWithoutPartialModel() throws IOException {
     write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:date\"/>"));
 

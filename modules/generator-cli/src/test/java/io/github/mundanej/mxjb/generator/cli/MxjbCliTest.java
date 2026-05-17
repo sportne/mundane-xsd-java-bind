@@ -103,6 +103,30 @@ final class MxjbCliTest {
   }
 
   @Test
+  void generateAcceptsComposedProfileToken() throws IOException {
+    Path schema = writeSchema("composed-order.xsd", composedOrderSchema());
+    Path output = tempDirectory.resolve("composed-generated");
+
+    CliResult result =
+        run(
+            "generate",
+            "--schema",
+            schema.toString(),
+            "--output",
+            output.toString(),
+            "--profile",
+            "XP-XSD10-COMPOSED",
+            "--namespace-package",
+            "urn:orders=com.example.orders");
+
+    assertEquals(0, result.exitCode(), result.err());
+    assertTrue(result.out().contains("com/example/orders/Order.java"));
+    assertTrue(
+        Files.readString(output.resolve("com/example/orders/Order.java"))
+            .contains("String version"));
+  }
+
+  @Test
   void generateResolvesCatalogAndRepeatedSchemaOptions() throws IOException {
     Path order = writeSchema("schemas/order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path line = writeSchema("catalog/line.xsd", lineSchema());
@@ -264,6 +288,32 @@ final class MxjbCliTest {
             <xs:sequence>
               <xs:element name="code" type="o:OrderCode"/>
             </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String composedOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:group name="OrderFields">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+            </xs:sequence>
+          </xs:group>
+          <xs:attributeGroup name="OrderAttributes">
+            <xs:attribute name="version" type="xs:string" use="required"/>
+          </xs:attributeGroup>
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:group ref="o:OrderFields"/>
+            </xs:sequence>
+            <xs:attributeGroup ref="o:OrderAttributes"/>
           </xs:complexType>
         </xs:schema>
         """;

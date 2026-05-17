@@ -70,14 +70,16 @@ executable evidence for `XP-VALIDATION-10-BASIC`.
   readiness without a separate release-engineering task. `TASK-0025` also does not create a `0.2.0`
   release tag or publication claim.
 
-## `0.3.0` planned verification minimum
+## `0.3.0` verification evidence
 
-`TASK-0026` defines planned verification for `XP-XSD10-COMPOSED`; executable evidence belongs to
-`TASK-0027` through `TASK-0030`.
+`TASK-0026` defined planned verification for `XP-XSD10-COMPOSED`. `TASK-0027` adds executable
+evidence for named model groups and attribute groups; the remaining executable evidence belongs to
+`TASK-0028` through `TASK-0030`.
 
 - Group support: `T-GROUP-*` and `T-ATTRGROUP-*` frontend, IR, binding, generated source,
   reader/writer/validator, deterministic emission, generated compile, unsupported diagnostics,
-  conformance, interop, and selected Native Image smoke evidence.
+  conformance, interop, and selected Native Image smoke evidence are part of `TASK-0027`
+  acceptance.
 - Simple type composition: `T-LIST-*` and `T-UNION-*` frontend, IR, binding, generated source,
   lexical reader/writer/validator behavior, unsupported diagnostics, conformance, and interop
   comparisons.

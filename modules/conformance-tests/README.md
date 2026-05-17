@@ -13,8 +13,8 @@ Covered behavior:
 - XML to object to XML round trips for representative generated bindings.
 - Namespace-aware element matching across imported-schema fixture boundaries.
 - Required-content, out-of-order sequence, namespace mismatch, and scalar lexical diagnostics.
-- Opt-in `xs:choice` and `XP-VALIDATION-10-BASIC` facet fixtures compared with JDK XML Schema
-  validation where practical.
+- Opt-in `xs:choice`, `XP-VALIDATION-10-BASIC` facet, and `XP-XSD10-COMPOSED` group fixtures
+  compared with JDK XML Schema validation where practical.
 
 Unsupported or future-profile constructs such as full simple-type facets beyond
 `XP-VALIDATION-10-BASIC`, derivation, wildcards, mixed content, identity constraints, and XSD 1.1

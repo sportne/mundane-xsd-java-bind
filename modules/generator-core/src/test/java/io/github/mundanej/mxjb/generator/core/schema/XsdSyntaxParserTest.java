@@ -265,6 +265,77 @@ final class XsdSyntaxParserTest {
   }
 
   @Test
+  void reportsGroupAndAttributeGroupAsUnsupportedProfileByDefault() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:group name="OrderFields">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:group>
+                <xs:attributeGroup name="OrderAttributes">
+                  <xs:attribute name="version" type="xs:string"/>
+                </xs:attributeGroup>
+                """));
+
+    XsdSyntaxResult result = parseWithLocalResolver("main.xsd");
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+            DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE),
+        diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:group requires profile XP-XSD10-COMPOSED.",
+        result.diagnostics().get(0).toManifestLine());
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:attributeGroup requires profile XP-XSD10-COMPOSED.",
+        result.diagnostics().get(1).toManifestLine());
+  }
+
+  @Test
+  void composedProfileParsesGroupsChoicesAndRestrictions() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="Code">
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="3"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:group name="OrderFields">
+                  <xs:sequence>
+                    <xs:element name="id" type="tns:Code"/>
+                    <xs:choice minOccurs="0">
+                      <xs:element name="domestic" type="xs:string"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:group>
+                <xs:attributeGroup name="OrderAttributes">
+                  <xs:attribute name="version" type="xs:string"/>
+                </xs:attributeGroup>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty());
+    String syntaxText = result.model().toText();
+    assertTrue(syntaxText.contains("group name=OrderFields minOccurs=1 maxOccurs=1"), syntaxText);
+    assertTrue(syntaxText.contains("choice minOccurs=0 maxOccurs=1"), syntaxText);
+    assertTrue(syntaxText.contains("attributeGroup name=OrderAttributes"), syntaxText);
+    assertTrue(syntaxText.contains("restriction base=xs:string"), syntaxText);
+  }
+
+  @Test
   void reportsFutureProfileConstructsAsUnsupported() throws IOException {
     write(
         "main.xsd",

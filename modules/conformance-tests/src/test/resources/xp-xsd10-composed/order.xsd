@@ -1,0 +1,22 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="urn:composed"
+    xmlns:c="urn:composed"
+    elementFormDefault="qualified"
+    attributeFormDefault="qualified">
+  <xs:group name="OrderFields">
+    <xs:sequence>
+      <xs:element name="id" type="xs:string"/>
+      <xs:element name="total" type="xs:decimal"/>
+    </xs:sequence>
+  </xs:group>
+  <xs:attributeGroup name="OrderAttributes">
+    <xs:attribute name="version" type="xs:string" use="required"/>
+  </xs:attributeGroup>
+  <xs:element name="order" type="c:Order"/>
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:group ref="c:OrderFields"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="c:OrderAttributes"/>
+  </xs:complexType>
+</xs:schema>
