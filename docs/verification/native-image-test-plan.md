@@ -17,9 +17,21 @@ Native Image tests prove that generated bindings and runtime paths avoid unexpec
 Native Image checks are not part of the default `qualityGate` while there is no meaningful executable runtime or generated binding. They become mandatory task evidence at the first task that creates each executable surface:
 
 - `TASK-0010` must run `:modules:runtime-core:nativeTest` once runtime-core primitives have behavior to execute.
-- `TASK-0013` must add the first generated-code native smoke path if generated model/writer code can execute with runtime primitives.
+- `TASK-0013` adds `:modules:generator-core:generatedCodeNativeSmoke`, the first generated-code native smoke path for approved generated model/writer fixtures plus `runtime-core`.
 - `TASK-0017` must reuse representative round-trip fixtures for native smoke execution.
 - `TASK-0020` hardens and broadens native checks; it must not be the first point where generated/runtime Native Image compatibility is exercised.
+
+## Active generated-code command
+
+Run the generated-code native smoke task with GraalVM native-image available:
+
+```bash
+JAVA_HOME=$HOME/.sdkman/candidates/java/21.0.2-graalce \
+PATH=$HOME/.sdkman/candidates/java/21.0.2-graalce/bin:$PATH \
+./gradlew :modules:generator-core:generatedCodeNativeSmoke --console=plain
+```
+
+If `native-image` is not on `PATH` and `JAVA_HOME` does not point to a GraalVM installation with `native-image`, the task fails with a concrete toolchain message before attempting a native build.
 
 ## Failure policy
 

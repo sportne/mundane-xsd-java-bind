@@ -28,3 +28,129 @@ dependencies {
     // Generated writer compile/behavior tests use the public runtime XML output interfaces.
     testImplementation project(':modules:runtime-core')
 }
+
+configurations {
+    generatedCodeSmokeCompileClasspath {
+        canBeConsumed = false
+        canBeResolved = true
+        description = 'Classpath for generated model/writer smoke compilation.'
+    }
+}
+
+dependencies {
+    generatedCodeSmokeCompileClasspath project(':modules:runtime-core')
+}
+
+def generatedCodeSmokeMainClass = 'io.github.mundanej.mxjb.generator.core.smoke.GeneratedCodeSmokeMain'
+def generatedCodeSmokeSourcesDirectory = layout.buildDirectory.dir('generated/generated-code-smoke/sources')
+def generatedCodeSmokeClassesDirectory = layout.buildDirectory.dir('classes/generated-code-smoke')
+def generatedCodeSmokeNativeDirectory = layout.buildDirectory.dir('native/generated-code-smoke')
+def generatedCodeSmokeNativeExecutable = layout.buildDirectory.file('native/generated-code-smoke/generated-code-smoke')
+def generatedCodeSmokeRuntimeClasspath = files(generatedCodeSmokeClassesDirectory)
+        .plus(configurations.generatedCodeSmokeCompileClasspath)
+
+tasks.register('prepareGeneratedCodeSmokeSources', Sync) {
+    group = 'verification'
+    description = 'Copies approved generated-code golden fixtures and smoke sources.'
+    from('src/test/resources/io/github/mundanej/mxjb/generator/core/emit/golden/basic-order') {
+        include '**/*.java.golden'
+        rename { fileName -> fileName.replace('.java.golden', '.java') }
+    }
+    from('src/generatedCodeSmoke/java')
+    into generatedCodeSmokeSourcesDirectory
+}
+
+tasks.register('compileGeneratedCodeSmokeJava', JavaCompile) {
+    group = 'verification'
+    description = 'Compiles approved generated-code smoke sources with Java 21 warnings as errors.'
+    dependsOn tasks.named('prepareGeneratedCodeSmokeSources')
+    source generatedCodeSmokeSourcesDirectory
+    classpath = configurations.generatedCodeSmokeCompileClasspath
+    destinationDirectory = generatedCodeSmokeClassesDirectory
+    options.release = 21
+    options.compilerArgs.addAll(['-Xlint:all', '-Werror'])
+}
+
+tasks.register('generatedCodeSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Runs the JVM smoke check for approved generated model/writer sources.'
+    dependsOn tasks.named('compileGeneratedCodeSmokeJava')
+    classpath = files(generatedCodeSmokeClassesDirectory) + configurations.generatedCodeSmokeCompileClasspath
+    mainClass = generatedCodeSmokeMainClass
+}
+
+def findNativeImageExecutable = {
+    def executableNames = [
+        'native-image',
+        'native-image.cmd'
+    ]
+    def candidates = []
+    def javaHome = System.getenv('JAVA_HOME')
+    if (javaHome != null && !javaHome.isBlank()) {
+        executableNames.each { executableName ->
+            candidates.add(new File(new File(javaHome, 'bin'), executableName))
+        }
+    }
+    def path = System.getenv('PATH')
+    if (path != null && !path.isBlank()) {
+        path.split(File.pathSeparator).each { pathEntry ->
+            executableNames.each { executableName ->
+                candidates.add(new File(pathEntry, executableName))
+            }
+        }
+    }
+    candidates.find { candidate -> candidate.isFile() && candidate.canExecute() }
+}
+
+def nativeImageExecutable = findNativeImageExecutable()
+def generatedCodeSmokeNativeClasspath = generatedCodeSmokeRuntimeClasspath.asPath
+
+tasks.register('checkGeneratedCodeNativeSmokeToolchain') {
+    group = 'verification'
+    description = 'Verifies native-image is available for generated-code smoke checks.'
+    doLast {
+        if (nativeImageExecutable == null) {
+            throw new GradleException(
+            'native-image was not found. Run this task with GraalVM native-image on PATH or set JAVA_HOME to a GraalVM installation that includes native-image.')
+        }
+    }
+}
+
+tasks.register('compileGeneratedCodeNativeSmoke', Exec) {
+    group = 'verification'
+    description = 'Builds a Native Image smoke executable for approved generated code.'
+    dependsOn tasks.named('checkGeneratedCodeNativeSmokeToolchain')
+    dependsOn tasks.named('compileGeneratedCodeSmokeJava')
+    inputs.files(generatedCodeSmokeRuntimeClasspath)
+    outputs.file(generatedCodeSmokeNativeExecutable)
+    executable = nativeImageExecutable == null ? 'native-image' : nativeImageExecutable.absolutePath
+    args '--no-fallback',
+            '-H:+ReportExceptionStackTraces',
+            '-cp',
+            generatedCodeSmokeNativeClasspath,
+            generatedCodeSmokeMainClass,
+            '-o',
+            generatedCodeSmokeNativeExecutable.get().asFile.absolutePath
+    doFirst {
+        generatedCodeSmokeNativeDirectory.get().asFile.mkdirs()
+    }
+}
+
+tasks.register('runGeneratedCodeNativeSmoke', Exec) {
+    group = 'verification'
+    description = 'Runs the Native Image smoke executable for approved generated code.'
+    dependsOn tasks.named('compileGeneratedCodeNativeSmoke')
+    inputs.file(generatedCodeSmokeNativeExecutable)
+    executable = generatedCodeSmokeNativeExecutable.get().asFile.absolutePath
+}
+
+tasks.register('generatedCodeNativeSmoke') {
+    group = 'verification'
+    description = 'Builds and runs a Native Image smoke executable for approved generated code.'
+    dependsOn tasks.named('runGeneratedCodeNativeSmoke')
+    outputs.dir(generatedCodeSmokeNativeDirectory)
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('generatedCodeSmoke')
+}

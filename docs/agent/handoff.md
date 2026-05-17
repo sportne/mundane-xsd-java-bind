@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model and generated-writer source emission, active generator-core coverage enforcement, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model and generated-writer source emission, generated-source verification harness, active generator-core coverage enforcement, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -23,10 +23,11 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 10. `TASK-0010`: Implement `runtime-core` public primitives and XML event/output interfaces. Completed and accepted.
 11. `TASK-0011`: Implement deterministic generated Java model source emission. Completed and accepted.
 12. `TASK-0012`: Implement deterministic generated XML writer source emission. Completed and accepted.
-13. `TASK-0013` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
-14. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
+13. `TASK-0013`: Implement generated-source verification harness, golden fixtures, JVM smoke, and generated-code Native Image smoke. Completed and accepted.
+14. `TASK-0014` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
+15. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
 
-`TASK-0013` is the next draft task, but it is not approved for implementation until the generated-source verification harness scope is reviewed and explicitly promoted.
+`TASK-0014` is the next draft task, but it is not approved for implementation until the JDK XML adapter scope is reviewed and explicitly promoted.
 
 ## Draft completion backlog
 
@@ -41,7 +42,7 @@ The draft backlog covers the project charter's first success milestone: CLI or G
 | `TASK-0010` | 3 | accepted | `runtime-core` public primitives and XML event/output interfaces. |
 | `TASK-0011` | 3 | accepted | Generated immutable Java model source emission. |
 | `TASK-0012` | 3 | accepted | Generated XML writer source emission. |
-| `TASK-0013` | 3 | draft | Generated-source compile, golden, and determinism harness. |
+| `TASK-0013` | 3 | accepted | Generated-source compile, golden, determinism, JVM smoke, and Native Image smoke harness. |
 | `TASK-0014` | 4 | draft | JDK XML adapters for generated-code tests and examples. |
 | `TASK-0015` | 4 | draft | Generated XML reader source emission. |
 | `TASK-0016` | 4 | draft | Basic generated validation and diagnostics. |
@@ -85,8 +86,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Next implementation gate
 
-Implementation for `TASK-0013` remains blocked until it is promoted from draft to approved. The next readiness review should confirm:
+Implementation for `TASK-0014` remains blocked until it is promoted from draft to approved. The next readiness review should confirm:
 
-- `TASK-0012` generated writer emission is the accepted writer-source baseline for reusable generated-source verification work.
-- `TASK-0013` must not add XML reader generation, validation engine behavior, public generator API, CLI behavior, or Gradle plugin behavior.
-- Native Image verification for runtime primitives passes with SDKMAN GraalVM CE 21.0.2 when run with explicit `JAVA_HOME` and configuration cache disabled. Later generated-code native lanes should keep JVM-only architecture-analysis engines outside native smoke executables.
+- `TASK-0013` generated-source harness is the accepted reusable compile/golden/determinism/native-smoke baseline.
+- `TASK-0014` must add adapter behavior only in `runtime-jdkxml` and tests/examples; it must not add XML reader generation, validation engine behavior, public generator API, CLI behavior, or Gradle plugin behavior.
+- Generated-code Native Image smoke passes with SDKMAN GraalVM CE 21.0.2 when run with explicit `JAVA_HOME` and `PATH`; later round-trip lanes should reuse the generated-source harness instead of introducing separate native smoke mechanics.

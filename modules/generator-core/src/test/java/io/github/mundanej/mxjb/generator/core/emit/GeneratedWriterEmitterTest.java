@@ -2,7 +2,6 @@ package io.github.mundanej.mxjb.generator.core.emit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
@@ -21,15 +20,10 @@ import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -140,7 +134,8 @@ final class GeneratedWriterEmitterTest {
     assertTrue(writerSource.contains("com.example.collide.XmlOutput value"));
 
     RecordingXmlOutput output = new RecordingXmlOutput();
-    try (CompiledSources compiledSources = compile(sources)) {
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
       Class<?> rootClass = compiledSources.load("com.example.collide.XmlOutput");
       Class<?> nestedClass = compiledSources.load("com.example.collide.XmlName");
       Class<?> writerClass = compiledSources.load("com.example.collide.xml.XmlOutputXmlWriter");
@@ -193,7 +188,8 @@ final class GeneratedWriterEmitterTest {
     sources.addAll(writerResult.sources());
 
     RecordingXmlOutput output = new RecordingXmlOutput();
-    try (CompiledSources compiledSources = compile(sources)) {
+    GeneratedSourceVerifier verifier = new GeneratedSourceVerifier(tempDirectory);
+    try (GeneratedSourceVerifier.CompiledSources compiledSources = verifier.compile(sources)) {
       Class<?> orderClass = compiledSources.load("com.example.orders.Order");
       Class<?> lineClass = compiledSources.load("com.example.lines.Line");
       Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
@@ -229,7 +225,7 @@ final class GeneratedWriterEmitterTest {
         output.events);
 
     RecordingXmlOutput noteOutput = new RecordingXmlOutput();
-    try (CompiledSources compiledSources = compile(sources)) {
+    try (GeneratedSourceVerifier.CompiledSources compiledSources = verifier.compile(sources)) {
       Class<?> orderClass = compiledSources.load("com.example.orders.Order");
       Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
       Object order =
@@ -268,7 +264,8 @@ final class GeneratedWriterEmitterTest {
     GeneratedWriterEmissionResult second = new GeneratedWriterEmitter().emit(model);
 
     assertFalse(first.hasErrors());
-    assertEquals(first.sources(), second.sources());
+    new GeneratedSourceVerifier(tempDirectory)
+        .assertDeterministic(first.sources(), second.sources());
     assertEquals(
         List.of(
             Path.of("com/example/orders/xml/AlphaXmlWriter.java"),
@@ -313,44 +310,6 @@ final class GeneratedWriterEmitterTest {
             DiagnosticCode.SCHEMA_WRITER_EMISSION_INVALID_MODEL),
         diagnosticCodes(result));
     assertTrue(result.sources().isEmpty());
-  }
-
-  private CompiledSources compile(List<GeneratedJavaSource> sources) throws IOException {
-    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-    assertNotNull(compiler);
-    Path sourceRoot = tempDirectory.resolve("source");
-    Path classRoot = tempDirectory.resolve("classes");
-    Files.createDirectories(sourceRoot);
-    Files.createDirectories(classRoot);
-    for (GeneratedJavaSource source : sources) {
-      Path sourcePath = sourceRoot.resolve(source.relativePath());
-      Path sourceParent = sourcePath.getParent();
-      if (sourceParent != null) {
-        Files.createDirectories(sourceParent);
-      }
-      Files.writeString(sourcePath, source.sourceText());
-    }
-    List<String> sourceArguments =
-        sources.stream()
-            .map(source -> sourceRoot.resolve(source.relativePath()).toString())
-            .toList();
-    List<String> compilerArguments =
-        java.util.stream.Stream.concat(
-                java.util.stream.Stream.of(
-                    "--release",
-                    "21",
-                    "-Xlint:all",
-                    "-Werror",
-                    "-classpath",
-                    System.getProperty("java.class.path"),
-                    "-d",
-                    classRoot.toString()),
-                sourceArguments.stream())
-            .toList();
-
-    assertEquals(0, compiler.run(null, null, null, compilerArguments.toArray(String[]::new)));
-    return new CompiledSources(
-        new URLClassLoader(new URL[] {classRoot.toUri().toURL()}, getClass().getClassLoader()));
   }
 
   private List<DiagnosticCode> diagnosticCodes(GeneratedWriterEmissionResult result) {
@@ -444,17 +403,6 @@ final class GeneratedWriterEmitterTest {
 
     private String toText(XmlName name) {
       return "{" + name.namespaceUri() + "}" + name.localName();
-    }
-  }
-
-  private record CompiledSources(URLClassLoader loader) implements AutoCloseable {
-    private Class<?> load(String className) throws ClassNotFoundException {
-      return loader.loadClass(className);
-    }
-
-    @Override
-    public void close() throws IOException {
-      loader.close();
     }
   }
 }

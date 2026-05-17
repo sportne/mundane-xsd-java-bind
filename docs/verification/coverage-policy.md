@@ -17,3 +17,5 @@
 ## Active enforcement
 
 JaCoCo verification skips modules with no compiled production classes. Once production classes exist, the module-specific bundle line, bundle branch, and per-source-file line thresholds above are enforced by each module's `check` task and the root `qualityGate`.
+
+Generator-core test coverage includes the generated-source verification harness because later generated reader, validation, CLI, and plugin tasks depend on that harness for compile/golden/determinism confidence. Generated fixture smoke sources are compiled and executed by `generatedCodeSmoke`; they are not product classes and do not alter JaCoCo production thresholds.

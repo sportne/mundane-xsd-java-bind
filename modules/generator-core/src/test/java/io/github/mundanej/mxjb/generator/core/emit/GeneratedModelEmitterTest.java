@@ -3,7 +3,6 @@ package io.github.mundanej.mxjb.generator.core.emit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,14 +19,9 @@ import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -52,7 +46,8 @@ final class GeneratedModelEmitterTest {
     GeneratedModelEmissionResult second = new GeneratedModelEmitter().emit(model);
 
     assertFalse(first.hasErrors());
-    assertEquals(first.sources(), second.sources());
+    new GeneratedSourceVerifier(tempDirectory)
+        .assertDeterministic(first.sources(), second.sources());
     assertEquals(
         Path.of("com/example/orders/Order.java"), first.sources().getFirst().relativePath());
     assertEquals(
@@ -245,25 +240,28 @@ final class GeneratedModelEmitterTest {
                         field("element", "line", scalar("int"), list())))));
     GeneratedModelEmissionResult result = new GeneratedModelEmitter().emit(model);
 
-    Class<?> orderClass = compileAndLoad(result.sources(), "com.example.orders.Order");
-    Object order =
-        orderClass
-            .getConstructor(String.class, Optional.class, List.class)
-            .newInstance("A-1", Optional.of("ship"), List.of(1, 2));
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(result.sources())) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Object order =
+          orderClass
+              .getConstructor(String.class, Optional.class, List.class)
+              .newInstance("A-1", Optional.of("ship"), List.of(1, 2));
 
-    Object lines = orderClass.getMethod("line").invoke(order);
+      Object lines = orderClass.getMethod("line").invoke(order);
 
-    assertInstanceOf(List.class, lines);
-    assertEquals(List.of(1, 2), lines);
-    assertThrows(UnsupportedOperationException.class, () -> ((List<?>) lines).add(null));
-    InvocationTargetException optionalFailure =
-        assertThrows(
-            InvocationTargetException.class,
-            () ->
-                orderClass
-                    .getConstructor(String.class, Optional.class, List.class)
-                    .newInstance("A-1", null, List.of()));
-    assertInstanceOf(NullPointerException.class, optionalFailure.getCause());
+      assertInstanceOf(List.class, lines);
+      assertEquals(List.of(1, 2), lines);
+      assertThrows(UnsupportedOperationException.class, () -> ((List<?>) lines).add(null));
+      InvocationTargetException optionalFailure =
+          assertThrows(
+              InvocationTargetException.class,
+              () ->
+                  orderClass
+                      .getConstructor(String.class, Optional.class, List.class)
+                      .newInstance("A-1", null, List.of()));
+      assertInstanceOf(NullPointerException.class, optionalFailure.getCause());
+    }
   }
 
   @Test
@@ -313,39 +311,6 @@ final class GeneratedModelEmitterTest {
 
     assertEquals(List.of(DiagnosticCode.SCHEMA_EMISSION_INVALID_MODEL), diagnosticCodes(result));
     assertTrue(result.sources().isEmpty());
-  }
-
-  private Class<?> compileAndLoad(List<GeneratedJavaSource> sources, String className)
-      throws IOException, ClassNotFoundException {
-    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-    assertNotNull(compiler);
-    Path sourceRoot = tempDirectory.resolve("source");
-    Path classRoot = tempDirectory.resolve("classes");
-    Files.createDirectories(sourceRoot);
-    Files.createDirectories(classRoot);
-    for (GeneratedJavaSource source : sources) {
-      Path sourcePath = sourceRoot.resolve(source.relativePath());
-      Path sourceParent = sourcePath.getParent();
-      if (sourceParent != null) {
-        Files.createDirectories(sourceParent);
-      }
-      Files.writeString(sourcePath, source.sourceText());
-    }
-    List<String> arguments =
-        sources.stream()
-            .map(source -> sourceRoot.resolve(source.relativePath()).toString())
-            .toList();
-    List<String> compilerArguments =
-        java.util.stream.Stream.concat(
-                java.util.stream.Stream.of(
-                    "--release", "21", "-Xlint:all", "-Werror", "-d", classRoot.toString()),
-                arguments.stream())
-            .toList();
-
-    assertEquals(0, compiler.run(null, null, null, compilerArguments.toArray(String[]::new)));
-    try (URLClassLoader loader = new URLClassLoader(new URL[] {classRoot.toUri().toURL()})) {
-      return loader.loadClass(className);
-    }
   }
 
   private List<DiagnosticCode> diagnosticCodes(GeneratedModelEmissionResult result) {
