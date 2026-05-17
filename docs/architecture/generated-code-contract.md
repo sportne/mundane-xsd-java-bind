@@ -46,7 +46,7 @@ The first generated-reader emitter supports root static XML readers for supporte
 - Reader classes have private constructors, static `XmlName` constants, and private static helper methods for nested complex types.
 - Readers require non-null `input`, accept `START_DOCUMENT` or root `START_ELEMENT`, skip whitespace-only text between elements, match expanded names namespace-aware, and parse children in binding order.
 - Optional fields are produced as `Optional.empty()` when absent, repeated fields are copied into immutable lists through generated model construction, and missing/repeated/out-of-order content produces deterministic `XmlReadException` diagnostics.
-- Scalar lexical conversion covers `String`, `Boolean`, `Integer`, `BigInteger`, `Long`, and `BigDecimal`; full XSD datatype/facet validation remains a later validation task.
+- Scalar lexical conversion covers `String`, `Boolean`, `Integer`, `BigInteger`, `Long`, and `BigDecimal`; accepted `XP-VALIDATION-10-BASIC` facets are emitted as explicit generated validator checks after lexical conversion.
 - Generated reader source uses fully qualified names for generated model types, `java.util.Objects`, collection helpers, and `runtime-core` `XmlName`, `XmlEventReader`, `XmlDiagnostic`, `XmlDiagnosticSeverity`, and `XmlReadException` to avoid import collisions.
 - Generated reader source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, validation engine behavior, or external resource access.
 

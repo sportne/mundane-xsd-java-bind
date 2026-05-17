@@ -215,6 +215,56 @@ final class XsdSyntaxParserTest {
   }
 
   @Test
+  void reportsRestrictionAsUnsupportedProfileByDefault() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="OrderCode">
+                  <xs:restriction base="xs:string">
+                    <xs:pattern value="[A-Z]+"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                """));
+
+    XsdSyntaxResult result = parseWithLocalResolver("main.xsd");
+
+    assertEquals(
+        List.of(DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE), diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:restriction requires profile XP-VALIDATION-10-BASIC.",
+        result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
+  void parsesSimpleRestrictionWhenBasicValidationProfileIsSelected() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="OrderCode">
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="3"/>
+                    <xs:maxLength value="8"/>
+                    <xs:pattern value="[A-Z0-9]+"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(result.model().toText().contains("restriction base=xs:string"));
+    assertTrue(result.model().toText().contains("pattern value=[A-Z0-9]+"));
+  }
+
+  @Test
   void reportsFutureProfileConstructsAsUnsupported() throws IOException {
     write(
         "main.xsd",

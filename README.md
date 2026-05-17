@@ -44,9 +44,10 @@ The first implementation phase supports schemas that primarily define XML data-s
 - CLI and Gradle plugin generation entry points
 - Native Image smoke tests
 
-The following remain future-profile work: `xs:choice`, practical simple-type facets such as
-enumeration/range/pattern, derivation, substitution groups, wildcards, mixed content, identity
-constraints, and XSD 1.1.
+Opt-in `0.2.0` profiles now cover the accepted local singleton `xs:choice` subset and practical
+named simple-type facets for enumeration, string length, numeric inclusive range, and string
+pattern validation. Derivation, substitution groups, wildcards, mixed content, identity constraints,
+and XSD 1.1 remain future-profile work.
 
 ## Repository entry points
 

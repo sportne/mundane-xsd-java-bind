@@ -147,6 +147,16 @@ public final class XsdSyntaxParser {
       skipSubtree(reader);
       return null;
     }
+    if (isSimpleRestrictionConstruct(localName)
+        && profile != GeneratorProfile.XP_VALIDATION_10_BASIC) {
+      diagnostics.add(
+          new SchemaDiagnostic(
+              DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+              resourceId,
+              "xs:" + localName + " requires profile XP-VALIDATION-10-BASIC."));
+      skipSubtree(reader);
+      return null;
+    }
 
     XsdSyntaxKind kind = kindFor(localName);
     if (kind == null) {
@@ -164,11 +174,38 @@ public final class XsdSyntaxParser {
     return new XsdSyntaxNode(kind, attributes, children);
   }
 
+  private boolean isSimpleRestrictionConstruct(String localName) {
+    return switch (localName) {
+      case "restriction",
+          "enumeration",
+          "length",
+          "minLength",
+          "maxLength",
+          "minInclusive",
+          "maxInclusive",
+          "pattern",
+          "list",
+          "union" ->
+          true;
+      default -> false;
+    };
+  }
+
   private XsdSyntaxKind kindFor(String localName) {
     return switch (localName) {
       case "element" -> XsdSyntaxKind.ELEMENT;
       case "complexType" -> XsdSyntaxKind.COMPLEX_TYPE;
       case "simpleType" -> XsdSyntaxKind.SIMPLE_TYPE;
+      case "restriction" -> XsdSyntaxKind.RESTRICTION;
+      case "enumeration" -> XsdSyntaxKind.ENUMERATION;
+      case "length" -> XsdSyntaxKind.LENGTH;
+      case "minLength" -> XsdSyntaxKind.MIN_LENGTH;
+      case "maxLength" -> XsdSyntaxKind.MAX_LENGTH;
+      case "minInclusive" -> XsdSyntaxKind.MIN_INCLUSIVE;
+      case "maxInclusive" -> XsdSyntaxKind.MAX_INCLUSIVE;
+      case "pattern" -> XsdSyntaxKind.PATTERN;
+      case "list" -> XsdSyntaxKind.LIST;
+      case "union" -> XsdSyntaxKind.UNION;
       case "attribute" -> XsdSyntaxKind.ATTRIBUTE;
       case "sequence" -> XsdSyntaxKind.SEQUENCE;
       case "choice" -> XsdSyntaxKind.CHOICE;
@@ -187,6 +224,9 @@ public final class XsdSyntaxParser {
       }
       case COMPLEX_TYPE, SIMPLE_TYPE ->
           addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+      case RESTRICTION -> addIfPresent(attributes, "base", reader.getAttributeValue(null, "base"));
+      case ENUMERATION, LENGTH, MIN_LENGTH, MAX_LENGTH, MIN_INCLUSIVE, MAX_INCLUSIVE, PATTERN ->
+          addIfPresent(attributes, "value", reader.getAttributeValue(null, "value"));
       case ATTRIBUTE -> {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
@@ -194,6 +234,10 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "use", reader.getAttributeValue(null, "use"));
       }
       case SEQUENCE, CHOICE -> addCardinality(attributes, reader);
+      case LIST, UNION -> {
+        addIfPresent(attributes, "itemType", reader.getAttributeValue(null, "itemType"));
+        addIfPresent(attributes, "memberTypes", reader.getAttributeValue(null, "memberTypes"));
+      }
     }
     return attributes;
   }

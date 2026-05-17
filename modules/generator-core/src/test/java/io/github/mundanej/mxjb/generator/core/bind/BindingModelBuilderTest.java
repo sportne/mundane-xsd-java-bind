@@ -292,6 +292,39 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsRestrictedSimpleTypesAsScalarAliasesWithFacetRules() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="OrderCode">
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="3"/>
+                    <xs:maxLength value="8"/>
+                    <xs:pattern value="[A-Z0-9]+"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="code" type="tns:OrderCode"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertFalse(result.hasErrors());
+    String bindingText = result.model().toText();
+    assertTrue(bindingText.contains("element code"), bindingText);
+    assertTrue(bindingText.contains("type=scalar:string facets["), bindingText);
+    assertTrue(bindingText.contains("minLength=3"), bindingText);
+    assertTrue(bindingText.contains("maxLength=8"), bindingText);
+    assertTrue(bindingText.contains("pattern=[A-Z0-9]+"), bindingText);
+  }
+
+  @Test
   void reportsUnsupportedBuiltInScalarTypesWithoutPartialModel() throws IOException {
     write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:date\"/>"));
 

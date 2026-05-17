@@ -1,0 +1,25 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:f="urn:facet"
+    targetNamespace="urn:facet"
+    elementFormDefault="qualified">
+  <xs:simpleType name="OrderCode">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="3"/>
+      <xs:maxLength value="8"/>
+      <xs:pattern value="[A-Z0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Priority">
+    <xs:restriction base="xs:int">
+      <xs:minInclusive value="1"/>
+      <xs:maxInclusive value="9"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="order" type="f:Order"/>
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="code" type="f:OrderCode"/>
+      <xs:element name="priority" type="f:Priority"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

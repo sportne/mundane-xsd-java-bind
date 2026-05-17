@@ -49,8 +49,8 @@
 
 `TASK-0023` adds executable JVM implementation evidence for `XP-DATA-10-CHOICE`, including
 conformance/interop fixtures compared against JDK XML Schema validation and representative
-generated-code smoke coverage for the Native Image lane. `TASK-0024` must add the executable tests
-for `XP-VALIDATION-10-BASIC`.
+generated-code smoke coverage for the Native Image lane. `TASK-0024` adds the corresponding
+executable evidence for `XP-VALIDATION-10-BASIC`.
 
 - Choice support: `T-CHOICE-*` frontend, IR, binding, model, writer, reader, validator,
   CoreGenerator, CLI, Gradle plugin, generated-source compilation, default-profile rejection, and
@@ -59,6 +59,8 @@ for `XP-VALIDATION-10-BASIC`.
   representative generated-code/native-smoke choice evidence are part of `TASK-0023` acceptance.
 - Facet support: `T-FACET-*` frontend, IR, binding, generated source, validator, diagnostic,
   round-trip, conformance, interop, and representative Native Image smoke evidence.
+- Facet conformance/interop: `T-CONF-XP-VALIDATION-10-BASIC-*`, `T-INTEROP-FACET-*`, and
+  representative generated-code/native-smoke facet evidence are part of `TASK-0024` acceptance.
 - Interop: at least one positive and one negative fixture for each accepted choice/facet group should
   be compared against JDK XML Schema validation where practical; any gap must be documented before
   readiness acceptance.

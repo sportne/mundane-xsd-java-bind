@@ -5,7 +5,8 @@ import java.util.Optional;
 /** Supported public generator profiles. */
 public enum GeneratorProfile {
   XP_DATA_10("XP-DATA-10"),
-  XP_DATA_10_CHOICE("XP-DATA-10-CHOICE");
+  XP_DATA_10_CHOICE("XP-DATA-10-CHOICE"),
+  XP_VALIDATION_10_BASIC("XP-VALIDATION-10-BASIC");
 
   private final String cliToken;
 

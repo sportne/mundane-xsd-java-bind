@@ -109,7 +109,8 @@ public final class CoreGenerator implements Generator {
       diagnostics.add(diagnostic(REQUEST_INVALID, "output", "Output directory is required."));
     }
     if (request.profile() != GeneratorProfile.XP_DATA_10
-        && request.profile() != GeneratorProfile.XP_DATA_10_CHOICE) {
+        && request.profile() != GeneratorProfile.XP_DATA_10_CHOICE
+        && request.profile() != GeneratorProfile.XP_VALIDATION_10_BASIC) {
       diagnostics.add(
           diagnostic(
               REQUEST_INVALID,

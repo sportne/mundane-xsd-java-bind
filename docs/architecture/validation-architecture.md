@@ -28,16 +28,16 @@ Generated readers now report deterministic `XmlReadException` diagnostics for ro
 
 ## `TASK-0016` generated validation baseline
 
-Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, and nested model aggregation with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, preserving reader diagnostic code, message, and location as `ValidationError` values. Simple restriction facets, defaults/fixed semantics, identity constraints, and expanded datatype validation remain future validation phases.
+Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, nested model aggregation, and accepted `XP-VALIDATION-10-BASIC` simple restriction facets with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, then applies object validation, preserving reader diagnostics when lexical conversion fails. Defaults/fixed semantics, identity constraints, and expanded datatype validation remain future validation phases.
 
-## `TASK-0022` planned facet validation scope
+## `TASK-0024` facet validation scope
 
-The `0.2.0` Practical Data Contracts plan accepts a narrow `XP-VALIDATION-10-BASIC` facet subset for
-`TASK-0024`: named simple-type restrictions over the existing supported scalar mappings, with
+The `0.2.0` Practical Data Contracts slice accepts a narrow `XP-VALIDATION-10-BASIC` facet subset:
+named simple-type restrictions over the existing supported scalar mappings, with
 `xs:enumeration`, string length facets, numeric inclusive range facets, and `xs:pattern` for
 `xs:string`.
 
-Facet checks are planned for generated object validation and XML validation after reader lexical
-conversion succeeds. Unsupported facets, list/union, derivation chains, anonymous simple types,
+Facet checks run in generated object validation and XML validation after reader lexical conversion
+succeeds. Unsupported facets, list/union, derivation chains, anonymous simple types,
 broader whitespace normalization, full date/time semantics, identity constraints, defaults/fixed,
 and XSD 1.1 assertions remain future-profile work with explicit diagnostics.

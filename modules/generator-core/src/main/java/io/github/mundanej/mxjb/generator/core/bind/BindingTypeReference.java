@@ -3,7 +3,11 @@ package io.github.mundanej.mxjb.generator.core.bind;
 import java.util.Objects;
 
 /** Scalar or generated-model type reference in the binding model. */
-public record BindingTypeReference(String kind, String name) {
+public record BindingTypeReference(String kind, String name, BindingSimpleRestriction restriction) {
+  public BindingTypeReference(String kind, String name) {
+    this(kind, name, null);
+  }
+
   public BindingTypeReference {
     Objects.requireNonNull(kind, "kind");
     Objects.requireNonNull(name, "name");
@@ -11,6 +15,10 @@ public record BindingTypeReference(String kind, String name) {
 
   static BindingTypeReference scalar(String name) {
     return new BindingTypeReference("scalar", name);
+  }
+
+  static BindingTypeReference scalar(String name, BindingSimpleRestriction restriction) {
+    return new BindingTypeReference("scalar", name, restriction);
   }
 
   static BindingTypeReference model(BindingJavaName name) {
@@ -22,6 +30,11 @@ public record BindingTypeReference(String kind, String name) {
   }
 
   public String toText() {
-    return kind + ":" + name;
+    return kind
+        + ":"
+        + name
+        + (restriction == null || !restriction.hasRules()
+            ? ""
+            : " facets[" + restriction.toText() + "]");
   }
 }

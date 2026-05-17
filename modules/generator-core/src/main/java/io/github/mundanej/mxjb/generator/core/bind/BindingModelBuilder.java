@@ -11,6 +11,8 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrModel;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrParticle;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrResult;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSequence;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleRestriction;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleType;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrTypeReference;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import java.net.URI;
@@ -58,6 +60,7 @@ public final class BindingModelBuilder {
     private final Map<SchemaQName, SchemaIrElement> globalElements = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrAttribute> globalAttributes = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrComplexType> complexTypes = new LinkedHashMap<>();
+    private final Map<SchemaQName, SchemaIrSimpleType> simpleTypes = new LinkedHashMap<>();
     private final Map<SchemaQName, BindingJavaName> complexTypeNames = new LinkedHashMap<>();
     private final IdentityHashMap<SchemaIrComplexType, BindingJavaName> inlineComplexTypeNames =
         new IdentityHashMap<>();
@@ -101,6 +104,9 @@ public final class BindingModelBuilder {
       }
       for (SchemaIrComplexType complexType : model.complexTypes()) {
         complexTypes.put(complexType.name(), complexType);
+      }
+      for (SchemaIrSimpleType simpleType : model.simpleTypes()) {
+        simpleTypes.put(simpleType.name(), simpleType);
       }
       for (SchemaIrComplexType complexType : model.complexTypes()) {
         complexTypeNames.put(complexType.name(), javaName(complexType.name()));
@@ -309,6 +315,21 @@ public final class BindingModelBuilder {
       BindingJavaName complexTypeName = complexTypeNames.get(name);
       if (complexTypeName != null) {
         return BindingTypeReference.model(complexTypeName);
+      }
+      SchemaIrSimpleType simpleType = simpleTypes.get(name);
+      if (simpleType != null && simpleType.restriction() != null) {
+        SchemaIrSimpleRestriction restriction = simpleType.restriction();
+        BindingSimpleRestriction bindingRestriction =
+            new BindingSimpleRestriction(
+                restriction.base().localName(),
+                restriction.enumerations(),
+                restriction.length(),
+                restriction.minLength(),
+                restriction.maxLength(),
+                restriction.minInclusive(),
+                restriction.maxInclusive(),
+                restriction.patterns());
+        return BindingTypeReference.scalar(restriction.base().localName(), bindingRestriction);
       }
       diagnostic(
           DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,

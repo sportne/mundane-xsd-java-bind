@@ -169,6 +169,191 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
+  void buildsIrForAcceptedSimpleRestrictionFacets() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="OrderCode">
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="ABC"/>
+                    <xs:minLength value="3"/>
+                    <xs:maxLength value="8"/>
+                    <xs:pattern value="[A-Z0-9]+"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="Priority">
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="1"/>
+                    <xs:maxInclusive value="9"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertTrue(result.diagnostics().isEmpty());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("simpleType {urn:orders}OrderCode restriction base=xs:string"));
+    assertTrue(irText.contains("enumeration=ABC"));
+    assertTrue(irText.contains("minLength=3 maxLength=8 pattern=[A-Z0-9]+"));
+    assertTrue(
+        irText.contains(
+            "simpleType {urn:orders}Priority restriction base=xs:int minInclusive=1 maxInclusive=9"));
+  }
+
+  @Test
+  void reportsUnsupportedAndInvalidSimpleRestrictionFacets() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="BadPattern">
+                  <xs:restriction base="xs:string">
+                    <xs:pattern value="["/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="BadRange">
+                  <xs:restriction base="xs:string">
+                    <xs:minInclusive value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="ListType">
+                  <xs:list itemType="xs:string"/>
+                </xs:simpleType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
+  }
+
+  @Test
+  void buildsIrForAllAcceptedSimpleRestrictionFacetCategories() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="Flag">
+                  <xs:restriction base="xs:boolean">
+                    <xs:enumeration value="true"/>
+                    <xs:enumeration value="0"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="FixedCode">
+                  <xs:restriction base="xs:string">
+                    <xs:length value="5"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="Amount">
+                  <xs:restriction base="xs:decimal">
+                    <xs:minInclusive value="1.25"/>
+                    <xs:maxInclusive value="9.75"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="Count">
+                  <xs:restriction base="xs:integer">
+                    <xs:enumeration value="7"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="LongCount">
+                  <xs:restriction base="xs:long">
+                    <xs:enumeration value="9"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertTrue(result.diagnostics().isEmpty());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("simpleType {urn:orders}Flag restriction base=xs:boolean"));
+    assertTrue(irText.contains("enumeration=true,0"));
+    assertTrue(irText.contains("simpleType {urn:orders}FixedCode restriction base=xs:string"));
+    assertTrue(irText.contains("length=5"));
+    assertTrue(irText.contains("simpleType {urn:orders}Amount restriction base=xs:decimal"));
+    assertTrue(irText.contains("minInclusive=1.25 maxInclusive=9.75"));
+    assertTrue(irText.contains("simpleType {urn:orders}Count restriction base=xs:integer"));
+    assertTrue(irText.contains("simpleType {urn:orders}LongCount restriction base=xs:long"));
+  }
+
+  @Test
+  void reportsInvalidSimpleRestrictionDefinitions() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="MissingBase">
+                  <xs:restriction>
+                    <xs:enumeration value="A"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="UnsupportedBase">
+                  <xs:restriction base="xs:date">
+                    <xs:enumeration value="2026-05-17"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="InvalidEnum">
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="not-int"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="InvalidLength">
+                  <xs:restriction base="xs:string">
+                    <xs:length value="-1"/>
+                    <xs:length value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="CombinedLength">
+                  <xs:restriction base="xs:string">
+                    <xs:length value="2"/>
+                    <xs:minLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="BadLengthRange">
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="4"/>
+                    <xs:maxLength value="3"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="BadNumericRange">
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="9"/>
+                    <xs:maxInclusive value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="MissingFacetValue">
+                  <xs:restriction base="xs:string">
+                    <xs:pattern/>
+                  </xs:restriction>
+                </xs:simpleType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
+  }
+
+  @Test
   void resolvesElementAndAttributeReferences() throws IOException {
     write(
         "main.xsd",

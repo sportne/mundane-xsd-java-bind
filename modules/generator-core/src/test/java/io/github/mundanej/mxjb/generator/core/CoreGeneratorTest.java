@@ -145,6 +145,58 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void defaultProfileRejectsRestrictedSimpleTypeWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("facet-order.xsd", facetOrderSchema());
+    Path output = tempDirectory.resolve("facet-default");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    null,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+    assertTrue(result.generatedSources().isEmpty());
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
+  void basicValidationProfileGeneratesFacetValidationSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("facet-order.xsd", facetOrderSchema());
+    Path output = tempDirectory.resolve("facet-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_VALIDATION_10_BASIC,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertTrue(result.generatedSources().contains(Path.of("com/acme/orders/Order.java")));
+    String validator =
+        Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
+    assertTrue(validator.contains("MXJB-GV-005"));
+    assertTrue(validator.contains("MXJB-GV-006"));
+    assertTrue(validator.contains("MXJB-GV-007"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
   void deniesNetworkResolutionAndWritesNoSources() throws IOException {
     Path schema = writeSchema("order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path output = tempDirectory.resolve("network-denied");
@@ -342,6 +394,37 @@ final class CoreGeneratorTest {
                 <xs:element name="domestic" type="xs:string"/>
                 <xs:element name="international" type="xs:string"/>
               </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String facetOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:simpleType name="OrderCode">
+            <xs:restriction base="xs:string">
+              <xs:minLength value="3"/>
+              <xs:maxLength value="8"/>
+              <xs:pattern value="[A-Z0-9]+"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:simpleType name="Priority">
+            <xs:restriction base="xs:int">
+              <xs:minInclusive value="1"/>
+              <xs:maxInclusive value="9"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="code" type="o:OrderCode"/>
+              <xs:element name="priority" type="o:Priority"/>
             </xs:sequence>
           </xs:complexType>
         </xs:schema>

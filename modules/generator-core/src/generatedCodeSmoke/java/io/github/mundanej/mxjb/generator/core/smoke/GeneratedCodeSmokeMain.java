@@ -78,6 +78,7 @@ public final class GeneratedCodeSmokeMain {
               + xmlValidation.errors());
     }
     runChoiceSmoke();
+    runFacetSmoke();
   }
 
   private static void runChoiceSmoke() throws XmlReadException, XmlWriteException {
@@ -116,6 +117,46 @@ public final class GeneratedCodeSmokeMain {
               + objectValidation.errors()
               + " / "
               + xmlValidation.errors());
+    }
+  }
+
+  private static void runFacetSmoke() throws XmlReadException, XmlWriteException {
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    com.example.facet.Order order = new com.example.facet.Order("AB12", 3);
+
+    com.example.facet.xml.OrderXmlWriter.write(output, order);
+
+    List<String> expected =
+        List.of(
+            "start:{urn:facet}order",
+            "start:{urn:facet}code",
+            "text:AB12",
+            "end:{urn:facet}code",
+            "start:{urn:facet}priority",
+            "text:3",
+            "end:{urn:facet}priority",
+            "end:{urn:facet}order");
+    if (!expected.equals(output.events)) {
+      throw new AssertionError("Generated-code facet smoke output mismatch: " + output.events);
+    }
+
+    com.example.facet.Order parsed = com.example.facet.xml.OrderXmlReader.read(facetInput());
+    if (!order.equals(parsed)) {
+      throw new AssertionError("Generated-code facet smoke reader mismatch: " + parsed);
+    }
+
+    ValidationResult objectValidation = com.example.facet.xml.OrderXmlValidator.validate(order);
+    ValidationResult xmlValidation = com.example.facet.xml.OrderXmlValidator.validate(facetInput());
+    ValidationResult invalidValidation =
+        com.example.facet.xml.OrderXmlValidator.validate(new com.example.facet.Order("ab", 12));
+    if (!objectValidation.isValid() || !xmlValidation.isValid() || invalidValidation.isValid()) {
+      throw new AssertionError(
+          "Generated-code facet smoke validator mismatch: "
+              + objectValidation.errors()
+              + " / "
+              + xmlValidation.errors()
+              + " / "
+              + invalidValidation.errors());
     }
   }
 
@@ -159,6 +200,21 @@ public final class GeneratedCodeSmokeMain {
             text("US"),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:choice", "domestic")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:choice", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
+  private static EventXmlReader facetInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:facet", "order")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:facet", "code")),
+            text("AB12"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:facet", "code")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:facet", "priority")),
+            text("3"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:facet", "priority")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:facet", "order")),
             event(XmlEventKind.END_DOCUMENT, null)));
   }
 

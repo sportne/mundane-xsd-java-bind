@@ -1,6 +1,6 @@
 # TASK-0024: practical-simple-restrictions
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0024`
 Gate: `0.2.0` Practical Data Contracts; starts only after `TASK-0023` is accepted.
@@ -47,3 +47,21 @@ diagnostics, and avoid third-party dependencies, reflection, dynamic proxies, an
 Planned test identifiers are `T-FACET-FRONTEND-*`, `T-FACET-IR-*`, `T-FACET-BIND-*`,
 `T-FACET-SOURCE-*`, `T-FACET-VALIDATOR-*`, `T-FACET-DIAGNOSTIC-*`, `T-RT-FACET-*`,
 `T-CONF-XP-VALIDATION-10-BASIC-*`, and `T-INTEROP-FACET-*`.
+
+## Acceptance Evidence
+
+- Public API exposes `GeneratorProfile.XP_VALIDATION_10_BASIC` with CLI/Gradle token
+  `XP-VALIDATION-10-BASIC`; `XP-DATA-10` remains the default.
+- Syntax, IR, binding, CoreGenerator, CLI, and Gradle plugin tests cover the opt-in profile and
+  default-profile unsupported diagnostics for restricted simple types.
+- Generated validator tests cover enumeration, string length, numeric inclusive range, string
+  pattern diagnostics, deterministic generated-source compilation, and XML validation after reader
+  lexical conversion.
+- Conformance and interop fixtures compare a positive facet document and a negative facet document
+  against JDK XML Schema validation and generated reader/validator behavior.
+- The generated-code smoke fixture set includes a representative facet model, reader, writer, and
+  validator path so the Native Image smoke lane exercises facet-generated code when `native-image`
+  is available.
+- Repository verification passed with `./gradlew validateDesignControlPack qualityGate` and
+  `git diff --check`; local Native Image execution remains dependent on a GraalVM toolchain with
+  `native-image` installed.

@@ -36,8 +36,8 @@ Supported properties and methods:
 - `schema(Object)` or `schemas.from(...)`: explicit primary schema inputs.
 - `outputDirectory`: generated Java source directory; defaults to
   `build/generated/sources/mxjb/java`.
-- `profile`: public generator profile token; currently `XP-DATA-10` or
-  opt-in `XP-DATA-10-CHOICE`.
+- `profile`: public generator profile token; currently `XP-DATA-10`,
+  opt-in `XP-DATA-10-CHOICE`, or opt-in `XP-VALIDATION-10-BASIC`.
 - `defaultPackage`: fallback package for namespaces without an explicit mapping.
 - `namespacePackage(String, String)`: namespace-to-Java-package mapping.
 - `localRoot(Object)`: local schema root used by the resolver and declared as a task input.

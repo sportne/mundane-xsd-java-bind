@@ -12,6 +12,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
 import io.github.mundanej.mxjb.generator.core.bind.BindingResult;
 import io.github.mundanej.mxjb.generator.core.bind.BindingRootElement;
+import io.github.mundanej.mxjb.generator.core.bind.BindingSimpleRestriction;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
 import io.github.mundanej.mxjb.generator.core.bind.BindingValidationPlan;
@@ -215,6 +216,44 @@ final class GeneratedValidatorEmitterTest {
           List.of("Too few values for tag.", "Too many values for line."),
           tooManyResult.errors().stream().map(ValidationError::message).toList());
       assertEquals(XmlLocation.UNKNOWN, tooManyResult.errors().getFirst().location());
+    }
+  }
+
+  @Test
+  void generatedValidatorReportsFacetErrorsForRestrictedScalars()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(
+                        field(
+                            "element", "code", restrictedString(3, 8, "[A-Z0-9]+"), required(), 1),
+                        field("element", "priority", restrictedInt("1", "9"), required(), 2)))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object valid = orderClass.getConstructor(String.class, Integer.class).newInstance("AB12", 3);
+      Object invalid = orderClass.getConstructor(String.class, Integer.class).newInstance("ab", 12);
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult invalidResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, invalid);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-005", "MXJB-GV-007", "MXJB-GV-006"), codes(invalidResult));
     }
   }
 
@@ -556,6 +595,22 @@ final class GeneratedValidatorEmitterTest {
 
   private BindingTypeReference scalar(String name) {
     return new BindingTypeReference("scalar", name);
+  }
+
+  private BindingTypeReference restrictedString(int minLength, int maxLength, String pattern) {
+    return new BindingTypeReference(
+        "scalar",
+        "string",
+        new BindingSimpleRestriction(
+            "string", List.of(), null, minLength, maxLength, null, null, List.of(pattern)));
+  }
+
+  private BindingTypeReference restrictedInt(String minInclusive, String maxInclusive) {
+    return new BindingTypeReference(
+        "scalar",
+        "int",
+        new BindingSimpleRestriction(
+            "int", List.of(), null, null, null, minInclusive, maxInclusive, List.of()));
   }
 
   private BindingTypeReference model(String name) {

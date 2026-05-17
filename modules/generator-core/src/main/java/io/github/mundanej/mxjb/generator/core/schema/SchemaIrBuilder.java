@@ -2,11 +2,16 @@ package io.github.mundanej.mxjb.generator.core.schema;
 
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /** Builds the supported component graph and normalized IR from frontend syntax. */
 public final class SchemaIrBuilder {
@@ -88,6 +93,21 @@ public final class SchemaIrBuilder {
                   DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
                   document.resourceId(),
                   "Global xs:choice is not valid in profile XP-DATA-10-CHOICE.");
+          case RESTRICTION,
+              ENUMERATION,
+              LENGTH,
+              MIN_LENGTH,
+              MAX_LENGTH,
+              MIN_INCLUSIVE,
+              MAX_INCLUSIVE,
+              PATTERN,
+              LIST,
+              UNION ->
+              diagnostic(
+                  state,
+                  DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+                  document.resourceId(),
+                  "Global xs:" + child.kind().manifestName() + " is not valid.");
         }
       }
     }
@@ -336,7 +356,312 @@ public final class SchemaIrBuilder {
           "simpleType declaration is missing a name.");
       return null;
     }
-    return new SchemaIrSimpleType(new SchemaQName(document.targetNamespace(), localName));
+    SchemaIrSimpleRestriction restriction = null;
+    for (XsdSyntaxNode child : node.children()) {
+      if (child.kind() == XsdSyntaxKind.RESTRICTION) {
+        if (restriction != null) {
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              document.resourceId(),
+              "simpleType " + localName + " has multiple restriction children.");
+          return null;
+        }
+        restriction = normalizeSimpleRestriction(document, child, state);
+      } else if (child.kind() == XsdSyntaxKind.LIST || child.kind() == XsdSyntaxKind.UNION) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:"
+                + child.kind().manifestName()
+                + " is not supported in profile XP-VALIDATION-10-BASIC.");
+      } else {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Unsupported child "
+                + child.kind().manifestName()
+                + " inside simpleType for normalized IR.");
+      }
+    }
+    return new SchemaIrSimpleType(
+        new SchemaQName(document.targetNamespace(), localName), restriction);
+  }
+
+  private SchemaIrSimpleRestriction normalizeSimpleRestriction(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String baseText = node.attributes().get("base");
+    if (baseText == null || baseText.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "simpleType restriction is missing a base.");
+      return null;
+    }
+    SchemaQName base = resolveQName(document, baseText, state);
+    if (base == null) {
+      return null;
+    }
+    if (!isSupportedRestrictionBase(base)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Unsupported simpleType restriction base " + base.toText() + ".");
+      return null;
+    }
+    SimpleRestrictionState restrictionState = new SimpleRestrictionState(base);
+    for (XsdSyntaxNode child : node.children()) {
+      normalizeFacet(document, child, restrictionState, state);
+    }
+    if (restrictionState.length != null
+        && (restrictionState.minLength != null || restrictionState.maxLength != null)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:length cannot be combined with xs:minLength or xs:maxLength.");
+      return null;
+    }
+    if (restrictionState.minLength != null
+        && restrictionState.maxLength != null
+        && restrictionState.minLength > restrictionState.maxLength) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:minLength must be less than or equal to xs:maxLength.");
+      return null;
+    }
+    if (restrictionState.minInclusive != null
+        && restrictionState.maxInclusive != null
+        && new BigDecimal(restrictionState.minInclusive)
+                .compareTo(new BigDecimal(restrictionState.maxInclusive))
+            > 0) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:minInclusive must be less than or equal to xs:maxInclusive.");
+      return null;
+    }
+    return restrictionState.toRestriction();
+  }
+
+  private void normalizeFacet(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      SimpleRestrictionState restriction,
+      BuildState state) {
+    switch (node.kind()) {
+      case ENUMERATION -> addEnumeration(document, node, restriction, state);
+      case LENGTH ->
+          restriction.length =
+              singleLengthFacet(document, node, restriction.length, restriction.base, state);
+      case MIN_LENGTH ->
+          restriction.minLength =
+              singleLengthFacet(document, node, restriction.minLength, restriction.base, state);
+      case MAX_LENGTH ->
+          restriction.maxLength =
+              singleLengthFacet(document, node, restriction.maxLength, restriction.base, state);
+      case MIN_INCLUSIVE ->
+          restriction.minInclusive =
+              singleNumericFacet(document, node, restriction.minInclusive, restriction.base, state);
+      case MAX_INCLUSIVE ->
+          restriction.maxInclusive =
+              singleNumericFacet(document, node, restriction.maxInclusive, restriction.base, state);
+      case PATTERN -> addPattern(document, node, restriction, state);
+      default ->
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              document.resourceId(),
+              "Unsupported simpleType restriction facet xs:" + node.kind().manifestName() + ".");
+    }
+  }
+
+  private void addEnumeration(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      SimpleRestrictionState restriction,
+      BuildState state) {
+    String value = facetValue(document, node, state);
+    if (value == null) {
+      return;
+    }
+    if (!isValidScalarLexical(restriction.base.localName(), value)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Invalid xs:enumeration value " + value + " for base " + restriction.base.toText() + ".");
+      return;
+    }
+    restriction.enumerations.add(value);
+  }
+
+  private Integer singleLengthFacet(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      Integer previous,
+      SchemaQName base,
+      BuildState state) {
+    String value = facetValue(document, node, state);
+    if (value == null) {
+      return previous;
+    }
+    if (!"string".equals(base.localName())) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:" + node.kind().manifestName() + " is supported only for xs:string.");
+      return previous;
+    }
+    if (previous != null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Duplicate xs:" + node.kind().manifestName() + " facet.");
+      return previous;
+    }
+    try {
+      int parsed = Integer.parseInt(value);
+      if (parsed < 0) {
+        throw new NumberFormatException("negative");
+      }
+      return parsed;
+    } catch (NumberFormatException exception) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Invalid xs:" + node.kind().manifestName() + " value " + value + ".");
+      return previous;
+    }
+  }
+
+  private String singleNumericFacet(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      String previous,
+      SchemaQName base,
+      BuildState state) {
+    String value = facetValue(document, node, state);
+    if (value == null) {
+      return previous;
+    }
+    if (previous != null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Duplicate xs:" + node.kind().manifestName() + " facet.");
+      return previous;
+    }
+    if (!isNumericBase(base)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:" + node.kind().manifestName() + " is supported only for numeric bases.");
+      return previous;
+    }
+    if (!isValidScalarLexical(base.localName(), value)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Invalid xs:" + node.kind().manifestName() + " value " + value + ".");
+      return previous;
+    }
+    return value;
+  }
+
+  private void addPattern(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      SimpleRestrictionState restriction,
+      BuildState state) {
+    String value = facetValue(document, node, state);
+    if (value == null) {
+      return;
+    }
+    if (!"string".equals(restriction.base.localName())) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:pattern is supported only for xs:string.");
+      return;
+    }
+    try {
+      Pattern.compile(value);
+    } catch (PatternSyntaxException exception) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Invalid xs:pattern value " + value + ".");
+      return;
+    }
+    restriction.patterns.add(value);
+  }
+
+  private String facetValue(XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String value = node.attributes().get("value");
+    if (value == null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:" + node.kind().manifestName() + " facet is missing a value.");
+      return null;
+    }
+    return value;
+  }
+
+  private boolean isSupportedRestrictionBase(SchemaQName base) {
+    return base.isXmlSchemaBuiltIn()
+        && Set.of("string", "boolean", "int", "integer", "long", "decimal")
+            .contains(base.localName());
+  }
+
+  private boolean isNumericBase(SchemaQName base) {
+    return switch (base.localName()) {
+      case "int", "integer", "long", "decimal" -> true;
+      default -> false;
+    };
+  }
+
+  private boolean isValidScalarLexical(String base, String value) {
+    try {
+      switch (base) {
+        case "string" -> {
+          return true;
+        }
+        case "boolean" -> {
+          return "true".equals(value)
+              || "false".equals(value)
+              || "0".equals(value)
+              || "1".equals(value);
+        }
+        case "int" -> Integer.parseInt(value);
+        case "integer" -> new BigInteger(value);
+        case "long" -> Long.parseLong(value);
+        case "decimal" -> new BigDecimal(value);
+        default -> {
+          return false;
+        }
+      }
+      return true;
+    } catch (NumberFormatException exception) {
+      return false;
+    }
   }
 
   private SchemaIrAttribute normalizeAttribute(
@@ -500,7 +825,19 @@ public final class SchemaIrBuilder {
       case COMPLEX_TYPE -> SchemaComponentKind.COMPLEX_TYPE;
       case SIMPLE_TYPE -> SchemaComponentKind.SIMPLE_TYPE;
       case ATTRIBUTE -> SchemaComponentKind.ATTRIBUTE;
-      case SEQUENCE, CHOICE -> null;
+      case RESTRICTION,
+          ENUMERATION,
+          LENGTH,
+          MIN_LENGTH,
+          MAX_LENGTH,
+          MIN_INCLUSIVE,
+          MAX_INCLUSIVE,
+          PATTERN,
+          LIST,
+          UNION,
+          SEQUENCE,
+          CHOICE ->
+          null;
     };
   }
 
@@ -527,5 +864,25 @@ public final class SchemaIrBuilder {
   private static final class BuildState {
     private final Map<SchemaComponentKey, SchemaComponent> components = new LinkedHashMap<>();
     private final List<SchemaDiagnostic> diagnostics = new ArrayList<>();
+  }
+
+  private static final class SimpleRestrictionState {
+    private final SchemaQName base;
+    private final List<String> enumerations = new ArrayList<>();
+    private final List<String> patterns = new ArrayList<>();
+    private Integer length;
+    private Integer minLength;
+    private Integer maxLength;
+    private String minInclusive;
+    private String maxInclusive;
+
+    private SimpleRestrictionState(SchemaQName base) {
+      this.base = base;
+    }
+
+    private SchemaIrSimpleRestriction toRestriction() {
+      return new SchemaIrSimpleRestriction(
+          base, enumerations, length, minLength, maxLength, minInclusive, maxInclusive, patterns);
+    }
   }
 }

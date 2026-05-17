@@ -76,6 +76,24 @@ final class MxjbGradlePluginUnitTest {
   }
 
   @Test
+  void taskAcceptsBasicValidationProfileToken() throws IOException {
+    Project project = configuredProject();
+    Path schema = writeSchema("src/main/resources/schema/facet-order.xsd", facetOrderSchema());
+
+    MxjbExtension extension = extension(project);
+    extension.schema(schema.toFile());
+    extension.localRoot(requireParent(schema).toFile());
+    extension.namespacePackage("urn:orders", "com.example.orders");
+    extension.getProfile().set("XP-VALIDATION-10-BASIC");
+    task(project).generate();
+
+    assertTrue(Files.exists(generatedPath("com/example/orders/Order.java")));
+    assertTrue(
+        Files.readString(generatedPath("com/example/orders/xml/OrderXmlValidator.java"))
+            .contains("MXJB-GV-007"));
+  }
+
+  @Test
   void taskResolvesCatalogMappings() throws IOException {
     Project project = configuredProject();
     Path order =
@@ -202,6 +220,29 @@ final class MxjbGradlePluginUnitTest {
                 <xs:element name="domestic" type="xs:string"/>
                 <xs:element name="international" type="xs:string"/>
               </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String facetOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified">
+          <xs:simpleType name="OrderCode">
+            <xs:restriction base="xs:string">
+              <xs:minLength value="3"/>
+              <xs:maxLength value="8"/>
+              <xs:pattern value="[A-Z0-9]+"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="code" type="o:OrderCode"/>
             </xs:sequence>
           </xs:complexType>
         </xs:schema>
