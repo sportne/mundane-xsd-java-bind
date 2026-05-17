@@ -18,3 +18,18 @@
 - Stable source formatting.
 - Stable generated package/type/member names.
 - Stable namespace prefix policy for generated output unless configured otherwise.
+
+## `TASK-0026` composed-schema planning
+
+The planned `XP-XSD10-COMPOSED` profile keeps the same compiler stages. The new composition
+constructs are normalized before binding so generated code can preserve the existing explicit model,
+reader, writer, and validator architecture.
+
+- Named model groups and attribute groups are resolved from the component graph and flattened into
+  containing complex types during normalization.
+- Accepted list/union simple types are resolved as named simple-type aliases that carry item/member
+  metadata into binding and validation planning.
+- Accepted complex extension and simple restriction derivation chains are flattened or merged before
+  emission; generated Java inheritance is not part of the planned model shape.
+- Recursive groups or derivation chains, unsupported composition depth, and out-of-scope constructs
+  must fail with deterministic diagnostics before source emission.

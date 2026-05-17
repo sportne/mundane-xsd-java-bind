@@ -41,3 +41,18 @@ Facet checks run in generated object validation and XML validation after reader 
 succeeds. Unsupported facets, list/union, derivation chains, anonymous simple types,
 broader whitespace normalization, full date/time semantics, identity constraints, defaults/fixed,
 and XSD 1.1 assertions remain future-profile work with explicit diagnostics.
+
+## `TASK-0026` composed-schema validation planning
+
+The planned `XP-XSD10-COMPOSED` validation behavior remains generated and explicit.
+
+- Flattened model groups and attribute groups reuse existing required, order, cardinality, and nested
+  validation rules after normalization.
+- Accepted list simple types validate each lexical item against the resolved item scalar or restricted
+  alias and report deterministic generated validation errors for invalid items.
+- Accepted union simple types validate that the lexical value matches at least one supported member
+  parser and member facet rule.
+- Accepted complex extension validates flattened base content before derived content in generated
+  binding order; accepted simple restriction derivation chains validate merged facet metadata.
+- Unsupported composition, list/union, and derivation cases remain schema diagnostics rather than
+  partial generated validation behavior.

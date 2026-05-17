@@ -10,7 +10,7 @@ Specification references: `docs/compatibility-profiles.md`, `docs/conformance/ma
 Target areas: documentation, conformance, verification evidence, examples, release notes if present
 Allowed files: requirements docs, conformance docs, verification docs, README/module/example docs, agent handoff/task cards, release docs
 Forbidden files: new product behavior, unsupported schema expansion, dependency metadata, quality-gate weakening
-Expected behavior: verify and document the `0.3.0` Composed XSD 1.0 vertical slice with honest conformance status, interop evidence, Native Image evidence, limitations, and next-slice draft readiness.
+Expected behavior: verify and document the `0.3.0` Composed XSD 1.0 vertical slice with honest conformance status for `XP-XSD10-COMPOSED`, including accepted group/attribute-group, list/union, and derivation flattening evidence, interop evidence, Native Image evidence, limitations, and next-slice draft readiness.
 Tests to add/update: documentation command checks where available; final quality, conformance, interop, round-trip, and Native Image evidence only
 Documentation to update: all user-facing support/conformance docs affected by `0.3.0`
 Commands to run: `./gradlew clean validateDesignControlPack qualityGate`, documented interop/conformance commands, documented native smoke or conformance command, `git diff --check`
@@ -23,3 +23,13 @@ Rollback notes: revert readiness-review docs and release metadata from this task
 - Native Image: representative composed-schema fixtures should run in selected lanes.
 - Security: composition depth/cycle protections must be verified.
 - Documentation: no full-XSD conformance claim unless matrix supports it.
+
+## Readiness Checks
+
+- Confirm support claims cover only the `TASK-0026` accepted `XP-XSD10-COMPOSED` subsets
+  implemented by `TASK-0027`, `TASK-0028`, and `TASK-0029`.
+- Confirm conformance rows for model groups, attribute groups, list/union simple types, and initial
+  derivation match automated and documented interop evidence.
+- Confirm unsupported group, list/union, and derivation shapes still produce explicit diagnostics.
+- Confirm release docs still do not claim full XSD 1.0 conformance, artifact publication, or a
+  release tag unless a separate release task authorizes it.

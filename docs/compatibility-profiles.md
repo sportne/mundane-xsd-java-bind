@@ -7,6 +7,7 @@
 | `XP-DATA-10` | XSD 1.0 data-structure subset | Simple elements, complex types, attributes, nested elements, sequences, optional/repeated elements, namespaces, includes/imports, generated model/reader/writer/basic structural validation, and lexical conversion for the currently supported scalar types. | 1 |
 | `XP-DATA-10-CHOICE` | Data subset with choices | Opt-in `0.2.0` extension for local singleton `xs:choice` particles with local or referenced supported element branches, generated sealed choice model types, reader/writer support, and explicit diagnostics for out-of-scope model-group shapes. | 2 |
 | `XP-VALIDATION-10-BASIC` | Basic generated validation | Opt-in `0.2.0` extension for named simple-type restrictions using accepted enumeration, string length, numeric inclusive range, and string pattern facets over already supported scalar bases. | 2 |
+| `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Planned opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets with accepted named model groups, attribute groups, list/union simple types, and initial derivation flattening. | 3 |
 | `XP-XSD10-FULL` | Full XSD 1.0 | Substitution groups, derivation, wildcards, identity constraints, nillable, default/fixed, mixed content. | Future |
 | `XP-XSD11-ASSERT` | XSD 1.1 assertions | XSD 1.1 features including assertions and conditional alternatives. | Future |
 | `XP-XML11` | XML 1.1 | XML 1.1 parsing/serialization compatibility. | Future |
@@ -51,3 +52,28 @@ over `xs:string`, `xs:boolean`, `xs:int`, `xs:integer`, `xs:long`, and `xs:decim
 enumeration, string length, numeric inclusive range, and string pattern facets. Full model groups,
 list/union simple types, derivation chains, full datatype semantics, and `XP-XSD10-FULL` remain
 future work.
+
+## `0.3.0` Planning Baseline
+
+`TASK-0026` accepts `XP-XSD10-COMPOSED` as a planning-only profile. It does not add a public API
+token, generator behavior, dependency metadata, release tag, or publication claim. The default
+profile remains `XP-DATA-10`, and the standalone `0.2.0` choice and facet profiles remain narrower.
+
+`XP-XSD10-COMPOSED` shall compose the accepted `XP-DATA-10`, `XP-DATA-10-CHOICE`, and
+`XP-VALIDATION-10-BASIC` behavior with these planned `0.3.0` additions:
+
+- `TASK-0027`: global `xs:group` declarations containing one `xs:sequence` of already-supported
+  particles, direct singleton `xs:group ref` use, global `xs:attributeGroup` declarations containing
+  supported attributes, and direct `xs:attributeGroup ref` use. Accepted groups are flattened into
+  the containing model in deterministic order.
+- `TASK-0028`: named `xs:list` simple types whose `itemType` resolves to a supported scalar built-in
+  or accepted named restricted scalar alias, and named `xs:union` simple types whose `memberTypes`
+  resolve to supported scalar built-ins or accepted named restricted scalar aliases.
+- `TASK-0029`: named complex-type `xs:complexContent/xs:extension` flattening, with base fields
+  before derived fields and no generated Java inheritance, plus named simple restriction derivation
+  chains over supported scalar bases with merged accepted facet metadata.
+
+Repeated or optional group references, nested model groups beyond the accepted direct shape,
+`xs:all`, wildcards, anonymous list/union member types, `simpleContent`, complex restriction, mixed
+content, abstract types, substitution groups, identity constraints, defaults/fixed semantics, and
+full XSD 1.0 conformance remain out of scope with explicit diagnostics.

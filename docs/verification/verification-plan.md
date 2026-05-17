@@ -69,3 +69,24 @@ executable evidence for `XP-VALIDATION-10-BASIC`.
 - Release posture: readiness evidence must not create a `0.1.0` release tag or claim publication
   readiness without a separate release-engineering task. `TASK-0025` also does not create a `0.2.0`
   release tag or publication claim.
+
+## `0.3.0` planned verification minimum
+
+`TASK-0026` defines planned verification for `XP-XSD10-COMPOSED`; executable evidence belongs to
+`TASK-0027` through `TASK-0030`.
+
+- Group support: `T-GROUP-*` and `T-ATTRGROUP-*` frontend, IR, binding, generated source,
+  reader/writer/validator, deterministic emission, generated compile, unsupported diagnostics,
+  conformance, interop, and selected Native Image smoke evidence.
+- Simple type composition: `T-LIST-*` and `T-UNION-*` frontend, IR, binding, generated source,
+  lexical reader/writer/validator behavior, unsupported diagnostics, conformance, and interop
+  comparisons.
+- Derivation support: `T-DERIVATION-*` frontend, IR, binding, generated source, reader/writer/
+  validator behavior, cycle diagnostics, unsupported diagnostics, conformance, and interop
+  comparisons.
+- Composed conformance/interop: `T-CONF-XP-XSD10-COMPOSED-*` and `T-INTEROP-COMPOSED-*` fixtures
+  should include positive and negative cases compared against JDK XML Schema validation where
+  practical.
+- Native Image: at least one representative composed-schema generated-code path should join the
+  smoke lane once implementation exists; broader Native Image conformance remains a later
+  `TASK-0044` concern.
