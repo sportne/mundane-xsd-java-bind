@@ -1,6 +1,6 @@
 # TASK-0019: gradle-plugin-vertical-slice
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0019`
 Gate: Phase 5 first complete public vertical slice; starts only after `TASK-0018` is accepted.
@@ -23,3 +23,23 @@ Rollback notes: revert Gradle plugin source/tests/docs and example build/test up
 - Native Image: no native execution added, but generated example output must be usable by `TASK-0020`.
 - Security: network access remains denied by default.
 - Documentation: Gradle examples must stay synchronized with actual task names and properties.
+
+## Completion Notes
+
+- Added the public Gradle plugin id `io.github.mundanej.mxjb`, `mxjb` extension, and
+  `generateMxjbSources` cacheable task.
+- The task delegates to `CoreGenerator`, declares schema/local-root/catalog/configuration inputs and
+  an output directory, runs schema resolution only during task execution, writes through a temporary
+  directory, and reports generator diagnostics as stable `code | resource | message` lines.
+- Added Gradle TestKit coverage for plugin registration, Java source-set wiring, deterministic
+  output, up-to-date behavior, multi-namespace catalog/local-root resolution, denied-network
+  diagnostics, invalid configuration, no partial generated source copy on failure, and
+  configuration-cache reuse.
+- Added Gradle plugin ArchUnit coverage aligned with the architecture-rule catalog.
+- Documented the public Gradle DSL, cache behavior, resolver/catalog behavior, and diagnostic
+  format. The in-repository examples remain checked-in generated fixture projects because sibling
+  subprojects cannot consume the unpublished plugin artifact through the `plugins` DSL without
+  restructuring the build; plugin generation is covered through TestKit consumer builds.
+- Verification: `./gradlew :modules:generator-gradle-plugin:check :examples:purchase-order:check
+  :examples:multi-namespace:check`, `./gradlew validateDesignControlPack qualityGate`, and
+  `git diff --check` passed before acceptance was recorded.

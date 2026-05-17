@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
     <!-- Add narrow exclusions only with requirement and ADR references. -->
+    <!-- TASK-0019 / ADR-0011: Gradle tasks and extensions must expose Gradle Property/FileCollection
+         objects through getters so the DSL and task input annotations work. -->
+    <Match>
+        <Class name="~io\.github\.mundanej\.mxjb\.generator\.gradle\.Mxjb(Extension|GenerateTask)"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
 </FindBugsFilter>

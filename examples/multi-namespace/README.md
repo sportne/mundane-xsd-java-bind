@@ -3,9 +3,11 @@
 Representative `XP-DATA-10` multi-namespace fixture.
 
 This example keeps generated-style model, reader, writer, and validator sources checked in as
-approved fixture output until the public CLI and Gradle plugin are implemented. It exercises an
-`urn:orders` root schema that imports an `urn:lines` line-item schema. The generated sources depend
-only on `runtime-core`; tests use the optional `runtime-jdkxml` adapter.
+approved fixture output for the repository's multi-project quality gate. The same namespace/import
+shape is covered by the public Gradle plugin's functional tests, which generate equivalent sources
+through `generateMxjbSources`. It exercises an `urn:orders` root schema that imports an `urn:lines`
+line-item schema. The generated sources depend only on `runtime-core`; tests use the optional
+`runtime-jdkxml` adapter.
 
 ## Contents
 

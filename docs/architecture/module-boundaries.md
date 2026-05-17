@@ -7,7 +7,7 @@
 | `generator-api` | Public generator configuration, profile, and extension API. | Generator dependencies allowed if not runtime-visible. |
 | `generator-core` | Schema resolver, parser frontend, component graph, IR, binding engine, emitters. | Generator dependencies allowed. |
 | `generator-cli` | CLI entry point. | Depends on generator API/core. |
-| `generator-gradle-plugin` | Gradle generation integration. | Gradle/plugin dependencies only. |
+| `generator-gradle-plugin` | Gradle generation integration. | Gradle APIs plus generator API/core; no runtime dependency. |
 | `testing-support` | User-facing helpers for generated binding tests. | Test dependencies allowed. |
 | `conformance-tests` | Internal conformance and differential test harness. | Test dependencies allowed. |
 | `examples:*` | Example schemas and generated-code workflows. | Not published. |

@@ -32,3 +32,7 @@ The underlying Gradle pattern is:
 ## Rules
 
 Do not add hidden network access to tests or build logic. Any test that needs a remote resource must be explicitly tagged as an integration-style test and documented before it is added.
+
+The Gradle generator plugin follows the same resolver policy as the CLI/API path: remote schema
+resources are denied unless the build supplies explicit local roots or catalog mappings. Its TestKit
+coverage uses local temporary builds and Gradle's built-in plugin test classpath.

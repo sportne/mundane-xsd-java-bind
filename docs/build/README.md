@@ -29,6 +29,8 @@ See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
 - `./gradlew qualityGate` runs the normal local and CI gate.
 - `./gradlew printPublishedArtifacts` prints the planned Maven coordinates.
 - `./gradlew printOfflineBuildInstructions` prints the offline build command pattern.
+- `generateMxjbSources` is registered by the public `io.github.mundanej.mxjb` plugin in consumer
+  builds and generates Java sources from explicit schema inputs.
 
 `designControlStatus` is kept as an older compatibility alias for `validateDesignControlPack`.
 
@@ -57,6 +59,10 @@ Most module build files stay short because they apply convention plugins from `b
 ## Dependency policy
 
 Dependency versions are locked with Gradle lockfiles. Dependency verification metadata lives in `gradle/verification-metadata.xml`. When dependencies or plugins change, update both the locks and verification metadata deliberately and review the diff.
+
+The `generator-gradle-plugin` module uses Gradle's built-in plugin development and TestKit APIs.
+Those APIs do not introduce external dependency metadata. Any future external Gradle plugin helper
+dependency still requires the normal dependency review.
 
 Dependabot updates are grouped into monthly batch PRs on the 15th with a 90-day cooldown.
 

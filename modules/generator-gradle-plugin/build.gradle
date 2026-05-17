@@ -2,6 +2,8 @@
 plugins {
     // Standard Java 21 library setup, test defaults, and dependency locking.
     id 'mxjb.java-conventions'
+    // Declares the public Gradle plugin marker and implementation class.
+    id 'java-gradle-plugin'
     // Formatting, Checkstyle, and SpotBugs checks.
     id 'mxjb.quality-conventions'
     // JaCoCo coverage reports and verification.
@@ -11,7 +13,16 @@ plugins {
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
-description = 'Gradle integration for schema generation; intentionally empty in v0.1.'
+description = 'Gradle integration for schema generation.'
+
+gradlePlugin {
+    plugins {
+        mxjb {
+            id = 'io.github.mundanej.mxjb'
+            implementationClass = 'io.github.mundanej.mxjb.generator.gradle.MxjbGradlePlugin'
+        }
+    }
+}
 
 publishing {
     publications {
@@ -25,4 +36,15 @@ publishing {
 dependencies {
     // The Gradle plugin exposes and consumes the public generator API.
     implementation project(':modules:generator-api')
+    // The first plugin slice delegates to the accepted generator-core pipeline.
+    implementation project(':modules:generator-core')
+    // Gradle TestKit is provided by Gradle and does not add external dependency metadata.
+    testImplementation gradleTestKit()
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn ':modules:runtime-core:classes'
+    systemProperty 'mxjb.runtimeCoreClasses',
+            project(':modules:runtime-core').sourceSets.main.output.classesDirs.asPath
+    systemProperty 'mxjb.repoRoot', rootProject.layout.projectDirectory.asFile.absolutePath
 }
