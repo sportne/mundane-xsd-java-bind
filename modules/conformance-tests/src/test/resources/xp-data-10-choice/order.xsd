@@ -1,0 +1,15 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:c="urn:choice"
+    targetNamespace="urn:choice"
+    elementFormDefault="qualified">
+  <xs:element name="order" type="c:Order"/>
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="id" type="xs:string"/>
+      <xs:choice>
+        <xs:element name="domestic" type="xs:string"/>
+        <xs:element name="international" type="xs:string"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

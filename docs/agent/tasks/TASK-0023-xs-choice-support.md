@@ -10,7 +10,7 @@ Specification references: `docs/architecture/compiler-pipeline.md`, `docs/archit
 Target modules: `modules/generator-core`, conformance tests, examples as approved by `TASK-0022`
 Allowed files: schema frontend/IR/binding/emitter/validation source and tests needed for accepted `xs:choice` shapes, golden fixtures, conformance fixtures, example fixtures, and directly related docs
 Forbidden files: unsupported choice shapes, full model-group implementation beyond the accepted `0.2.0` scope, dependency metadata, runtime dependency additions, CLI or Gradle plugin behavior changes not required to expose existing generation paths
-Expected behavior: implemented the accepted `TASK-0022` `XP-DATA-10-CHOICE` scope through parsing, IR, binding model, generated sealed choice model shape, reader/writer behavior, validation diagnostics, deterministic generated output, round trips, and explicit unsupported diagnostics for out-of-scope choice shapes.
+Expected behavior: implement the accepted `TASK-0022` `XP-DATA-10-CHOICE` scope through parsing, IR, binding model, generated sealed choice model shape, reader/writer behavior, validation diagnostics, deterministic generated output, round trips, and explicit unsupported diagnostics for out-of-scope choice shapes.
 Tests to add/update: golden frontend/IR/binding/source tests, generated compile tests, valid and invalid reader/writer tests, required and optional choice cardinality tests, surrounding sequence-order tests, round-trip tests, unsupported-choice diagnostics, representative Native Image smoke fixtures, and interop fixtures where JDK XML Schema validation can act as a reference
 Documentation to update: conformance matrix, compatibility profiles, generated-code contract if model shape changes, verification plan, traceability matrix
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, targeted generator/conformance/example checks named by the implementation, `git diff --check`
@@ -61,9 +61,17 @@ Planned test identifiers are `T-CHOICE-FRONTEND-*`, `T-CHOICE-IR-*`, `T-CHOICE-B
   deterministic generated-source compilation.
 - CoreGenerator, CLI, and Gradle plugin tests verify the opt-in profile generates choice sources,
   while default profile input still rejects `xs:choice`.
+- Conformance and interop fixtures cover a positive domestic choice document and a negative repeated
+  branch document against JDK XML Schema validation and generated reader/writer/validator behavior.
+- The generated-code smoke fixture set includes a representative choice model, reader, writer, and
+  validator path so the Native Image smoke lane exercises choice-generated code when `native-image`
+  is available.
 - Targeted verification passed:
   `:modules:generator-core:check`,
   `:modules:generator-api:check`,
   `:modules:generator-cli:check`,
   `:modules:generator-gradle-plugin:check`, and
   `:modules:conformance-tests:check`.
+- Repository verification passed with `./gradlew validateDesignControlPack qualityGate` and
+  `git diff --check`; local Native Image execution remains dependent on a GraalVM toolchain with
+  `native-image` installed.

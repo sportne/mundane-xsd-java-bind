@@ -15,6 +15,8 @@ dependencies {
     // Representative example bindings are the conformance fixtures for TASK-0017.
     testImplementation project(':examples:multi-namespace')
     testImplementation project(':examples:purchase-order')
+    // TASK-0023 conformance generates accepted choice bindings from fixture schemas.
+    testImplementation project(':modules:generator-core')
     // Conformance tests use the optional JDK StAX adapter to feed runtime-core events.
     testImplementation project(':modules:runtime-jdkxml')
     // Conformance tests reuse shared test helpers from the testing-support module.

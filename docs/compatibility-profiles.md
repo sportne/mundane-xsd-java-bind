@@ -35,7 +35,7 @@
 ## `0.2.0` Planning Baseline
 
 `TASK-0022` accepts the Practical Data Contracts plan but does not create a release tag or
-publication claim. `TASK-0023` implements `XP-DATA-10-CHOICE` as an opt-in profile; default
+publication claim. `TASK-0023` accepts `XP-DATA-10-CHOICE` as an opt-in profile; default
 `XP-DATA-10` still rejects `xs:choice`. Until `TASK-0024` is accepted,
 `XP-VALIDATION-10-BASIC` remains a designed profile with expected diagnostics for unsupported input.
 

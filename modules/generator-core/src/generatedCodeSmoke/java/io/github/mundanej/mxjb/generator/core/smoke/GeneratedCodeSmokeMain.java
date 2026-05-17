@@ -77,6 +77,46 @@ public final class GeneratedCodeSmokeMain {
               + " / "
               + xmlValidation.errors());
     }
+    runChoiceSmoke();
+  }
+
+  private static void runChoiceSmoke() throws XmlReadException, XmlWriteException {
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    com.example.choice.Order order =
+        new com.example.choice.Order(
+            "C-1", Optional.of(new com.example.choice.DomesticChoice("US")));
+
+    com.example.choice.xml.OrderXmlWriter.write(output, order);
+
+    List<String> expected =
+        List.of(
+            "start:{urn:choice}order",
+            "start:{urn:choice}id",
+            "text:C-1",
+            "end:{urn:choice}id",
+            "start:{urn:choice}domestic",
+            "text:US",
+            "end:{urn:choice}domestic",
+            "end:{urn:choice}order");
+    if (!expected.equals(output.events)) {
+      throw new AssertionError("Generated-code choice smoke output mismatch: " + output.events);
+    }
+
+    com.example.choice.Order parsed = com.example.choice.xml.OrderXmlReader.read(choiceInput());
+    if (!order.equals(parsed)) {
+      throw new AssertionError("Generated-code choice smoke reader mismatch: " + parsed);
+    }
+
+    ValidationResult objectValidation = com.example.choice.xml.OrderXmlValidator.validate(order);
+    ValidationResult xmlValidation =
+        com.example.choice.xml.OrderXmlValidator.validate(choiceInput());
+    if (!objectValidation.isValid() || !xmlValidation.isValid()) {
+      throw new AssertionError(
+          "Generated-code choice smoke validator mismatch: "
+              + objectValidation.errors()
+              + " / "
+              + xmlValidation.errors());
+    }
   }
 
   private static EventXmlReader orderInput() {
@@ -104,6 +144,21 @@ public final class GeneratedCodeSmokeMain {
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "sku")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
+  private static EventXmlReader choiceInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:choice", "order")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:choice", "id")),
+            text("C-1"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:choice", "id")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:choice", "domestic")),
+            text("US"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:choice", "domestic")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:choice", "order")),
             event(XmlEventKind.END_DOCUMENT, null)));
   }
 
