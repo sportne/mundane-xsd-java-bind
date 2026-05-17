@@ -1,13 +1,26 @@
 # Design-Control Pack v0.1
 
-This pack establishes the repository, design baseline, requirements taxonomy, architecture, verification strategy, infrastructure plan, ADRs, and agent governance for `mundane XSD Java Binding`.
+This pack established the original repository, design baseline, requirements
+taxonomy, architecture, verification strategy, infrastructure plan, ADRs, and
+agent governance for `mundane XSD Java Binding`.
+
+This document is retained as a historical baseline for the initial scaffold. It
+does not describe the current implementation state after the accepted first
+public vertical slice.
 
 ## Pack status
 
 - Pack version: `0.1`
-- Product implementation status: **not started**
-- Permitted content: documentation, governance, Gradle/build infrastructure scaffold, CI skeleton, placeholder module directories, examples placeholders
-- Forbidden content in this pack: schema compiler implementation, runtime XML reader/writer implementation, generated binding implementation, validation engine implementation
+- Historical product implementation status at pack creation: **not started**
+- Historical permitted content: documentation, governance, Gradle/build infrastructure scaffold, CI skeleton, placeholder module directories, examples placeholders
+- Historical forbidden content in this pack: schema compiler implementation, runtime XML reader/writer implementation, generated binding implementation, validation engine implementation
+
+## Current status
+
+The repository now contains the accepted first public vertical slice. Current
+status is governed by `docs/agent/handoff.md`, the task cards, the roadmap,
+requirements, conformance matrix, and verification evidence rather than this
+historical scaffold checklist.
 
 ## Acceptance checklist
 

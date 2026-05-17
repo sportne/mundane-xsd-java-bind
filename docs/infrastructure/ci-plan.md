@@ -17,7 +17,7 @@
 4. Run `./gradlew qualityGate` in the main CI matrix.
 5. Run `./gradlew validateDesignControlPack` in documentation lanes.
 6. Run `./gradlew validateDesignControlPack nativeSmoke --console=plain` in the GraalVM Native Image matrix.
-7. Upload reports on failure once product test reports exist.
+7. Upload available Gradle test, quality, and verification reports on failure.
 
 ## Native Image lane
 

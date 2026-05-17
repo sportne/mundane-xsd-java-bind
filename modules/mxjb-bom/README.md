@@ -4,7 +4,10 @@ Dependency alignment BOM for published `mundane XSD Java Binding` artifacts.
 
 ## Current status
 
-Scaffold only. The BOM constrains planned published modules and excludes internal conformance/example projects.
+The BOM constrains the published `mundane XSD Java Binding` modules and excludes
+internal conformance/example projects. It should track public artifacts as they
+become publication candidates; it is not a place for test fixtures, examples, or
+internal harness modules.
 
 ## Contributor notes
 

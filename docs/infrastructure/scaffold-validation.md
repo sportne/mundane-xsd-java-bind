@@ -2,6 +2,10 @@
 
 Generated on 2026-05-16 for Design-Control Pack v0.1.
 
+These notes describe the initial scaffold artifact only. They are preserved as
+historical evidence and no longer describe the current repository contents after
+the accepted first public vertical slice.
+
 ## Checks performed in artifact environment
 
 - ZIP archive integrity checked with `unzip -t`.
@@ -11,11 +15,13 @@ Generated on 2026-05-16 for Design-Control Pack v0.1.
   - `config/checkstyle/checkstyle.xml`
   - `config/checkstyle/suppressions.xml`
   - `config/spotbugs/exclude.xml`
-- Confirmed there are no non-placeholder Java source files under `modules/**/src/main/java`, `modules/**/src/test/java`, `examples/**/src/main/java`, or `examples/**/src/test/java`.
+- At scaffold time, confirmed there were no non-placeholder Java source files under `modules/**/src/main/java`, `modules/**/src/test/java`, `examples/**/src/main/java`, or `examples/**/src/test/java`.
 
 ## Current Gradle validation
 
-The Gradle wrapper, dependency verification metadata, and dependency locks have since been hydrated. The current scaffold validation command is:
+The Gradle wrapper, dependency verification metadata, and dependency locks have
+since been hydrated, and product source now exists. The current design-control
+and quality validation command is:
 
 ```bash
 ./gradlew validateDesignControlPack qualityGate
