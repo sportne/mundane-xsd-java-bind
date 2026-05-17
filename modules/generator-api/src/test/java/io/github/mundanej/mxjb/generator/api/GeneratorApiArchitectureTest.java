@@ -1,4 +1,4 @@
-package io.github.mundanej.mxjb.runtime;
+package io.github.mundanej.mxjb.generator.api;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -10,39 +10,23 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 @AnalyzeClasses(
-    packages = "io.github.mundanej.mxjb.runtime",
+    packages = "io.github.mundanej.mxjb.generator.api",
     importOptions = DoNotIncludeTests.class)
-final class RuntimeArchitectureTest {
+final class GeneratorApiArchitectureTest {
   @ArchTest
-  static final ArchRule project_specific_runtime_core_has_no_generator_or_entrypoint_dependencies =
+  static final ArchRule project_specific_generator_api_does_not_expose_implementation_packages =
       noClasses()
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage(
-              "io.github.mundanej.mxjb.generator..",
-              "io.github.mundanej.mxjb.examples..",
-              "io.github.mundanej.mxjb.conformance..",
+              "io.github.mundanej.mxjb.generator.core..",
               "io.github.mundanej.mxjb.generator.cli..",
               "io.github.mundanej.mxjb.generator.gradle..",
-              "io.github.mundanej.mxjb.gradle..",
-              "io.github.mundanej.mxjb.testing..");
+              "io.github.mundanej.mxjb.runtime..",
+              "io.github.mundanej.mxjb.examples..");
 
   @ArchTest
-  static final ArchRule project_specific_runtime_core_main_code_has_no_third_party_dependencies =
-      noClasses()
-          .should()
-          .dependOnClassesThat()
-          .resideOutsideOfPackages("java..", "io.github.mundanej.mxjb.runtime..");
-
-  @ArchTest
-  static final ArchRule project_specific_runtime_core_has_no_xml_parser_dependencies =
-      noClasses()
-          .should()
-          .dependOnClassesThat()
-          .resideInAnyPackage("javax.xml..", "org.w3c.dom..", "org.xml.sax..");
-
-  @ArchTest
-  static final ArchRule native_image_runtime_core_avoids_dynamic_runtime_mechanisms =
+  static final ArchRule native_image_generator_api_avoids_dynamic_runtime_mechanisms =
       noClasses()
           .should()
           .dependOnClassesThat()
@@ -55,7 +39,7 @@ final class RuntimeArchitectureTest {
           .haveFullyQualifiedName("java.lang.ClassLoader");
 
   @ArchTest
-  static final ArchRule native_image_runtime_core_avoids_java_serialization =
+  static final ArchRule baseline_generator_api_avoids_java_serialization_and_internal_jdk_apis =
       noClasses()
           .should()
           .dependOnClassesThat()
@@ -65,23 +49,13 @@ final class RuntimeArchitectureTest {
           .haveFullyQualifiedName("java.io.ObjectOutputStream")
           .orShould()
           .dependOnClassesThat()
-          .haveFullyQualifiedName("java.io.Externalizable");
-
-  @ArchTest
-  static final ArchRule native_image_runtime_core_avoids_internal_jdk_and_security_manager_apis =
-      noClasses()
-          .should()
-          .dependOnClassesThat()
-          .resideInAnyPackage("sun..", "jdk.internal..")
+          .haveFullyQualifiedName("java.io.Externalizable")
           .orShould()
           .dependOnClassesThat()
-          .haveFullyQualifiedName("java.security.AccessController")
-          .orShould()
-          .dependOnClassesThat()
-          .haveFullyQualifiedName("java.lang.SecurityManager");
+          .resideInAnyPackage("sun..", "jdk.internal..");
 
   @ArchTest
-  static final ArchRule baseline_runtime_core_does_not_terminate_or_spawn_processes =
+  static final ArchRule baseline_generator_api_does_not_terminate_or_spawn_processes =
       noClasses()
           .should()
           .callMethod(System.class, "exit", int.class)
@@ -95,12 +69,12 @@ final class RuntimeArchitectureTest {
           .haveFullyQualifiedName("java.lang.ProcessBuilder");
 
   @ArchTest
-  static final ArchRule baseline_runtime_core_has_no_finalizers =
+  static final ArchRule baseline_generator_api_has_no_finalizers =
       noMethods().should().haveName("finalize");
 
   @ArchTest
-  static final ArchRule baseline_runtime_core_has_no_public_static_mutable_fields =
+  static final ArchRule baseline_generator_api_has_no_public_static_mutable_fields =
       fields().that().arePublic().and().areStatic().should().beFinal().allowEmptyShould(true);
 
-  private RuntimeArchitectureTest() {}
+  private GeneratorApiArchitectureTest() {}
 }

@@ -1,4 +1,4 @@
-package io.github.mundanej.mxjb.generator.core.architecture;
+package io.github.mundanej.mxjb.generator.cli;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -10,26 +10,22 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 @AnalyzeClasses(
-    packages = "io.github.mundanej.mxjb.generator.core",
+    packages = "io.github.mundanej.mxjb.generator.cli",
     importOptions = DoNotIncludeTests.class)
-final class GeneratorCoreArchitectureTest {
+final class GeneratorCliArchitectureTest {
   @ArchTest
-  static final ArchRule project_specific_generator_core_does_not_depend_on_runtime_or_entrypoints =
+  static final ArchRule project_specific_cli_does_not_depend_on_runtime_or_gradle_entrypoints =
       noClasses()
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage(
               "io.github.mundanej.mxjb.runtime..",
-              "io.github.mundanej.mxjb.generator.cli..",
               "io.github.mundanej.mxjb.generator.gradle..",
               "io.github.mundanej.mxjb.examples..");
 
   @ArchTest
-  static final ArchRule native_image_generator_pipeline_avoids_dynamic_runtime_mechanisms =
+  static final ArchRule native_image_cli_avoids_dynamic_runtime_mechanisms =
       noClasses()
-          .that()
-          .resideInAnyPackage(
-              "..bind..", "..emit..", "..resolver..", "..schema..", "..diagnostics..")
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage("java.lang.reflect..", "java.lang.invoke..", "org.reflections..")
@@ -41,11 +37,8 @@ final class GeneratorCoreArchitectureTest {
           .haveFullyQualifiedName("java.lang.ClassLoader");
 
   @ArchTest
-  static final ArchRule native_image_generator_pipeline_avoids_java_serialization =
+  static final ArchRule native_image_cli_avoids_java_serialization =
       noClasses()
-          .that()
-          .resideInAnyPackage(
-              "..bind..", "..emit..", "..resolver..", "..schema..", "..diagnostics..")
           .should()
           .dependOnClassesThat()
           .haveFullyQualifiedName("java.io.ObjectInputStream")
@@ -57,11 +50,17 @@ final class GeneratorCoreArchitectureTest {
           .haveFullyQualifiedName("java.io.Externalizable");
 
   @ArchTest
-  static final ArchRule baseline_generator_core_does_not_terminate_or_spawn_processes =
+  static final ArchRule baseline_cli_allows_system_exit_only_in_entrypoint_class =
+      noClasses()
+          .that()
+          .doNotHaveFullyQualifiedName("io.github.mundanej.mxjb.generator.cli.MxjbCli")
+          .should()
+          .callMethod(System.class, "exit", int.class);
+
+  @ArchTest
+  static final ArchRule baseline_cli_does_not_force_gc_or_spawn_processes =
       noClasses()
           .should()
-          .callMethod(System.class, "exit", int.class)
-          .orShould()
           .callMethod(System.class, "gc")
           .orShould()
           .dependOnClassesThat()
@@ -71,16 +70,15 @@ final class GeneratorCoreArchitectureTest {
           .haveFullyQualifiedName("java.lang.ProcessBuilder");
 
   @ArchTest
-  static final ArchRule baseline_generator_core_avoids_internal_jdk_apis =
+  static final ArchRule baseline_cli_avoids_internal_jdk_apis =
       noClasses().should().dependOnClassesThat().resideInAnyPackage("sun..", "jdk.internal..");
 
   @ArchTest
-  static final ArchRule baseline_generator_core_has_no_finalizers =
-      noMethods().should().haveName("finalize");
+  static final ArchRule baseline_cli_has_no_finalizers = noMethods().should().haveName("finalize");
 
   @ArchTest
-  static final ArchRule baseline_generator_core_has_no_public_static_mutable_fields =
+  static final ArchRule baseline_cli_has_no_public_static_mutable_fields =
       fields().that().arePublic().and().areStatic().should().beFinal().allowEmptyShould(true);
 
-  private GeneratorCoreArchitectureTest() {}
+  private GeneratorCliArchitectureTest() {}
 }

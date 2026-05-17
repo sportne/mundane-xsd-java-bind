@@ -130,6 +130,19 @@ final class GeneratedWriterEmitterTest {
     String writerSource = writerResult.sources().getFirst().sourceText();
 
     assertFalse(writerSource.contains("\nimport "));
+    assertFalse(writerSource.contains("java.lang.reflect"));
+    assertFalse(writerSource.contains("java.lang.invoke"));
+    assertFalse(writerSource.contains("ServiceLoader"));
+    assertFalse(writerSource.contains("ClassLoader"));
+    assertFalse(writerSource.contains("Class.forName"));
+    assertFalse(writerSource.contains("Proxy"));
+    assertFalse(writerSource.contains("ObjectInputStream"));
+    assertFalse(writerSource.contains("ObjectOutputStream"));
+    assertFalse(writerSource.contains("Serializable"));
+    assertFalse(writerSource.contains("Externalizable"));
+    assertFalse(writerSource.contains("ProcessBuilder"));
+    assertFalse(writerSource.contains("System.exit"));
+    assertFalse(writerSource.contains("javax.xml"));
     assertTrue(writerSource.contains("io.github.mundanej.mxjb.runtime.XmlOutput output"));
     assertTrue(writerSource.contains("com.example.collide.XmlOutput value"));
 

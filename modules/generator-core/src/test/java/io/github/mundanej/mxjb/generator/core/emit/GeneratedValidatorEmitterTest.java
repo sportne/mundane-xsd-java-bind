@@ -62,8 +62,17 @@ final class GeneratedValidatorEmitterTest {
     assertTrue(source.contains("MXJB-GV-001"));
     assertFalse(source.contains("\nimport "));
     assertFalse(source.contains("java.lang.reflect"));
+    assertFalse(source.contains("java.lang.invoke"));
     assertFalse(source.contains("ServiceLoader"));
     assertFalse(source.contains("ClassLoader"));
+    assertFalse(source.contains("Class.forName"));
+    assertFalse(source.contains("Proxy"));
+    assertFalse(source.contains("ObjectInputStream"));
+    assertFalse(source.contains("ObjectOutputStream"));
+    assertFalse(source.contains("Serializable"));
+    assertFalse(source.contains("Externalizable"));
+    assertFalse(source.contains("ProcessBuilder"));
+    assertFalse(source.contains("System.exit"));
     assertFalse(source.contains("javax.xml"));
   }
 
