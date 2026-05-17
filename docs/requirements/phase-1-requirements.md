@@ -3,6 +3,9 @@
 Phase-one readiness status: verified for the first public `XP-DATA-10` vertical slice.
 `REQ-SCHEMA-007` has opt-in `XP-DATA-10-CHOICE` acceptance evidence from `TASK-0023`; default
 `XP-DATA-10` still produces explicit unsupported-profile diagnostics for `xs:choice`.
+`REQ-VAL-003` has opt-in `XP-VALIDATION-10-BASIC` acceptance evidence from `TASK-0024`; default
+`XP-DATA-10` still produces explicit unsupported-profile diagnostics for restricted simple-type
+facets.
 
 ## Scope and runtime
 
@@ -49,7 +52,7 @@ Phase-one readiness status: verified for the first public `XP-DATA-10` vertical 
 |---|---|---|---|
 | `REQ-VAL-001` | Readers shall report supported schema-profile violations with location where available. | Negative XML tests. | verified |
 | `REQ-VAL-002` | Basic structural validation shall cover required fields, order, and cardinality for supported sequences. | Negative structural tests. | verified |
-| `REQ-VAL-003` | Basic lexical validation shall cover common primitive simple types. | Simple type tests. | verified |
+| `REQ-VAL-003` | Basic lexical validation shall cover common primitive simple types, with accepted simple restriction facets behind `XP-VALIDATION-10-BASIC`. | Simple type tests; `TASK-0024` facet frontend, IR, binding, generated validator, conformance, and interop tests. | verified |
 
 ## Build and governance
 

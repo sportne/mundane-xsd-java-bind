@@ -45,7 +45,7 @@
 - Negative XML diagnostic test.
 - Basic Native Image smoke test.
 
-## `0.2.0` planned verification minimum
+## `0.2.0` readiness verification evidence
 
 `TASK-0023` adds executable JVM implementation evidence for `XP-DATA-10-CHOICE`, including
 conformance/interop fixtures compared against JDK XML Schema validation and representative
@@ -62,9 +62,10 @@ executable evidence for `XP-VALIDATION-10-BASIC`.
 - Facet conformance/interop: `T-CONF-XP-VALIDATION-10-BASIC-*`, `T-INTEROP-FACET-*`, and
   representative generated-code/native-smoke facet evidence are part of `TASK-0024` acceptance.
 - Interop: at least one positive and one negative fixture for each accepted choice/facet group should
-  be compared against JDK XML Schema validation where practical; any gap must be documented before
-  readiness acceptance.
+  be compared against JDK XML Schema validation where practical; `TASK-0025` readiness accepts that
+  evidence for the implemented choice and facet subsets.
 - Native Image: new `0.2.0` fixtures join representative smoke coverage in their implementation
   tasks. Native Image conformance breadth remains a later `TASK-0044` concern.
 - Release posture: readiness evidence must not create a `0.1.0` release tag or claim publication
-  readiness without a separate release-engineering task.
+  readiness without a separate release-engineering task. `TASK-0025` also does not create a `0.2.0`
+  release tag or publication claim.

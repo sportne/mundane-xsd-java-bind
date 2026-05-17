@@ -7,7 +7,8 @@ Schema compiler implementation module.
 Initial schema resource resolution, raw XSD syntax frontend behavior, component graph, normalized
 IR, binding, generated model/writer/reader/validator emission, public generator-core adapter
 behavior, generated-source verification harness behavior, and generated-code Native Image smoke
-coverage are implemented for the accepted `XP-DATA-10` slice.
+coverage are implemented for the accepted `XP-DATA-10` slice and the accepted opt-in
+`XP-DATA-10-CHOICE` and `XP-VALIDATION-10-BASIC` readiness subsets.
 
 ## Contributor notes
 

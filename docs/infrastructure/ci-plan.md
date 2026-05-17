@@ -27,6 +27,7 @@ The root `nativeSmoke` aggregate currently covers:
 
 - `:modules:runtime-core:nativeTest`
 - `:modules:runtime-jdkxml:nativeTest`
-- `:modules:generator-core:generatedCodeNativeSmoke`
+- `:modules:generator-core:generatedCodeNativeSmoke`, including representative choice and facet
+  generated-code paths accepted for the `0.2.0` readiness evidence
 - `:examples:purchase-order:nativeTest`
 - `:examples:multi-namespace:nativeTest`

@@ -36,11 +36,11 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 23. `TASK-0022`: Plan Practical Data Contracts support. Completed and accepted.
 24. `TASK-0023`: Implement feasible `xs:choice` support. Completed and accepted.
 25. `TASK-0024`: Expand practical simple restrictions. Completed and accepted.
-26. `TASK-0025` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
+26. `TASK-0025`: Practical Data Contracts readiness review. Completed and accepted.
+27. `TASK-0026` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
 
-`TASK-0024` has product implementation, targeted JVM verification, facet conformance/interop
-fixtures, and representative generated-code smoke coverage. The next implementation gate is
-`TASK-0025`.
+`TASK-0025` has accepted the `0.2.0` Practical Data Contracts readiness evidence without creating a
+release tag or publication claim. The next implementation gate is `TASK-0026`.
 
 ## Draft completion backlog
 
@@ -75,7 +75,7 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0022` | 0.2.0 | accepted | Plan Practical Data Contracts support. |
 | `TASK-0023` | 0.2.0 | accepted | Implement feasible `xs:choice` support. |
 | `TASK-0024` | 0.2.0 | accepted | Expand practical simple restrictions. |
-| `TASK-0025` | 0.2.0 | draft | Practical Data Contracts readiness review. |
+| `TASK-0025` | 0.2.0 | accepted | Practical Data Contracts readiness review. |
 | `TASK-0026` | 0.3.0 | draft | Plan Composed XSD 1.0 schema support. |
 | `TASK-0027` | 0.3.0 | draft | Implement named model groups and attribute groups. |
 | `TASK-0028` | 0.3.0 | draft | Implement accepted simple type composition. |
@@ -100,9 +100,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0025` is the current implementation gate. Before implementation, promote the readiness-review
-task from draft only after the Practical Data Contracts evidence is review-ready. The remaining work
-must preserve:
+`TASK-0026` is the current implementation gate. Before implementation, promote the planning task from
+draft only after the Composed XSD 1.0 scope is decision-complete. The remaining work must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
 - `TASK-0015` generated readers are the accepted source-emission baseline for constructing generated models from `runtime-core` `XmlEventReader` input.
@@ -123,6 +122,8 @@ must preserve:
   accepted named simple-type restrictions for enumeration, string length, numeric inclusive range,
   and string pattern facets over already supported scalar bases behind opt-in profile
   `XP-VALIDATION-10-BASIC`, including conformance/interop fixtures and representative generated-code
-  smoke coverage.
+  smoke coverage. `TASK-0025` accepted the Practical Data Contracts readiness review, confirmed
+  support claims match the implemented choice and facet evidence, and kept the repository in
+  readiness-only posture without a `0.1.0` or `0.2.0` release tag.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

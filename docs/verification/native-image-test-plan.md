@@ -37,6 +37,10 @@ the generator-core generated-code native smoke executable, and the purchase-orde
 multi-namespace example native tests. CI runs the same native aggregate together with
 `validateDesignControlPack` on the GraalVM Java 21 and Java 25 matrix.
 
+The generator-core generated-code smoke executable includes representative `XP-DATA-10-CHOICE` and
+`XP-VALIDATION-10-BASIC` paths as accepted `0.2.0` readiness evidence. Broader Native Image
+conformance remains a later hardening task.
+
 If `native-image` is not on `PATH` and `JAVA_HOME` does not point to a GraalVM installation with `native-image`, the task fails with a concrete toolchain message before attempting a native build.
 
 ## Failure policy

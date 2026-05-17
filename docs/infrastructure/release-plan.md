@@ -19,6 +19,11 @@ The first public vertical slice remains `0.1.0-SNAPSHOT` readiness evidence. It 
 supported `XP-DATA-10` generator path can be exercised through API, CLI, Gradle plugin, JVM checks,
 representative round trips, and Native Image smoke tests, but it is not a publication-ready release.
 
+`TASK-0025` accepts additional `0.2.0` Practical Data Contracts readiness evidence for the opt-in
+`XP-DATA-10-CHOICE` and `XP-VALIDATION-10-BASIC` profiles. That evidence documents implemented
+choice and facet subsets, conformance/interop fixtures, and representative Native Image smoke paths;
+it still does not authorize artifact publication or a `v0.1.0`/`v0.2.0` release tag.
+
 Public alpha/beta releases must state supported compatibility profiles and conformance status.
 
 ## Release gate

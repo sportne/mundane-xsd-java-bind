@@ -1,6 +1,6 @@
 # TASK-0025: practical-data-contracts-readiness
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0025`
 Gate: `0.2.0` Practical Data Contracts readiness; starts only after `TASK-0024` is accepted.
@@ -30,3 +30,24 @@ Rollback notes: revert readiness-review docs and release metadata from this task
 - Confirm conformance rows for `XP-DATA-10-CHOICE` and `XP-VALIDATION-10-BASIC` match automated and documented interop evidence.
 - Confirm unsupported choice and facet shapes still produce explicit diagnostics rather than silent partial interpretation.
 - Confirm release docs still do not claim a publication-ready `0.1.0` release or create a `v0.1.0` tag as part of the `0.2.0` readiness review.
+
+## Acceptance Evidence
+
+- `0.2.0` Practical Data Contracts readiness evidence is limited to opt-in
+  `XP-DATA-10-CHOICE` local singleton choice particles and opt-in
+  `XP-VALIDATION-10-BASIC` named simple-type restrictions for accepted enumeration, string length,
+  numeric inclusive range, and string pattern facets.
+- Compatibility, conformance, verification, release, requirements, README, module, and handoff docs
+  describe the accepted evidence without claiming full XSD 1.0, combined profile composition,
+  artifact publication, or a release tag.
+- Choice and facet conformance rows record positive and negative interop fixtures compared against
+  JDK XML Schema validation and generated bindings.
+- Native Image readiness remains representative smoke coverage: generated-code smoke fixtures
+  include choice and facet paths, while broader native conformance remains reserved for
+  `TASK-0044`.
+- Repository verification passed with `./gradlew clean validateDesignControlPack qualityGate
+  --console=plain`, `./gradlew :modules:conformance-tests:check --console=plain`, and
+  `git diff --check`; local `nativeSmoke` execution remains dependent on a GraalVM toolchain with
+  `native-image` installed.
+- `git tag --list` confirmed no `v0.1.0`, `v0.2.0`, or other release tag was introduced by this
+  readiness task.

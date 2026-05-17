@@ -1,6 +1,10 @@
 # mundane XSD Java Binding
 
-**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice. The repository includes generated model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a CLI `generate` command, a Gradle plugin for the accepted subset, representative round-trip examples, and Native Image smoke coverage.
+**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice
+and accepted `0.2.0` Practical Data Contracts readiness evidence. The repository includes generated
+model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a
+CLI `generate` command, a Gradle plugin for the accepted subsets, representative round-trip examples,
+and Native Image smoke coverage.
 
 `mundane XSD Java Binding` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
 
@@ -46,8 +50,9 @@ The first implementation phase supports schemas that primarily define XML data-s
 
 Opt-in `0.2.0` profiles now cover the accepted local singleton `xs:choice` subset and practical
 named simple-type facets for enumeration, string length, numeric inclusive range, and string
-pattern validation. Derivation, substitution groups, wildcards, mixed content, identity constraints,
-and XSD 1.1 remain future-profile work.
+pattern validation. Schemas requiring both opt-in profiles at once, full simple type semantics,
+derivation, substitution groups, wildcards, mixed content, identity constraints, nillable/default/fixed
+semantics, and XSD 1.1 remain future-profile work.
 
 ## Repository entry points
 

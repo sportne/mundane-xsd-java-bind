@@ -32,12 +32,14 @@
 | `BUILD-CI-MATRIX` | CI on Java 21 and Java 25. |
 | `BUILD-STRICT` | Full quality, architecture, coverage, docs, generated-code, and native-image gates. |
 
-## `0.2.0` Planning Baseline
+## `0.2.0` Readiness Baseline
 
-`TASK-0022` accepts the Practical Data Contracts plan but does not create a release tag or
-publication claim. `TASK-0023` accepts `XP-DATA-10-CHOICE` as an opt-in profile; default
-`XP-DATA-10` still rejects `xs:choice`. `TASK-0024` accepts `XP-VALIDATION-10-BASIC` as an
-opt-in profile; default `XP-DATA-10` still rejects restricted simple-type facets.
+`TASK-0025` accepts the Practical Data Contracts readiness evidence but does not create a release
+tag or publication claim. `TASK-0023` accepts `XP-DATA-10-CHOICE` as an opt-in profile; default
+`XP-DATA-10` still rejects `xs:choice`. `TASK-0024` accepts `XP-VALIDATION-10-BASIC` as an opt-in
+profile; default `XP-DATA-10` still rejects restricted simple-type facets. Schemas that require both
+choice and facet support remain out of scope until a future profile-composition task accepts that
+behavior.
 
 The `XP-DATA-10-CHOICE` implementation scope is limited to local `xs:choice` particles in a complex
 type, either as the only content particle or inside an existing supported sequence. Accepted choices
