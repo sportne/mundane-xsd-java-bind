@@ -26,7 +26,8 @@ Rollback notes: revert readiness-review docs and any release metadata added by t
 
 ## Completion Notes
 
-- Verified `TASK-0021` as the correct next gate after accepted `TASK-0020`; `TASK-0022+` remain draft.
+- Verified `TASK-0021` as the correct next gate after accepted `TASK-0020`; at `TASK-0021`
+  acceptance time, `TASK-0022+` remained draft.
 - Normalized `TASK-0006` status from `approved` to accepted to match handoff and implementation evidence.
 - Updated public and contributor docs to distinguish the implemented `XP-DATA-10` slice from future
   `xs:choice`, simple-type facets, derivation, open content, mixed content, identity constraints,

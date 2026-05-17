@@ -10,8 +10,8 @@ Specification references: `docs/architecture/compiler-pipeline.md`, `docs/archit
 Target modules: `modules/generator-core`, conformance tests, examples as approved by `TASK-0022`
 Allowed files: schema frontend/IR/binding/emitter/validation source and tests needed for accepted `xs:choice` shapes, golden fixtures, conformance fixtures, example fixtures, and directly related docs
 Forbidden files: unsupported choice shapes, full model-group implementation beyond the accepted `0.2.0` scope, dependency metadata, runtime dependency additions, CLI or Gradle plugin behavior changes not required to expose existing generation paths
-Expected behavior: implement feasible `xs:choice` support through parsing, IR, binding model, generated model shape, reader/writer behavior, validation diagnostics, deterministic golden output, round trips, and explicit unsupported diagnostics for out-of-scope choices.
-Tests to add/update: golden IR/binding/source tests, generated compile tests, valid and invalid reader/writer tests, cardinality tests, round-trip tests, unsupported-choice diagnostics, Native Image smoke fixtures if selected, and interop fixtures where JDK/XSD validation can act as a reference
+Expected behavior: implement the accepted `TASK-0022` `XP-DATA-10-CHOICE` scope through parsing, IR, binding model, generated sealed choice model shape, reader/writer behavior, validation diagnostics, deterministic golden output, round trips, and explicit unsupported diagnostics for out-of-scope choice shapes.
+Tests to add/update: golden frontend/IR/binding/source tests, generated compile tests, valid and invalid reader/writer tests, required and optional choice cardinality tests, surrounding sequence-order tests, round-trip tests, unsupported-choice diagnostics, representative Native Image smoke fixtures, and interop fixtures where JDK XML Schema validation can act as a reference
 Documentation to update: conformance matrix, compatibility profiles, generated-code contract if model shape changes, verification plan, traceability matrix
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, targeted generator/conformance/example checks named by the implementation, `git diff --check`
 Acceptance criteria: accepted `xs:choice` fixtures generate deterministic, compileable, round-tripping code; out-of-scope choices produce deterministic diagnostics; interop evidence is recorded where practical
@@ -23,3 +23,29 @@ Rollback notes: revert choice implementation, tests, fixtures, golden outputs, a
 - Native Image: choice-generated reader/writer paths must remain reflection-free.
 - Security: no new XML resource access behavior is introduced.
 - Documentation: do not imply full model-group support.
+
+## Accepted `TASK-0022` Scope
+
+Implement only local `xs:choice` particles in a complex type content model, either as the only
+content particle or as an item in an enclosing supported `xs:sequence`. Choice particles may use
+`minOccurs="0"` or `minOccurs="1"` and must use `maxOccurs="1"`.
+
+Accepted branches are local `xs:element` declarations or references to global elements whose
+resolved type is already supported by `XP-DATA-10`. Branch elements are singleton branches; repeated
+branch elements, nested `xs:choice`, nested `xs:sequence`, `xs:all`, named model groups,
+wildcards, substitution groups, mixed content, anonymous branch complex types, and repeated choices
+must continue to produce deterministic unsupported-profile diagnostics.
+
+Generated model binding creates one field per choice particle. The field type is a generated sealed
+interface named `<ContainingTypeSimpleName>Choice`; each branch is a generated record named
+`<BranchElementSimpleName>Choice` carrying the existing scalar or model value for that branch.
+Optional choices use `Optional<<ContainingTypeSimpleName>Choice>`.
+
+Generated readers accept exactly one branch for required choices and zero or one branch for optional
+choices, preserve sequence order around surrounding particles, and report deterministic diagnostics
+for missing, repeated, out-of-order, or unknown branch elements. Generated writers emit the selected
+branch in binding order and must not add runtime dependencies or reflective dispatch.
+
+Planned test identifiers are `T-CHOICE-FRONTEND-*`, `T-CHOICE-IR-*`, `T-CHOICE-BIND-*`,
+`T-CHOICE-MODEL-*`, `T-CHOICE-WRITER-*`, `T-CHOICE-READER-*`, `T-CHOICE-VALIDATOR-*`,
+`T-RT-CHOICE-*`, `T-CONF-XP-DATA-10-CHOICE-*`, and `T-INTEROP-CHOICE-*`.

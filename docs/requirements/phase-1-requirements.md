@@ -1,7 +1,9 @@
 # Phase-one requirements
 
 Phase-one readiness status: verified for the first public `XP-DATA-10` vertical slice.
-`REQ-SCHEMA-007` remains deferred behind the `XP-DATA-10-CHOICE` feasibility gate; until that gate is approved, `xs:choice` must produce explicit unsupported-profile diagnostics.
+`REQ-SCHEMA-007` has an accepted `XP-DATA-10-CHOICE` planning scope from `TASK-0022`; until
+`TASK-0023` is implemented and accepted, `xs:choice` must continue to produce explicit
+unsupported-profile diagnostics.
 
 ## Scope and runtime
 
@@ -22,7 +24,7 @@ Phase-one readiness status: verified for the first public `XP-DATA-10` vertical 
 | `REQ-SCHEMA-004` | Support optional/repeated elements via `minOccurs` and `maxOccurs`. | Cardinality tests. | verified |
 | `REQ-SCHEMA-005` | Support `xs:include` and `xs:import` through explicit resolver policy. | Resolver tests with offline fixtures. | verified |
 | `REQ-SCHEMA-006` | Support namespaces and QNames for elements/types/attributes. | Multi-namespace examples. | verified |
-| `REQ-SCHEMA-007` | Keep `xs:choice` behind profile `XP-DATA-10-CHOICE` until a feasibility task approves implementation. | Choice binding tests or profile-gated unsupported diagnostics. | deferred |
+| `REQ-SCHEMA-007` | Keep `xs:choice` behind profile `XP-DATA-10-CHOICE`; `TASK-0022` accepts only local singleton choice particles with supported element branches for `0.2.0`. | `TASK-0023` choice binding/generated-code tests or profile-gated unsupported diagnostics until implementation. | accepted |
 
 ## Resource resolution and security
 

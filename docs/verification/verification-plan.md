@@ -44,3 +44,19 @@
 - Round-trip test.
 - Negative XML diagnostic test.
 - Basic Native Image smoke test.
+
+## `0.2.0` planned verification minimum
+
+`TASK-0022` defines planned evidence only. `TASK-0023` and `TASK-0024` must add the executable tests.
+
+- Choice support: `T-CHOICE-*` frontend, IR, binding, model, writer, reader, validator, round-trip,
+  unsupported diagnostic, conformance, interop, and representative Native Image smoke evidence.
+- Facet support: `T-FACET-*` frontend, IR, binding, generated source, validator, diagnostic,
+  round-trip, conformance, interop, and representative Native Image smoke evidence.
+- Interop: at least one positive and one negative fixture for each accepted choice/facet group should
+  be compared against JDK XML Schema validation where practical; any gap must be documented before
+  readiness acceptance.
+- Native Image: new `0.2.0` fixtures join representative smoke coverage in their implementation
+  tasks. Native Image conformance breadth remains a later `TASK-0044` concern.
+- Release posture: readiness evidence must not create a `0.1.0` release tag or claim publication
+  readiness without a separate release-engineering task.

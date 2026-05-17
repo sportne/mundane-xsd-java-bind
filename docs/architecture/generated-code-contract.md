@@ -61,6 +61,20 @@ The first generated-validator emitter supports basic validation for supported da
 - Generated validator source uses fully qualified names for generated model types and `runtime-core` validation/XML types to avoid import collisions.
 - Generated validator source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, dependency injection, or external resource access.
 
+## `TASK-0022` planned choice model shape
+
+The `0.2.0` Practical Data Contracts plan accepts a narrow generated model shape for
+`XP-DATA-10-CHOICE` in `TASK-0023`.
+
+- Each accepted choice particle becomes one generated model field.
+- Required choices use `<ContainingTypeSimpleName>Choice`; optional choices use `Optional<<ContainingTypeSimpleName>Choice>`.
+- The choice field type is a generated sealed interface named `<ContainingTypeSimpleName>Choice`.
+- Each branch is a generated record named `<BranchElementSimpleName>Choice` and carries the existing scalar or generated model value for that branch.
+- Generated readers and writers dispatch on the sealed choice type explicitly and must keep the generated-code ban on reflection, annotations, ServiceLoader, dynamic proxies, parser APIs, and external resource access.
+
+This planned shape does not imply support for repeated choices, nested model groups, wildcards,
+substitution groups, mixed content, anonymous branch complex types, or full XSD 1.0 model groups.
+
 ## Package layout example
 
 ```text
