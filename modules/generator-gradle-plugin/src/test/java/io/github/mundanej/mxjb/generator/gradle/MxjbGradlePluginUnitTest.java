@@ -60,6 +60,22 @@ final class MxjbGradlePluginUnitTest {
   }
 
   @Test
+  void taskAcceptsChoiceProfileToken() throws IOException {
+    Project project = configuredProject();
+    Path schema = writeSchema("src/main/resources/schema/choice-order.xsd", choiceOrderSchema());
+
+    MxjbExtension extension = extension(project);
+    extension.schema(schema.toFile());
+    extension.localRoot(requireParent(schema).toFile());
+    extension.namespacePackage("urn:orders", "com.example.orders");
+    extension.getProfile().set("XP-DATA-10-CHOICE");
+    task(project).generate();
+
+    assertTrue(Files.exists(generatedPath("com/example/orders/OrderChoice.java")));
+    assertTrue(Files.exists(generatedPath("com/example/orders/DomesticChoice.java")));
+  }
+
+  @Test
   void taskResolvesCatalogMappings() throws IOException {
     Project project = configuredProject();
     Path order =
@@ -166,6 +182,26 @@ final class MxjbGradlePluginUnitTest {
           <xs:complexType name="Order">
             <xs:sequence>
               <xs:element name="id" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String choiceOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified">
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:choice minOccurs="0">
+                <xs:element name="domestic" type="xs:string"/>
+                <xs:element name="international" type="xs:string"/>
+              </xs:choice>
             </xs:sequence>
           </xs:complexType>
         </xs:schema>

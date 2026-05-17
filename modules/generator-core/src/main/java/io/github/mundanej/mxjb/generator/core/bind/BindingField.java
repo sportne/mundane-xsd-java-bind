@@ -11,7 +11,19 @@ public record BindingField(
     BindingTypeReference type,
     BindingCardinality cardinality,
     int order,
-    boolean required) {
+    boolean required,
+    BindingChoice choice) {
+  public BindingField(
+      String kind,
+      SchemaQName xmlName,
+      String javaName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      boolean required) {
+    this(kind, xmlName, javaName, type, cardinality, order, required, null);
+  }
+
   public BindingField {
     Objects.requireNonNull(kind, "kind");
     Objects.requireNonNull(xmlName, "xmlName");
@@ -34,6 +46,7 @@ public record BindingField(
         + " order="
         + order
         + " required="
-        + required;
+        + required
+        + (choice == null ? "" : "\n" + choice.toText(indent + "  "));
   }
 }

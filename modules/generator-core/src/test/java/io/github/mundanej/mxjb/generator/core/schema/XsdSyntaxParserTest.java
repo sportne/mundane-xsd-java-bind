@@ -3,6 +3,7 @@ package io.github.mundanej.mxjb.generator.core.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mundanej.mxjb.generator.api.GeneratorProfile;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.resolver.SchemaResolutionResult;
@@ -184,6 +185,33 @@ final class XsdSyntaxParserTest {
     assertEquals(
         "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:choice requires profile XP-DATA-10-CHOICE.",
         result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
+  void parsesChoiceWhenChoiceProfileIsSelected() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:choice minOccurs="0">
+                      <xs:element name="domestic" type="xs:string"/>
+                      <xs:element name="international" type="xs:string"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_DATA_10_CHOICE);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(result.model().toText().contains("choice minOccurs=0 maxOccurs=1"));
   }
 
   @Test

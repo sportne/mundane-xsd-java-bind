@@ -1,6 +1,6 @@
 # TASK-0023: xs-choice-support
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0023`
 Gate: `0.2.0` Practical Data Contracts; starts only after `TASK-0022` is accepted.
@@ -10,7 +10,7 @@ Specification references: `docs/architecture/compiler-pipeline.md`, `docs/archit
 Target modules: `modules/generator-core`, conformance tests, examples as approved by `TASK-0022`
 Allowed files: schema frontend/IR/binding/emitter/validation source and tests needed for accepted `xs:choice` shapes, golden fixtures, conformance fixtures, example fixtures, and directly related docs
 Forbidden files: unsupported choice shapes, full model-group implementation beyond the accepted `0.2.0` scope, dependency metadata, runtime dependency additions, CLI or Gradle plugin behavior changes not required to expose existing generation paths
-Expected behavior: implement the accepted `TASK-0022` `XP-DATA-10-CHOICE` scope through parsing, IR, binding model, generated sealed choice model shape, reader/writer behavior, validation diagnostics, deterministic golden output, round trips, and explicit unsupported diagnostics for out-of-scope choice shapes.
+Expected behavior: implemented the accepted `TASK-0022` `XP-DATA-10-CHOICE` scope through parsing, IR, binding model, generated sealed choice model shape, reader/writer behavior, validation diagnostics, deterministic generated output, round trips, and explicit unsupported diagnostics for out-of-scope choice shapes.
 Tests to add/update: golden frontend/IR/binding/source tests, generated compile tests, valid and invalid reader/writer tests, required and optional choice cardinality tests, surrounding sequence-order tests, round-trip tests, unsupported-choice diagnostics, representative Native Image smoke fixtures, and interop fixtures where JDK XML Schema validation can act as a reference
 Documentation to update: conformance matrix, compatibility profiles, generated-code contract if model shape changes, verification plan, traceability matrix
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, targeted generator/conformance/example checks named by the implementation, `git diff --check`
@@ -49,3 +49,21 @@ branch in binding order and must not add runtime dependencies or reflective disp
 Planned test identifiers are `T-CHOICE-FRONTEND-*`, `T-CHOICE-IR-*`, `T-CHOICE-BIND-*`,
 `T-CHOICE-MODEL-*`, `T-CHOICE-WRITER-*`, `T-CHOICE-READER-*`, `T-CHOICE-VALIDATOR-*`,
 `T-RT-CHOICE-*`, `T-CONF-XP-DATA-10-CHOICE-*`, and `T-INTEROP-CHOICE-*`.
+
+## Acceptance Evidence
+
+- Public API exposes `GeneratorProfile.XP_DATA_10_CHOICE` with CLI/Gradle token
+  `XP-DATA-10-CHOICE`; `XP-DATA-10` remains the default.
+- Syntax, IR, and binding model tests cover the accepted local singleton choice shape and preserve
+  unsupported-profile behavior for default `XP-DATA-10`.
+- Generated model tests cover sealed choice interfaces and branch records; generated reader, writer,
+  and validator tests execute scalar and model branch paths, repeated-choice diagnostics, and
+  deterministic generated-source compilation.
+- CoreGenerator, CLI, and Gradle plugin tests verify the opt-in profile generates choice sources,
+  while default profile input still rejects `xs:choice`.
+- Targeted verification passed:
+  `:modules:generator-core:check`,
+  `:modules:generator-api:check`,
+  `:modules:generator-cli:check`,
+  `:modules:generator-gradle-plugin:check`, and
+  `:modules:conformance-tests:check`.

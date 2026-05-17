@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -217,6 +219,37 @@ final class GeneratedValidatorEmitterTest {
   }
 
   @Test
+  void generatedValidatorRecursesIntoChoiceModelBranches()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = choiceOrderModel();
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> detailClass = compiledSources.load("com.example.orders.Detail");
+      Class<?> domesticChoiceClass = compiledSources.load("com.example.orders.DomesticChoice");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object detail = detailClass.getConstructor(String.class).newInstance("US");
+      Object choice = domesticChoiceClass.getConstructor(detailClass).newInstance(detail);
+      Object order =
+          orderClass
+              .getConstructor(String.class, Optional.class)
+              .newInstance("A-1", Optional.of(choice));
+
+      ValidationResult result =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+
+      assertTrue(result.isValid());
+    }
+  }
+
+  @Test
   void generatedValidatorConvertsXmlReaderDiagnostics()
       throws IOException,
           ClassNotFoundException,
@@ -363,6 +396,20 @@ final class GeneratedValidatorEmitterTest {
                         1)))));
   }
 
+  private BindingModel choiceOrderModel() {
+    return new BindingModel(
+        List.of(root("order", model("com.example.orders.Order"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "Order",
+                List.of(field("element", "id", scalar("string"), required(), 1), choiceField())),
+            type(
+                "com.example.orders",
+                "Detail",
+                List.of(field("element", "country", scalar("string"), required(), 1)))));
+  }
+
   private EventXmlReader orderInput() {
     return reader(
         event(XmlEventKind.START_DOCUMENT, null),
@@ -478,6 +525,33 @@ final class GeneratedValidatorEmitterTest {
       int order) {
     return new BindingField(
         kind, xmlName, javaName, type, cardinality, order, cardinality.minOccurs() > 0);
+  }
+
+  private BindingField choiceField() {
+    BindingJavaName choiceName = new BindingJavaName("com.example.orders", "OrderChoice");
+    BindingChoice choice =
+        new BindingChoice(
+            choiceName,
+            List.of(
+                new BindingChoiceBranch(
+                    schemaName("domestic"),
+                    "domestic",
+                    model("com.example.orders.Detail"),
+                    new BindingJavaName("com.example.orders", "DomesticChoice")),
+                new BindingChoiceBranch(
+                    schemaName("international"),
+                    "international",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "InternationalChoice"))));
+    return new BindingField(
+        "choice",
+        schemaName("orderChoice"),
+        "orderChoice",
+        new BindingTypeReference("choice", choiceName.qualifiedName()),
+        optional(),
+        2,
+        false,
+        choice);
   }
 
   private BindingTypeReference scalar(String name) {

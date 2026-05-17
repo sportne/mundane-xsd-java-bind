@@ -3,6 +3,7 @@ package io.github.mundanej.mxjb.generator.core.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mundanej.mxjb.generator.api.GeneratorProfile;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.resolver.SchemaResolutionResult;
@@ -196,6 +197,40 @@ final class SchemaIrBuilderTest {
                       elementRef {urn:orders}shared type={urn:orders}shared cardinality=1..1
                     attributeRef {urn:orders}code type={urn:orders}code use=optional
                   attribute {urn:orders}code type=xs:string use=optional
+                """,
+        result.model().toText());
+  }
+
+  @Test
+  void buildsIrForAcceptedChoiceParticle() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:choice minOccurs="0">
+                      <xs:element name="domestic" type="xs:string"/>
+                      <xs:element name="international" type="xs:string"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_DATA_10_CHOICE);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertEquals(
+        """
+                schema-ir
+                  complexType {urn:orders}Order
+                    sequence cardinality=1..1
+                      element {urn:orders}id type=xs:string cardinality=1..1
+                      choice cardinality=0..1
+                        element {urn:orders}domestic type=xs:string cardinality=1..1
+                        element {urn:orders}international type=xs:string cardinality=1..1
                 """,
         result.model().toText());
   }
@@ -398,11 +433,15 @@ final class SchemaIrBuilderTest {
   }
 
   private SchemaIrResult build(String primarySchema) {
+    return build(primarySchema, GeneratorProfile.XP_DATA_10);
+  }
+
+  private SchemaIrResult build(String primarySchema, GeneratorProfile profile) {
     SchemaResolver resolver =
         new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
     SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve(primarySchema));
     assertTrue(resolution.diagnostics().isEmpty());
-    XsdSyntaxResult syntaxResult = new XsdSyntaxParser().parse(resolution.manifest());
+    XsdSyntaxResult syntaxResult = new XsdSyntaxParser().parse(resolution.manifest(), profile);
     assertTrue(syntaxResult.diagnostics().isEmpty());
     return new SchemaIrBuilder().build(syntaxResult);
   }

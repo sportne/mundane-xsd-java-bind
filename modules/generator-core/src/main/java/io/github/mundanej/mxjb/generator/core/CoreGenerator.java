@@ -63,7 +63,8 @@ public final class CoreGenerator implements Generator {
       return GeneratorResult.failure(publicDiagnostics(resolutionResult.diagnostics()));
     }
 
-    XsdSyntaxResult syntaxResult = new XsdSyntaxParser().parse(resolutionResult.manifest());
+    XsdSyntaxResult syntaxResult =
+        new XsdSyntaxParser().parse(resolutionResult.manifest(), request.profile());
     if (syntaxResult.hasErrors()) {
       return GeneratorResult.failure(publicDiagnostics(syntaxResult.diagnostics()));
     }
@@ -107,7 +108,8 @@ public final class CoreGenerator implements Generator {
     if (request.outputDirectory() == null) {
       diagnostics.add(diagnostic(REQUEST_INVALID, "output", "Output directory is required."));
     }
-    if (request.profile() != GeneratorProfile.XP_DATA_10) {
+    if (request.profile() != GeneratorProfile.XP_DATA_10
+        && request.profile() != GeneratorProfile.XP_DATA_10_CHOICE) {
       diagnostics.add(
           diagnostic(
               REQUEST_INVALID,

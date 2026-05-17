@@ -17,6 +17,10 @@ public record BindingTypeReference(String kind, String name) {
     return new BindingTypeReference("model", name.qualifiedName());
   }
 
+  static BindingTypeReference choice(BindingJavaName name) {
+    return new BindingTypeReference("choice", name.qualifiedName());
+  }
+
   public String toText() {
     return kind + ":" + name;
   }

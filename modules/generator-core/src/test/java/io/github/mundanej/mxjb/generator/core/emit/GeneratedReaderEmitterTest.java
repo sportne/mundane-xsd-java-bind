@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -159,6 +161,37 @@ final class GeneratedReaderEmitterTest {
       assertEquals(2, ((List<?>) lines).size());
       assertEquals("SKU-1", lineClass.getMethod("sku").invoke(((List<?>) lines).get(0)));
       assertEquals("SKU-2", lineClass.getMethod("sku").invoke(((List<?>) lines).get(1)));
+    }
+  }
+
+  @Test
+  void generatedReaderReadsChoiceBranchAndRejectsRepeatedChoice()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = choiceOrderModel();
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> domesticChoiceClass = compiledSources.load("com.example.orders.DomesticChoice");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, choiceOrderInput(false));
+
+      Object choice =
+          ((Optional<?>) orderClass.getMethod("orderChoice").invoke(order)).orElseThrow();
+      assertInstanceOf(domesticChoiceClass, choice);
+      assertEquals("US", domesticChoiceClass.getMethod("value").invoke(choice));
+      assertReadDiagnostic(readerClass, choiceOrderInput(true), "MXJB-GR-005");
     }
   }
 
@@ -367,6 +400,16 @@ final class GeneratedReaderEmitterTest {
                         1)))));
   }
 
+  private BindingModel choiceOrderModel() {
+    return new BindingModel(
+        List.of(root("order", model("com.example.orders.Order"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "Order",
+                List.of(field("element", "id", scalar("string"), required(), 1), choiceField()))));
+  }
+
   private EventXmlReader orderInput() {
     return reader(
         event(XmlEventKind.START_DOCUMENT, null),
@@ -392,6 +435,26 @@ final class GeneratedReaderEmitterTest {
         event(XmlEventKind.END_ELEMENT, new XmlName("urn:lines", "line")),
         event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
         event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader choiceOrderInput(boolean repeatedChoice) {
+    List<Event> events = new ArrayList<>();
+    events.add(event(XmlEventKind.START_DOCUMENT, null));
+    events.add(event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")));
+    events.add(event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "id")));
+    events.add(text("A-1"));
+    events.add(event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")));
+    events.add(event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "domestic")));
+    events.add(text("US"));
+    events.add(event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "domestic")));
+    if (repeatedChoice) {
+      events.add(event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "international")));
+      events.add(text("CA"));
+      events.add(event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "international")));
+    }
+    events.add(event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")));
+    events.add(event(XmlEventKind.END_DOCUMENT, null));
+    return new EventXmlReader(events);
   }
 
   private EventXmlReader trailingRootContentInput() {
@@ -563,6 +626,33 @@ final class GeneratedReaderEmitterTest {
       int order) {
     return new BindingField(
         kind, xmlName, javaName, type, cardinality, order, cardinality.minOccurs() > 0);
+  }
+
+  private BindingField choiceField() {
+    BindingJavaName choiceName = new BindingJavaName("com.example.orders", "OrderChoice");
+    BindingChoice choice =
+        new BindingChoice(
+            choiceName,
+            List.of(
+                new BindingChoiceBranch(
+                    schemaName("domestic"),
+                    "domestic",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "DomesticChoice")),
+                new BindingChoiceBranch(
+                    schemaName("international"),
+                    "international",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "InternationalChoice"))));
+    return new BindingField(
+        "choice",
+        schemaName("orderChoice"),
+        "orderChoice",
+        new BindingTypeReference("choice", choiceName.qualifiedName()),
+        optional(),
+        2,
+        false,
+        choice);
   }
 
   private BindingTypeReference scalar(String name) {

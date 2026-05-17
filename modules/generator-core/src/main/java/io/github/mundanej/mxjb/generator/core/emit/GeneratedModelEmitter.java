@@ -1,5 +1,7 @@
 package io.github.mundanej.mxjb.generator.core.emit;
 
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -41,11 +43,18 @@ public final class GeneratedModelEmitter {
       return GeneratedModelEmissionResult.empty(diagnostics);
     }
 
-    List<GeneratedJavaSource> sources =
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    for (BindingType type :
         model.types().stream()
-            .sorted(Comparator.comparing(type -> type.javaName().qualifiedName()))
-            .map(this::emitType)
-            .toList();
+            .sorted(Comparator.comparing(value -> value.javaName().qualifiedName()))
+            .toList()) {
+      sources.add(emitType(type));
+      for (BindingField field : type.fields()) {
+        if ("choice".equals(field.kind()) && field.choice() != null) {
+          sources.addAll(emitChoice(field.choice()));
+        }
+      }
+    }
     return new GeneratedModelEmissionResult(sources, List.of());
   }
 
@@ -60,6 +69,21 @@ public final class GeneratedModelEmitter {
           diagnostics.add(
               invalidModel(
                   "Unsupported generated model type reference " + field.type().toText() + "."));
+        }
+        if ("choice".equals(field.kind()) && field.choice() == null) {
+          diagnostics.add(invalidModel("Choice field is missing generated choice metadata."));
+        }
+        if ("choice".equals(field.kind()) && "list".equals(field.cardinality().shape())) {
+          diagnostics.add(invalidModel("Choice fields do not support list cardinality."));
+        }
+        if (field.choice() != null) {
+          for (BindingChoiceBranch branch : field.choice().branches()) {
+            if (!isSupportedTypeReference(branch.type())) {
+              diagnostics.add(
+                  invalidModel(
+                      "Unsupported generated choice branch type " + branch.type().toText() + "."));
+            }
+          }
         }
         if (!isSupportedCardinality(field.cardinality().shape())) {
           diagnostics.add(
@@ -80,7 +104,7 @@ public final class GeneratedModelEmitter {
     if ("scalar".equals(reference.kind())) {
       return SCALAR_TYPES.containsKey(reference.name());
     }
-    return "model".equals(reference.kind());
+    return "model".equals(reference.kind()) || "choice".equals(reference.kind());
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -95,6 +119,80 @@ public final class GeneratedModelEmitter {
     BindingJavaName javaName = type.javaName();
     String sourceText = sourceText(type);
     return new GeneratedJavaSource(javaName, relativePath(javaName), sourceText);
+  }
+
+  private List<GeneratedJavaSource> emitChoice(BindingChoice choice) {
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.add(emitChoiceInterface(choice));
+    for (BindingChoiceBranch branch : choice.branches()) {
+      sources.add(emitChoiceBranch(choice, branch));
+    }
+    return sources;
+  }
+
+  private GeneratedJavaSource emitChoiceInterface(BindingChoice choice) {
+    BindingJavaName javaName = choice.javaName();
+    String permits =
+        choice.branches().stream()
+            .map(branch -> branch.branchJavaName().simpleName())
+            .collect(Collectors.joining(", "));
+    String sourceText =
+        "package "
+            + javaName.packageName()
+            + ";\n\n"
+            + "/** Generated sealed model for XML choice "
+            + javaName.simpleName()
+            + ". */\n"
+            + "public sealed interface "
+            + javaName.simpleName()
+            + " permits "
+            + permits
+            + " {}\n";
+    return new GeneratedJavaSource(javaName, relativePath(javaName), sourceText);
+  }
+
+  private GeneratedJavaSource emitChoiceBranch(BindingChoice choice, BindingChoiceBranch branch) {
+    BindingJavaName javaName = branch.branchJavaName();
+    StringBuilder source = new StringBuilder();
+    source.append("package ").append(javaName.packageName()).append(";\n\n");
+    String imports = choiceBranchImports(branch);
+    if (!imports.isEmpty()) {
+      source.append(imports).append('\n');
+    }
+    source
+        .append("/** Generated branch for XML choice ")
+        .append(choice.javaName().simpleName())
+        .append(". */\n");
+    source
+        .append("public record ")
+        .append(javaName.simpleName())
+        .append('(')
+        .append(baseType(javaName.packageName(), branch.type()))
+        .append(" value) implements ")
+        .append(choice.javaName().simpleName())
+        .append(" {\n")
+        .append("  public ")
+        .append(javaName.simpleName())
+        .append(" {\n")
+        .append("    Objects.requireNonNull(value, \"value\");\n")
+        .append("  }\n")
+        .append("}\n");
+    return new GeneratedJavaSource(javaName, relativePath(javaName), source.toString());
+  }
+
+  private String choiceBranchImports(BindingChoiceBranch branch) {
+    Set<String> imports = new LinkedHashSet<>();
+    if ("scalar".equals(branch.type().kind()) && "integer".equals(branch.type().name())) {
+      imports.add("java.math.BigInteger");
+    }
+    if ("scalar".equals(branch.type().kind()) && "decimal".equals(branch.type().name())) {
+      imports.add("java.math.BigDecimal");
+    }
+    imports.add("java.util.Objects");
+    return imports.stream()
+        .sorted()
+        .map(value -> "import " + value + ";\n")
+        .collect(Collectors.joining());
   }
 
   private Path relativePath(BindingJavaName javaName) {

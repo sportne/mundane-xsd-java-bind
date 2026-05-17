@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -263,6 +265,49 @@ final class GeneratedWriterEmitterTest {
   }
 
   @Test
+  void generatedWriterDispatchesChoiceBranches()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = choiceOrderModel();
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedWriterEmissionResult writerResult = new GeneratedWriterEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(writerResult.sources());
+
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> domesticChoiceClass = compiledSources.load("com.example.orders.DomesticChoice");
+      Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
+      Object domesticChoice = domesticChoiceClass.getConstructor(String.class).newInstance("US");
+      Object order =
+          orderClass
+              .getConstructor(String.class, Optional.class)
+              .newInstance("A-1", Optional.of(domesticChoice));
+
+      writerClass.getMethod("write", XmlOutput.class, orderClass).invoke(null, output, order);
+    }
+
+    assertEquals(
+        List.of(
+            "start:{urn:orders}order",
+            "start:{urn:orders}id",
+            "text:A-1",
+            "end:{urn:orders}id",
+            "start:{urn:orders}domestic",
+            "text:US",
+            "end:{urn:orders}domestic",
+            "end:{urn:orders}order"),
+        output.events);
+  }
+
+  @Test
   void emitsDeterministicSourcesSortedByRootName() {
     BindingModel model =
         new BindingModel(
@@ -342,6 +387,16 @@ final class GeneratedWriterEmitterTest {
         new BindingValidationPlan(List.of()));
   }
 
+  private BindingModel choiceOrderModel() {
+    return new BindingModel(
+        List.of(root("order", model("com.example.orders.Order"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "Order",
+                List.of(field("element", "id", scalar("string"), required(), 1), choiceField()))));
+  }
+
   private BindingField field(
       String kind,
       String localName,
@@ -356,6 +411,33 @@ final class GeneratedWriterEmitterTest {
         cardinality,
         order,
         cardinality.minOccurs() > 0);
+  }
+
+  private BindingField choiceField() {
+    BindingJavaName choiceName = new BindingJavaName("com.example.orders", "OrderChoice");
+    BindingChoice choice =
+        new BindingChoice(
+            choiceName,
+            List.of(
+                new BindingChoiceBranch(
+                    schemaName("domestic"),
+                    "domestic",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "DomesticChoice")),
+                new BindingChoiceBranch(
+                    schemaName("international"),
+                    "international",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "InternationalChoice"))));
+    return new BindingField(
+        "choice",
+        schemaName("orderChoice"),
+        "orderChoice",
+        new BindingTypeReference("choice", choiceName.qualifiedName()),
+        optional(),
+        2,
+        false,
+        choice);
   }
 
   private BindingTypeReference scalar(String name) {

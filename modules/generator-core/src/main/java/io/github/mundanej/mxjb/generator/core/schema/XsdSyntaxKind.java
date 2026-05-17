@@ -6,7 +6,8 @@ public enum XsdSyntaxKind {
   COMPLEX_TYPE("complexType"),
   SIMPLE_TYPE("simpleType"),
   ATTRIBUTE("attribute"),
-  SEQUENCE("sequence");
+  SEQUENCE("sequence"),
+  CHOICE("choice");
 
   private final String manifestName;
 

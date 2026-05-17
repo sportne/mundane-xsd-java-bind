@@ -15,7 +15,8 @@ Supported options:
 
 - `--schema <path>`: primary schema path. Repeat for multiple primary schemas.
 - `--output <dir>`: required generated-source output directory.
-- `--profile XP-DATA-10`: optional profile selection. `XP-DATA-10` is the only accepted profile.
+- `--profile <XP-DATA-10|XP-DATA-10-CHOICE>`: optional profile selection.
+  `XP-DATA-10-CHOICE` enables the accepted opt-in `xs:choice` subset.
 - `--default-package <package>`: package used when a namespace-specific mapping is absent.
 - `--namespace-package <namespace=package>`: explicit namespace-to-Java-package mapping.
 - `--local-root <dir>`: additional local schema resolution root.

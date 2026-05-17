@@ -1,5 +1,6 @@
 package io.github.mundanej.mxjb.generator.core.emit;
 
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -100,11 +101,12 @@ public final class GeneratedWriterEmitter {
         default -> false;
       };
     }
-    return "model".equals(reference.kind()) && index.type(reference.name()) != null;
+    return "choice".equals(reference.kind())
+        || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
 
   private boolean isSupportedFieldKind(String kind) {
-    return "element".equals(kind) || "attribute".equals(kind);
+    return "element".equals(kind) || "attribute".equals(kind) || "choice".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -219,16 +221,26 @@ public final class GeneratedWriterEmitter {
       for (BindingField field : attributes(type)) {
         appendFieldWrite(source, field);
       }
-      for (BindingField field : elements(type)) {
+      for (BindingField field : contentFields(type)) {
         appendFieldWrite(source, field);
       }
       source.append("    output.endElement(elementName);\n");
       source.append("  }\n");
-      for (BindingField field : elements(type)) {
+      for (BindingField field : contentFields(type)) {
         BindingType nestedType = modelType(field);
         if (nestedType != null && !helperNames.contains(nestedType.javaName().qualifiedName())) {
           source.append('\n');
           appendHelper(source, nestedType);
+        }
+        if ("choice".equals(field.kind())) {
+          for (BindingChoiceBranch branch : field.choice().branches()) {
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null
+                && !helperNames.contains(branchType.javaName().qualifiedName())) {
+              source.append('\n');
+              appendHelper(source, branchType);
+            }
+          }
         }
       }
     }
@@ -266,6 +278,10 @@ public final class GeneratedWriterEmitter {
 
     private void appendSingleValueWrite(
         StringBuilder source, BindingField field, String valueExpression, String indent) {
+      if ("choice".equals(field.kind())) {
+        appendChoiceValueWrite(source, field, valueExpression, indent);
+        return;
+      }
       String name = nameConstant(field.xmlName());
       if ("attribute".equals(field.kind())) {
         source
@@ -299,13 +315,20 @@ public final class GeneratedWriterEmitter {
     }
 
     private String scalarText(BindingField field, String valueExpression) {
-      if ("scalar".equals(field.type().kind()) && "string".equals(field.type().name())) {
+      return scalarText(field.type(), valueExpression);
+    }
+
+    private String scalarText(BindingTypeReference reference, String valueExpression) {
+      if ("scalar".equals(reference.kind()) && "string".equals(reference.name())) {
         return valueExpression;
       }
       return "String.valueOf(" + valueExpression + ")";
     }
 
     private String localType(BindingField field) {
+      if ("choice".equals(field.type().kind())) {
+        return field.type().name();
+      }
       if ("model".equals(field.type().kind())) {
         BindingType type = Objects.requireNonNull(index.type(field.type().name()));
         return typeText(type);
@@ -334,11 +357,22 @@ public final class GeneratedWriterEmitter {
           .toList();
     }
 
+    private List<BindingField> contentFields(BindingType type) {
+      return type.fields().stream()
+          .filter(field -> "element".equals(field.kind()) || "choice".equals(field.kind()))
+          .sorted(Comparator.comparingInt(BindingField::order))
+          .toList();
+    }
+
     private BindingType modelType(BindingField field) {
-      if (!"model".equals(field.type().kind())) {
+      return modelType(field.type());
+    }
+
+    private BindingType modelType(BindingTypeReference reference) {
+      if (!"model".equals(reference.kind())) {
         return null;
       }
-      return index.type(field.type().name());
+      return index.type(reference.name());
     }
 
     private void collectNames(SchemaQName elementName, BindingType type, Set<String> visited) {
@@ -356,6 +390,72 @@ public final class GeneratedWriterEmitter {
           collectNames(field.xmlName(), nestedType, visited);
         }
       }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
+        for (BindingChoiceBranch branch : field.choice().branches()) {
+          nameConstant(branch.xmlName());
+          BindingType nestedType = modelType(branch.type());
+          if (nestedType != null) {
+            collectNames(branch.xmlName(), nestedType, visited);
+          }
+        }
+      }
+    }
+
+    private void appendChoiceValueWrite(
+        StringBuilder source, BindingField field, String valueExpression, String indent) {
+      for (int indexValue = 0; indexValue < field.choice().branches().size(); indexValue++) {
+        BindingChoiceBranch branch = field.choice().branches().get(indexValue);
+        source
+            .append(indent)
+            .append(indexValue == 0 ? "if (" : "} else if (")
+            .append(valueExpression)
+            .append(" instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch) {\n");
+        appendBranchSingleValueWrite(source, branch, "branch.value()", indent + "  ");
+      }
+      source
+          .append(indent)
+          .append("} else {\n")
+          .append(indent)
+          .append("  throw new io.github.mundanej.mxjb.runtime.XmlWriteException(\n")
+          .append(indent)
+          .append("      new io.github.mundanej.mxjb.runtime.XmlDiagnostic(\n")
+          .append(indent)
+          .append("          io.github.mundanej.mxjb.runtime.XmlDiagnosticSeverity.ERROR,\n")
+          .append(indent)
+          .append("          \"MXJB-GW-001\",\n")
+          .append(indent)
+          .append("          \"Unsupported XML choice branch.\",\n")
+          .append(indent)
+          .append("          io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN));\n")
+          .append(indent)
+          .append("}\n");
+    }
+
+    private void appendBranchSingleValueWrite(
+        StringBuilder source, BindingChoiceBranch branch, String valueExpression, String indent) {
+      String name = nameConstant(branch.xmlName());
+      BindingType nestedType = modelType(branch.type());
+      if (nestedType != null) {
+        source
+            .append(indent)
+            .append(helperName(nestedType))
+            .append("(output, ")
+            .append(name)
+            .append(", ")
+            .append(valueExpression)
+            .append(");\n");
+        return;
+      }
+      source.append(indent).append("output.startElement(").append(name).append(");\n");
+      source
+          .append(indent)
+          .append("output.text(")
+          .append(scalarText(branch.type(), valueExpression))
+          .append(");\n");
+      source.append(indent).append("output.endElement(").append(name).append(");\n");
     }
 
     private String nameConstant(SchemaQName name) {

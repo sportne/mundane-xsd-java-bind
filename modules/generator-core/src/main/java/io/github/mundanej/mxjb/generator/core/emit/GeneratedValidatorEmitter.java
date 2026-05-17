@@ -1,5 +1,6 @@
 package io.github.mundanej.mxjb.generator.core.emit;
 
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -106,11 +107,12 @@ public final class GeneratedValidatorEmitter {
         default -> false;
       };
     }
-    return "model".equals(reference.kind()) && index.type(reference.name()) != null;
+    return "choice".equals(reference.kind())
+        || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
 
   private boolean isSupportedFieldKind(String kind) {
-    return "element".equals(kind) || "attribute".equals(kind);
+    return "element".equals(kind) || "attribute".equals(kind) || "choice".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -225,10 +227,23 @@ public final class GeneratedValidatorEmitter {
           appendHelper(source, nestedType);
         }
       }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
+        for (BindingChoiceBranch branch : field.choice().branches()) {
+          BindingType branchType = modelType(branch.type());
+          if (branchType != null && !helperNames.contains(branchType.javaName().qualifiedName())) {
+            appendHelper(source, branchType);
+          }
+        }
+      }
     }
 
     private void appendFieldValidation(StringBuilder source, BindingField field) {
       String accessor = "value." + field.javaName() + "()";
+      if ("choice".equals(field.kind())) {
+        appendChoiceValidation(source, field, accessor);
+        return;
+      }
       String shape = field.cardinality().shape();
       if ("list".equals(shape)) {
         appendListValidation(source, field, accessor);
@@ -276,6 +291,38 @@ public final class GeneratedValidatorEmitter {
           .append("(")
           .append(accessor)
           .append(".get(), location, errors);\n");
+      source.append("    }\n");
+    }
+
+    private void appendChoiceValidation(StringBuilder source, BindingField field, String accessor) {
+      boolean optional = "optional".equals(field.cardinality().shape());
+      String valueExpression = optional ? accessor + ".orElse(null)" : accessor;
+      if (optional) {
+        source.append("    if (").append(accessor).append(" != null && ").append(accessor);
+        source.append(".isPresent()) {\n");
+      } else {
+        source.append("    if (").append(accessor).append(" == null) {\n");
+        source
+            .append("      addError(errors, \"MXJB-GV-001\", \"Missing required value ")
+            .append(escape(field.javaName()))
+            .append(".\", location);\n");
+        source.append("    } else {\n");
+      }
+      for (BindingChoiceBranch branch : field.choice().branches()) {
+        BindingType nestedType = modelType(branch.type());
+        if (nestedType != null) {
+          source
+              .append("      if (")
+              .append(valueExpression)
+              .append(" instanceof ")
+              .append(branch.branchJavaName().qualifiedName())
+              .append(" branch) {\n")
+              .append("        ")
+              .append(helperName(nestedType))
+              .append("(branch.value(), location, errors);\n")
+              .append("      }\n");
+        }
+      }
       source.append("    }\n");
     }
 
@@ -365,10 +412,14 @@ public final class GeneratedValidatorEmitter {
     }
 
     private BindingType modelType(BindingField field) {
-      if (!"model".equals(field.type().kind())) {
+      return modelType(field.type());
+    }
+
+    private BindingType modelType(BindingTypeReference reference) {
+      if (!"model".equals(reference.kind())) {
         return null;
       }
-      return index.type(field.type().name());
+      return index.type(reference.name());
     }
 
     private String helperName(BindingType type) {

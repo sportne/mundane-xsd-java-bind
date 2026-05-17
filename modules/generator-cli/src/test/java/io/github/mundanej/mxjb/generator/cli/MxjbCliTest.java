@@ -57,6 +57,28 @@ final class MxjbCliTest {
   }
 
   @Test
+  void generateAcceptsChoiceProfileToken() throws IOException {
+    Path schema = writeSchema("choice-order.xsd", choiceOrderSchema());
+    Path output = tempDirectory.resolve("choice-generated");
+
+    CliResult result =
+        run(
+            "generate",
+            "--schema",
+            schema.toString(),
+            "--output",
+            output.toString(),
+            "--profile",
+            "XP-DATA-10-CHOICE",
+            "--namespace-package",
+            "urn:orders=com.example.orders");
+
+    assertEquals(0, result.exitCode(), result.err());
+    assertTrue(result.out().contains("com/example/orders/OrderChoice.java"));
+    assertTrue(Files.exists(output.resolve("com/example/orders/DomesticChoice.java")));
+  }
+
+  @Test
   void generateResolvesCatalogAndRepeatedSchemaOptions() throws IOException {
     Path order = writeSchema("schemas/order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path line = writeSchema("catalog/line.xsd", lineSchema());
@@ -174,6 +196,26 @@ final class MxjbCliTest {
           <xs:complexType name="Order">
             <xs:sequence>
               <xs:element name="id" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String choiceOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified">
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:choice minOccurs="0">
+                <xs:element name="domestic" type="xs:string"/>
+                <xs:element name="international" type="xs:string"/>
+              </xs:choice>
             </xs:sequence>
           </xs:complexType>
         </xs:schema>

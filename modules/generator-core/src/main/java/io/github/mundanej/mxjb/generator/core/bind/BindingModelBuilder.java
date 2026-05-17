@@ -4,9 +4,11 @@ import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaCardinality;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrAttribute;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrChoice;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrComplexType;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrElement;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrModel;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrParticle;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrResult;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSequence;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrTypeReference;
@@ -165,18 +167,25 @@ public final class BindingModelBuilder {
       Set<String> usedFieldNames = new HashSet<>();
       int order = 1;
       for (SchemaIrSequence sequence : complexType.sequences()) {
-        for (SchemaIrElement element : sequence.elements()) {
-          SchemaIrElement declaration =
-              element.reference() ? globalElements.get(element.name()) : element;
-          SchemaIrTypeReference type = declaration == null ? element.type() : declaration.type();
-          BindingTypeReference bindingType = bindTypeReference(type, declaration, element.name());
-          BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
-          String fieldName = JavaNames.uniqueFieldName(element.name(), usedFieldNames);
-          boolean required = cardinality.minOccurs() > 0;
-          fields.add(
-              new BindingField(
-                  "element", element.name(), fieldName, bindingType, cardinality, order, required));
-          validationRules.add("element " + fieldName + " " + cardinality.toText());
+        for (SchemaIrParticle particle : sequence.particles()) {
+          if (particle instanceof SchemaIrElement element) {
+            fields.add(bindElementField(element, usedFieldNames, order));
+            validationRules.add(
+                "element "
+                    + fields.get(fields.size() - 1).javaName()
+                    + " "
+                    + fields.get(fields.size() - 1).cardinality().toText());
+          } else if (particle instanceof SchemaIrChoice choice) {
+            BindingField field =
+                bindChoiceField(complexType, javaName, choice, usedFieldNames, order);
+            fields.add(field);
+            validationRules.add("choice " + field.javaName() + " " + field.cardinality().toText());
+          } else {
+            diagnostic(
+                DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+                "binding",
+                "Unsupported schema particle in binding model.");
+          }
           order++;
         }
       }
@@ -199,6 +208,62 @@ public final class BindingModelBuilder {
           "record",
           fields,
           new BindingValidationPlan(validationRules));
+    }
+
+    private BindingField bindElementField(
+        SchemaIrElement element, Set<String> usedFieldNames, int order) {
+      SchemaIrElement declaration =
+          element.reference() ? globalElements.get(element.name()) : element;
+      SchemaIrTypeReference type = declaration == null ? element.type() : declaration.type();
+      BindingTypeReference bindingType = bindTypeReference(type, declaration, element.name());
+      BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
+      String fieldName = JavaNames.uniqueFieldName(element.name(), usedFieldNames);
+      boolean required = cardinality.minOccurs() > 0;
+      return new BindingField(
+          "element", element.name(), fieldName, bindingType, cardinality, order, required);
+    }
+
+    private BindingField bindChoiceField(
+        SchemaIrComplexType complexType,
+        BindingJavaName ownerName,
+        SchemaIrChoice choice,
+        Set<String> usedFieldNames,
+        int order) {
+      String packageName = ownerName.packageName();
+      String choiceSimpleName = uniqueTypeName(packageName, ownerName.simpleName() + "Choice");
+      BindingJavaName choiceName = new BindingJavaName(packageName, choiceSimpleName);
+      Set<String> branchNames = new HashSet<>();
+      List<BindingChoiceBranch> branches = new ArrayList<>();
+      for (SchemaIrElement branch : choice.branches()) {
+        SchemaIrElement declaration =
+            branch.reference() ? globalElements.get(branch.name()) : branch;
+        SchemaIrTypeReference type = declaration == null ? branch.type() : declaration.type();
+        BindingTypeReference bindingType = bindTypeReference(type, declaration, branch.name());
+        String branchFieldName = JavaNames.uniqueFieldName(branch.name(), branchNames);
+        String branchSimpleName =
+            uniqueTypeName(packageName, JavaNames.typeName(branch.name()) + "Choice");
+        branches.add(
+            new BindingChoiceBranch(
+                branch.name(),
+                branchFieldName,
+                bindingType,
+                new BindingJavaName(packageName, branchSimpleName)));
+      }
+      BindingChoice bindingChoice = new BindingChoice(choiceName, branches);
+      BindingCardinality cardinality = BindingCardinality.from(choice.cardinality());
+      String baseFieldName = JavaNames.fieldNameFromTypeName(choiceSimpleName);
+      String fieldName = JavaNames.unique(baseFieldName, usedFieldNames);
+      boolean required = cardinality.minOccurs() > 0;
+      return new BindingField(
+          "choice",
+          new SchemaQName(
+              complexType.name() == null ? "" : complexType.name().namespace(), fieldName),
+          fieldName,
+          BindingTypeReference.choice(choiceName),
+          cardinality,
+          order,
+          required,
+          bindingChoice);
     }
 
     private BindingRootElement bindRootElement(SchemaIrElement element) {
@@ -271,6 +336,12 @@ public final class BindingModelBuilder {
           usedTypeNamesByPackage.computeIfAbsent(packageName, ignored -> new HashSet<>());
       String simpleName = JavaNames.uniqueTypeName(schemaName, usedTypeNames);
       return new BindingJavaName(packageName, simpleName);
+    }
+
+    private String uniqueTypeName(String packageName, String baseName) {
+      Set<String> usedTypeNames =
+          usedTypeNamesByPackage.computeIfAbsent(packageName, ignored -> new HashSet<>());
+      return JavaNames.unique(JavaNames.sanitizeIdentifier(baseName, true), usedTypeNames);
     }
 
     private String packageName(String namespace) {
@@ -393,6 +464,14 @@ public final class BindingModelBuilder {
 
     private static String fieldName(SchemaQName schemaName) {
       return sanitizeIdentifier(lowerCamel(tokens(schemaName.localName())), false);
+    }
+
+    private static String fieldNameFromTypeName(String typeName) {
+      if (typeName == null || typeName.isBlank()) {
+        return "value";
+      }
+      return sanitizeIdentifier(
+          typeName.substring(0, 1).toLowerCase(Locale.ROOT) + typeName.substring(1), false);
     }
 
     private static String unique(String base, Set<String> used) {

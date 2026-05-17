@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import io.github.mundanej.mxjb.generator.api.GeneratorProfile;
 import io.github.mundanej.mxjb.generator.api.GeneratorRequest;
 import io.github.mundanej.mxjb.generator.api.GeneratorResult;
 import java.io.ByteArrayOutputStream;
@@ -81,6 +82,65 @@ final class CoreGeneratorTest {
     assertTrue(
         Files.readString(output.resolve("com/acme/orders/Order.java"), StandardCharsets.UTF_8)
             .contains("List<com.acme.lines.Line>"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void defaultProfileRejectsChoiceWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("choice-order.xsd", choiceOrderSchema());
+    Path output = tempDirectory.resolve("choice-default");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    null,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+    assertTrue(result.generatedSources().isEmpty());
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
+  void choiceProfileGeneratesChoiceSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("choice-order.xsd", choiceOrderSchema());
+    Path output = tempDirectory.resolve("choice-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_DATA_10_CHOICE,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertEquals(
+        List.of(
+            Path.of("com/acme/orders/DomesticChoice.java"),
+            Path.of("com/acme/orders/InternationalChoice.java"),
+            Path.of("com/acme/orders/Order.java"),
+            Path.of("com/acme/orders/OrderChoice.java"),
+            Path.of("com/acme/orders/xml/OrderXmlReader.java"),
+            Path.of("com/acme/orders/xml/OrderXmlValidator.java"),
+            Path.of("com/acme/orders/xml/OrderXmlWriter.java")),
+        result.generatedSources());
+    assertTrue(
+        Files.readString(output.resolve("com/acme/orders/Order.java"), StandardCharsets.UTF_8)
+            .contains("Optional<OrderChoice> orderChoice"));
     compileGeneratedSources(output, result.generatedSources());
   }
 
@@ -265,6 +325,27 @@ final class CoreGeneratorTest {
         </xs:schema>
         """
         .replace("LINE_SCHEMA_LOCATION", lineLocation);
+  }
+
+  private String choiceOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:choice minOccurs="0">
+                <xs:element name="domestic" type="xs:string"/>
+                <xs:element name="international" type="xs:string"/>
+              </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
   }
 
   private String lineSchema() {

@@ -82,6 +82,12 @@ public final class SchemaIrBuilder {
                   DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
                   document.resourceId(),
                   "Global xs:sequence is not valid in profile XP-DATA-10.");
+          case CHOICE ->
+              diagnostic(
+                  state,
+                  DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+                  document.resourceId(),
+                  "Global xs:choice is not valid in profile XP-DATA-10-CHOICE.");
         }
       }
     }
@@ -201,11 +207,22 @@ public final class SchemaIrBuilder {
 
     List<SchemaIrAttribute> attributes = new ArrayList<>();
     List<SchemaIrSequence> sequences = new ArrayList<>();
+    int contentParticleCount = 0;
+    boolean directChoiceSeen = false;
     for (XsdSyntaxNode child : node.children()) {
       if (child.kind() == XsdSyntaxKind.ATTRIBUTE) {
         addIfPresent(attributes, normalizeAttribute(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.SEQUENCE) {
+        contentParticleCount++;
         addIfPresent(sequences, normalizeSequence(document, child, state));
+      } else if (child.kind() == XsdSyntaxKind.CHOICE) {
+        contentParticleCount++;
+        directChoiceSeen = true;
+        SchemaIrChoice choice = normalizeChoice(document, child, state);
+        if (choice != null) {
+          sequences.add(
+              new SchemaIrSequence(SchemaCardinality.ONE, List.<SchemaIrParticle>of(choice)));
+        }
       } else {
         diagnostic(
             state,
@@ -216,6 +233,13 @@ public final class SchemaIrBuilder {
                 + " inside complexType for normalized IR.");
       }
     }
+    if (directChoiceSeen && contentParticleCount > 1) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Direct xs:choice is supported only as the sole complexType content particle or inside xs:sequence.");
+    }
     return new SchemaIrComplexType(name, attributes, sequences, anonymous);
   }
 
@@ -225,19 +249,80 @@ public final class SchemaIrBuilder {
     if (cardinality == null) {
       return null;
     }
-    List<SchemaIrElement> elements = new ArrayList<>();
+    List<SchemaIrParticle> particles = new ArrayList<>();
     for (XsdSyntaxNode child : node.children()) {
       if (child.kind() == XsdSyntaxKind.ELEMENT) {
-        addIfPresent(elements, normalizeElement(document, child, state));
+        addIfPresent(particles, normalizeElement(document, child, state));
+      } else if (child.kind() == XsdSyntaxKind.CHOICE) {
+        addIfPresent(particles, normalizeChoice(document, child, state));
       } else {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "Only xs:element is supported inside xs:sequence for normalized IR.");
+            "Only xs:element and accepted xs:choice are supported inside xs:sequence for normalized IR.");
       }
     }
-    return new SchemaIrSequence(cardinality, elements);
+    return new SchemaIrSequence(cardinality, particles);
+  }
+
+  private SchemaIrChoice normalizeChoice(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    SchemaCardinality cardinality = cardinality(document, node, state);
+    if (cardinality == null) {
+      return null;
+    }
+    if ((cardinality.minOccurs() != 0 && cardinality.minOccurs() != 1)
+        || !"1".equals(cardinality.maxOccurs())) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:choice supports only minOccurs 0 or 1 and maxOccurs 1 in profile XP-DATA-10-CHOICE.");
+      return null;
+    }
+    List<SchemaIrElement> branches = new ArrayList<>();
+    for (XsdSyntaxNode child : node.children()) {
+      if (child.kind() != XsdSyntaxKind.ELEMENT) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Only singleton xs:element branches are supported inside xs:choice.");
+        continue;
+      }
+      String branchMin = child.attributes().getOrDefault("minOccurs", "1");
+      String branchMax = child.attributes().getOrDefault("maxOccurs", "1");
+      if (!"1".equals(branchMin) || !"1".equals(branchMax)) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:choice branches must use singleton cardinality in profile XP-DATA-10-CHOICE.");
+        continue;
+      }
+      boolean hasInlineComplexType =
+          child.children().stream()
+              .anyMatch(grandchild -> grandchild.kind() == XsdSyntaxKind.COMPLEX_TYPE);
+      if (hasInlineComplexType) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:choice branches do not support anonymous complexType declarations.");
+        continue;
+      }
+      addIfPresent(branches, normalizeElement(document, child, state));
+    }
+    if (branches.isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:choice must contain at least one supported branch.");
+      return null;
+    }
+    return new SchemaIrChoice(cardinality, branches);
   }
 
   private SchemaIrSimpleType normalizeSimpleType(
@@ -415,7 +500,7 @@ public final class SchemaIrBuilder {
       case COMPLEX_TYPE -> SchemaComponentKind.COMPLEX_TYPE;
       case SIMPLE_TYPE -> SchemaComponentKind.SIMPLE_TYPE;
       case ATTRIBUTE -> SchemaComponentKind.ATTRIBUTE;
-      case SEQUENCE -> null;
+      case SEQUENCE, CHOICE -> null;
     };
   }
 

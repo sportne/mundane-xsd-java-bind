@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
+import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -118,6 +120,43 @@ final class GeneratedModelEmitterTest {
     assertFalse(source.contains("XmlReader"));
     assertFalse(source.contains("XmlWriter"));
     assertFalse(source.contains("validate("));
+  }
+
+  @Test
+  void emitsChoiceInterfaceAndBranchRecords() throws IOException {
+    BindingModel model =
+        new BindingModel(
+            List.of(),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(field("element", "id", scalar("string"), required()), choiceField()))));
+
+    GeneratedModelEmissionResult result = new GeneratedModelEmitter().emit(model);
+
+    assertFalse(result.hasErrors());
+    assertEquals(
+        List.of(
+            Path.of("com/example/orders/Order.java"),
+            Path.of("com/example/orders/OrderChoice.java"),
+            Path.of("com/example/orders/DomesticChoice.java"),
+            Path.of("com/example/orders/InternationalChoice.java")),
+        result.sources().stream().map(GeneratedJavaSource::relativePath).toList());
+    assertTrue(
+        result
+            .sources()
+            .get(1)
+            .sourceText()
+            .contains(
+                "public sealed interface OrderChoice permits DomesticChoice, InternationalChoice"));
+    assertTrue(
+        result
+            .sources()
+            .get(2)
+            .sourceText()
+            .contains("public record DomesticChoice(String value) implements OrderChoice"));
+    new GeneratedSourceVerifier(tempDirectory).compile(result.sources()).close();
   }
 
   @Test
@@ -338,6 +377,33 @@ final class GeneratedModelEmitterTest {
   private BindingField field(
       String kind, String localName, BindingTypeReference type, BindingCardinality cardinality) {
     return new BindingField(kind, schemaName(localName), localName, type, cardinality, 1, true);
+  }
+
+  private BindingField choiceField() {
+    BindingJavaName choiceName = new BindingJavaName("com.example.orders", "OrderChoice");
+    BindingChoice choice =
+        new BindingChoice(
+            choiceName,
+            List.of(
+                new BindingChoiceBranch(
+                    schemaName("domestic"),
+                    "domestic",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "DomesticChoice")),
+                new BindingChoiceBranch(
+                    schemaName("international"),
+                    "international",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "InternationalChoice"))));
+    return new BindingField(
+        "choice",
+        schemaName("orderChoice"),
+        "orderChoice",
+        new BindingTypeReference("choice", choiceName.qualifiedName()),
+        optional(),
+        2,
+        false,
+        choice);
   }
 
   private BindingTypeReference scalar(String name) {

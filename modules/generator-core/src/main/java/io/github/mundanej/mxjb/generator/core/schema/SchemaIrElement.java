@@ -10,13 +10,15 @@ public record SchemaIrElement(
     SchemaIrTypeReference type,
     SchemaCardinality cardinality,
     SchemaIrComplexType inlineComplexType,
-    boolean reference) {
+    boolean reference)
+    implements SchemaIrParticle {
   public SchemaIrElement {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(type, "type");
     Objects.requireNonNull(cardinality, "cardinality");
   }
 
+  @Override
   public String toText(String indent) {
     String prefix = reference ? "elementRef " : "element ";
     String line =

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mundanej.mxjb.generator.api.GeneratorProfile;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.resolver.SchemaResolutionResult;
@@ -258,6 +259,39 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsAcceptedChoiceParticle() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:choice minOccurs="0">
+                      <xs:element name="domestic" type="xs:string"/>
+                      <xs:element name="international" type="xs:string"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_DATA_10_CHOICE);
+
+    assertFalse(result.hasErrors());
+    String bindingText = result.model().toText();
+    assertTrue(bindingText.contains("choiceType"), bindingText);
+    assertTrue(bindingText.contains("choice orderChoice xml={urn:orders}orderChoice"), bindingText);
+    assertTrue(
+        bindingText.contains("type=choice:io.github.mundanej.mxjb.generated.orders.OrderChoice"),
+        bindingText);
+    assertTrue(bindingText.contains("cardinality=optional 0..1 order=2"), bindingText);
+    assertTrue(bindingText.contains("branch domestic"), bindingText);
+    assertTrue(bindingText.contains("branch international"), bindingText);
+  }
+
+  @Test
   void reportsUnsupportedBuiltInScalarTypesWithoutPartialModel() throws IOException {
     write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:date\"/>"));
 
@@ -311,16 +345,25 @@ final class BindingModelBuilderTest {
     return bind(primarySchema, BindingConfiguration.defaults());
   }
 
+  private BindingResult bind(String primarySchema, GeneratorProfile profile) {
+    return new BindingModelBuilder()
+        .build(ir(primarySchema, profile), BindingConfiguration.defaults());
+  }
+
   private BindingResult bind(String primarySchema, BindingConfiguration configuration) {
     return new BindingModelBuilder().build(ir(primarySchema), configuration);
   }
 
   private SchemaIrResult ir(String primarySchema) {
+    return ir(primarySchema, GeneratorProfile.XP_DATA_10);
+  }
+
+  private SchemaIrResult ir(String primarySchema, GeneratorProfile profile) {
     SchemaResolver resolver =
         new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
     SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve(primarySchema));
     assertTrue(resolution.diagnostics().isEmpty());
-    return new SchemaIrBuilder().build(new XsdSyntaxParser().parse(resolution.manifest()));
+    return new SchemaIrBuilder().build(new XsdSyntaxParser().parse(resolution.manifest(), profile));
   }
 
   private List<DiagnosticCode> diagnosticCodes(BindingResult result) {

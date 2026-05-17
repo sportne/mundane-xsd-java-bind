@@ -1,5 +1,6 @@
 package io.github.mundanej.mxjb.generator.core.schema;
 
+import io.github.mundanej.mxjb.generator.api.GeneratorProfile;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import java.io.IOException;
@@ -20,10 +21,15 @@ public final class XsdSyntaxParser {
   private static final String XSD_NAMESPACE = XMLConstants.W3C_XML_SCHEMA_NS_URI;
 
   public XsdSyntaxResult parse(ResolvedSchemaManifest manifest) {
+    return parse(manifest, GeneratorProfile.XP_DATA_10);
+  }
+
+  public XsdSyntaxResult parse(ResolvedSchemaManifest manifest, GeneratorProfile profile) {
     List<SchemaDiagnostic> diagnostics = new ArrayList<>();
     List<XsdSyntaxDocument> documents = new ArrayList<>();
+    GeneratorProfile effectiveProfile = profile == null ? GeneratorProfile.XP_DATA_10 : profile;
     for (ResolvedSchema schema : manifest.schemas()) {
-      XsdSyntaxDocument document = parseDocument(schema, diagnostics);
+      XsdSyntaxDocument document = parseDocument(schema, diagnostics, effectiveProfile);
       if (document != null) {
         documents.add(document);
       }
@@ -32,14 +38,14 @@ public final class XsdSyntaxParser {
   }
 
   private XsdSyntaxDocument parseDocument(
-      ResolvedSchema schema, List<SchemaDiagnostic> diagnostics) {
+      ResolvedSchema schema, List<SchemaDiagnostic> diagnostics, GeneratorProfile profile) {
     XMLInputFactory factory = XMLInputFactory.newFactory();
     factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
     factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
     try (InputStream input = java.nio.file.Files.newInputStream(schema.sourcePath())) {
       XMLStreamReader reader = factory.createXMLStreamReader(input);
       try {
-        return readDocument(schema, reader, diagnostics);
+        return readDocument(schema, reader, diagnostics, profile);
       } finally {
         reader.close();
       }
@@ -54,13 +60,16 @@ public final class XsdSyntaxParser {
   }
 
   private XsdSyntaxDocument readDocument(
-      ResolvedSchema schema, XMLStreamReader reader, List<SchemaDiagnostic> diagnostics)
+      ResolvedSchema schema,
+      XMLStreamReader reader,
+      List<SchemaDiagnostic> diagnostics,
+      GeneratorProfile profile)
       throws XMLStreamException {
     while (reader.hasNext()) {
       int event = reader.next();
       if (event == XMLStreamConstants.START_ELEMENT) {
         if (isXsdElement(reader, "schema")) {
-          return readSchema(schema, reader, diagnostics);
+          return readSchema(schema, reader, diagnostics, profile);
         }
         diagnostics.add(
             new SchemaDiagnostic(
@@ -80,23 +89,29 @@ public final class XsdSyntaxParser {
   }
 
   private XsdSyntaxDocument readSchema(
-      ResolvedSchema schema, XMLStreamReader reader, List<SchemaDiagnostic> diagnostics)
+      ResolvedSchema schema,
+      XMLStreamReader reader,
+      List<SchemaDiagnostic> diagnostics,
+      GeneratorProfile profile)
       throws XMLStreamException {
     String targetNamespace = valueOrEmpty(reader.getAttributeValue(null, "targetNamespace"));
     Map<String, String> namespaceDeclarations = namespaceDeclarations(reader);
-    List<XsdSyntaxNode> children = readChildren(schema.resourceId(), reader, diagnostics);
+    List<XsdSyntaxNode> children = readChildren(schema.resourceId(), reader, diagnostics, profile);
     return new XsdSyntaxDocument(
         schema.resourceId(), targetNamespace, namespaceDeclarations, children);
   }
 
   private List<XsdSyntaxNode> readChildren(
-      String resourceId, XMLStreamReader reader, List<SchemaDiagnostic> diagnostics)
+      String resourceId,
+      XMLStreamReader reader,
+      List<SchemaDiagnostic> diagnostics,
+      GeneratorProfile profile)
       throws XMLStreamException {
     List<XsdSyntaxNode> children = new ArrayList<>();
     while (reader.hasNext()) {
       int event = reader.next();
       if (event == XMLStreamConstants.START_ELEMENT) {
-        XsdSyntaxNode child = readChild(resourceId, reader, diagnostics);
+        XsdSyntaxNode child = readChild(resourceId, reader, diagnostics, profile);
         if (child != null) {
           children.add(child);
         }
@@ -108,7 +123,10 @@ public final class XsdSyntaxParser {
   }
 
   private XsdSyntaxNode readChild(
-      String resourceId, XMLStreamReader reader, List<SchemaDiagnostic> diagnostics)
+      String resourceId,
+      XMLStreamReader reader,
+      List<SchemaDiagnostic> diagnostics,
+      GeneratorProfile profile)
       throws XMLStreamException {
     if (!XSD_NAMESPACE.equals(reader.getNamespaceURI())) {
       skipSubtree(reader);
@@ -120,7 +138,7 @@ public final class XsdSyntaxParser {
       skipSubtree(reader);
       return null;
     }
-    if ("choice".equals(localName)) {
+    if ("choice".equals(localName) && profile != GeneratorProfile.XP_DATA_10_CHOICE) {
       diagnostics.add(
           new SchemaDiagnostic(
               DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
@@ -142,7 +160,7 @@ public final class XsdSyntaxParser {
     }
 
     Map<String, String> attributes = attributes(kind, reader);
-    List<XsdSyntaxNode> children = readChildren(resourceId, reader, diagnostics);
+    List<XsdSyntaxNode> children = readChildren(resourceId, reader, diagnostics, profile);
     return new XsdSyntaxNode(kind, attributes, children);
   }
 
@@ -153,6 +171,7 @@ public final class XsdSyntaxParser {
       case "simpleType" -> XsdSyntaxKind.SIMPLE_TYPE;
       case "attribute" -> XsdSyntaxKind.ATTRIBUTE;
       case "sequence" -> XsdSyntaxKind.SEQUENCE;
+      case "choice" -> XsdSyntaxKind.CHOICE;
       default -> null;
     };
   }
@@ -174,7 +193,7 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "type", reader.getAttributeValue(null, "type"));
         addIfPresent(attributes, "use", reader.getAttributeValue(null, "use"));
       }
-      case SEQUENCE -> addCardinality(attributes, reader);
+      case SEQUENCE, CHOICE -> addCardinality(attributes, reader);
     }
     return attributes;
   }
