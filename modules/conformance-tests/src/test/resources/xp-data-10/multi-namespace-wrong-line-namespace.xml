@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<o:order xmlns:o="urn:orders" xmlns:l="urn:not-lines">
+  <o:id>ORD-2000</o:id>
+  <l:line>
+    <l:sku>SKU-A</l:sku>
+  </l:line>
+</o:order>

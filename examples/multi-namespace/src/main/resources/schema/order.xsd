@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="urn:orders"
+    xmlns:o="urn:orders"
+    xmlns:l="urn:lines"
+    elementFormDefault="qualified"
+    attributeFormDefault="qualified">
+  <xs:import namespace="urn:lines" schemaLocation="line.xsd"/>
+
+  <xs:element name="order" type="o:Order"/>
+
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="id" type="xs:string"/>
+      <xs:element name="note" type="xs:string" minOccurs="0"/>
+      <xs:element ref="l:line" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="version" type="xs:string" use="optional"/>
+  </xs:complexType>
+</xs:schema>

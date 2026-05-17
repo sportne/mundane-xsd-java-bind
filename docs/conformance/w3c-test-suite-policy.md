@@ -12,3 +12,7 @@ W3C XML and XML Schema test suites are reference material for conformance strate
 ## Storage policy
 
 Large external test suites should be pulled through documented scripts or Git submodules only after license and maintenance review. Do not vendor large suites in this design-control pack.
+
+`TASK-0017` uses small local `XP-DATA-10` fixtures under `modules/conformance-tests` rather than
+vendoring W3C suites. Those fixtures are representative conformance evidence for implemented
+features only.

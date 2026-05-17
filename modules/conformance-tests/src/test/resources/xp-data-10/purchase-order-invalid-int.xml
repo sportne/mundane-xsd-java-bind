@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:order xmlns:p="urn:purchase">
+  <p:id>PO-1000</p:id>
+  <p:line>
+    <p:sku>SKU-1</p:sku>
+    <p:quantity>two</p:quantity>
+  </p:line>
+</p:order>

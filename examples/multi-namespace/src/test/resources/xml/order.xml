@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<o:order xmlns:o="urn:orders" xmlns:l="urn:lines" o:version="1.0">
+  <o:id>ORD-2000</o:id>
+  <o:note>Cross-namespace order</o:note>
+  <l:line>
+    <l:sku>SKU-A</l:sku>
+  </l:line>
+  <l:line>
+    <l:sku>SKU-B</l:sku>
+  </l:line>
+</o:order>

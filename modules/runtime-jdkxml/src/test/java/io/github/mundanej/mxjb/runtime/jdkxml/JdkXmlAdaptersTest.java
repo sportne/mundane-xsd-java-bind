@@ -153,6 +153,28 @@ final class JdkXmlAdaptersTest {
   }
 
   @Test
+  void outputRedeclaresNamespaceForRepeatedNamespacedSiblingScope()
+      throws XMLStreamException, XmlWriteException, XmlReadException {
+    StringWriter xml = new StringWriter();
+    XMLStreamWriter streamWriter = XMLOutputFactory.newFactory().createXMLStreamWriter(xml);
+    XmlOutput output = JdkXmlAdapters.output(streamWriter);
+
+    output.startElement(new XmlName("urn:orders", "order"));
+    output.startElement(new XmlName("urn:lines", "line"));
+    output.endElement(new XmlName("urn:lines", "line"));
+    output.startElement(new XmlName("urn:lines", "line"));
+    output.endElement(new XmlName("urn:lines", "line"));
+    output.endElement(new XmlName("urn:orders", "order"));
+    output.flush();
+
+    XMLInputFactory factory = JdkXmlAdapters.secureInputFactory();
+    XmlEventReader reader =
+        JdkXmlAdapters.eventReader(factory.createXMLStreamReader(new StringReader(xml.toString())));
+
+    drain(reader);
+  }
+
+  @Test
   void outputWrapsWriterFailures() {
     FailingXmlStreamWriter failingWriter = new FailingXmlStreamWriter();
     XmlOutput output = JdkXmlAdapters.output(failingWriter);

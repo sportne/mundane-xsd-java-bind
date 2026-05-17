@@ -6,15 +6,19 @@ import io.github.mundanej.mxjb.runtime.XmlLocation;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
 import io.github.mundanej.mxjb.runtime.XmlWriteException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 final class StaxXmlOutput implements XmlOutput {
   private final XMLStreamWriter writer;
   private final Map<String, String> prefixesByNamespace = new HashMap<>();
-  private final Map<String, String> declaredPrefixesByNamespace = new HashMap<>();
+  private final Deque<Set<String>> namespaceScopes = new ArrayDeque<>();
   private int nextPrefixNumber = 1;
 
   StaxXmlOutput(XMLStreamWriter writer) {
@@ -49,6 +53,10 @@ final class StaxXmlOutput implements XmlOutput {
       } else {
         String prefix = prefixFor(name.namespaceUri());
         writer.writeStartElement(prefix, name.localName(), name.namespaceUri());
+      }
+      namespaceScopes.push(new HashSet<>());
+      if (!name.namespaceUri().isEmpty()) {
+        String prefix = prefixFor(name.namespaceUri());
         declareNamespace(prefix, name.namespaceUri());
       }
     } catch (XMLStreamException exception) {
@@ -86,6 +94,9 @@ final class StaxXmlOutput implements XmlOutput {
   public void endElement(XmlName name) throws XmlWriteException {
     try {
       writer.writeEndElement();
+      if (!namespaceScopes.isEmpty()) {
+        namespaceScopes.pop();
+      }
     } catch (XMLStreamException exception) {
       throw writeException("MXJB-JDKXML-W-006", "JDK XML writer failed to end element.", exception);
     }
@@ -113,10 +124,21 @@ final class StaxXmlOutput implements XmlOutput {
   }
 
   private void declareNamespace(String prefix, String namespaceUri) throws XMLStreamException {
-    if (!prefix.equals(declaredPrefixesByNamespace.get(namespaceUri))) {
+    if (!isNamespaceInScope(namespaceUri)) {
       writer.writeNamespace(prefix, namespaceUri);
-      declaredPrefixesByNamespace.put(namespaceUri, prefix);
+      if (!namespaceScopes.isEmpty()) {
+        namespaceScopes.peek().add(namespaceUri);
+      }
     }
+  }
+
+  private boolean isNamespaceInScope(String namespaceUri) {
+    for (Set<String> scope : namespaceScopes) {
+      if (scope.contains(namespaceUri)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static XmlWriteException writeException(

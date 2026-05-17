@@ -12,6 +12,11 @@ plugins {
 description = 'Internal conformance test harness; not published.'
 
 dependencies {
+    // Representative example bindings are the conformance fixtures for TASK-0017.
+    testImplementation project(':examples:multi-namespace')
+    testImplementation project(':examples:purchase-order')
+    // Conformance tests use the optional JDK StAX adapter to feed runtime-core events.
+    testImplementation project(':modules:runtime-jdkxml')
     // Conformance tests reuse shared test helpers from the testing-support module.
     testImplementation project(':modules:testing-support')
 }

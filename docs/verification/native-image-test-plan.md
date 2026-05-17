@@ -18,7 +18,8 @@ Native Image checks are not part of the default `qualityGate` while there is no 
 
 - `TASK-0010` must run `:modules:runtime-core:nativeTest` once runtime-core primitives have behavior to execute.
 - `TASK-0013` adds `:modules:generator-core:generatedCodeNativeSmoke`, the first generated-code native smoke path for approved generated model/writer fixtures plus `runtime-core`.
-- `TASK-0017` must reuse representative round-trip fixtures for native smoke execution.
+- `TASK-0017` reuses representative purchase-order and multi-namespace round-trip fixtures through
+  `:examples:purchase-order:nativeTest` and `:examples:multi-namespace:nativeTest`.
 - `TASK-0020` hardens and broadens native checks; it must not be the first point where generated/runtime Native Image compatibility is exercised.
 
 ## Active generated-code command

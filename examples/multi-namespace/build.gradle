@@ -6,14 +6,26 @@ plugins {
     id 'mxjb.quality-conventions'
     // JaCoCo coverage reports and verification.
     id 'mxjb.coverage-conventions'
+    // Native Image smoke execution for representative round-trip fixtures.
+    id 'mxjb.native-conventions'
 }
 
 // Human-readable example purpose shown in Gradle reports.
-description = 'Multi-namespace schema example placeholder.'
+description = 'Multi-namespace schema example.'
 
 dependencies {
     // Examples use the public runtime the same way a downstream user would.
     implementation project(':modules:runtime-core')
+    // Tests use the optional JDK StAX adapter to exercise generated bindings.
+    testImplementation project(':modules:runtime-jdkxml')
     // Tests can reuse shared project test helpers.
     testImplementation project(':modules:testing-support')
+}
+
+graalvmNative {
+    binaries {
+        test {
+            buildArgs.add('-H:IncludeResources=.*\\.(xml|xsd)$')
+        }
+    }
 }

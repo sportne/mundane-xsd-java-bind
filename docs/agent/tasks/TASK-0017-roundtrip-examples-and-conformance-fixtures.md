@@ -1,6 +1,6 @@
 # TASK-0017: roundtrip-examples-and-conformance-fixtures
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0017`
 Gate: Phase 4 generated reader and basic validation vertical slice; starts only after `TASK-0016` is accepted.
@@ -16,6 +16,11 @@ Documentation to update: example READMEs, conformance matrix, verification plan,
 Commands to run: `./gradlew :modules:conformance-tests:test :examples:purchase-order:check :examples:multi-namespace:check`, representative native smoke command when round-trip fixtures are executable or documented blocker, `./gradlew validateDesignControlPack qualityGate`, `git diff --check`
 Acceptance criteria: representative generated bindings round-trip through generated reader/writer paths; executable representative round trips are included in native smoke coverage where GraalVM is available or the blocker is documented; unsupported conformance areas remain future or unsupported-by-design; no user-facing generator command is added
 Rollback notes: revert conformance/example/testing-support source, fixtures, generated golden/example outputs, and related docs
+
+Completion notes: `TASK-0017` added purchase-order and multi-namespace checked-in generated-style
+fixture sources, XML/schema fixtures, JVM round-trip checks, selected `XP-DATA-10` conformance
+fixtures, and example Native Image round-trip smoke execution. Repeated namespaced sibling fixtures
+also exposed and fixed a namespace declaration scope defect in the optional JDK XML output adapter.
 
 ## Impact Notes
 
