@@ -1,6 +1,6 @@
 # TASK-0018: generator-api-and-cli-vertical-slice
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0018`
 Gate: Phase 5 first complete public vertical slice; starts only after `TASK-0017` is accepted.
@@ -23,3 +23,10 @@ Rollback notes: revert generator-api/CLI/source/tests/docs changes and directly 
 - Native Image: CLI must remain compatible with later native smoke testing.
 - Security: resolver/network behavior must be configurable only through explicit policy.
 - Documentation: CLI examples must be executable and scope-limited.
+
+## Completion Notes
+
+- Added the public `generator-api` request/result/diagnostic/profile contract and a `CoreGenerator` adapter over the accepted schema parser, IR builder, binding model builder, and model/writer/reader/validator emitters.
+- Added the `generator-cli` `mxjb generate` command with deterministic source writes, namespace/package mappings, local roots, catalog mappings, stable diagnostics, and explicit rejection of code-to-schema-style options.
+- Added API, core, and CLI tests covering deterministic output, public API boundaries, catalog/local-root resolution, denied network diagnostics, invalid options, and generated-source compilation.
+- Verification: `./gradlew :modules:generator-api:check :modules:generator-cli:check :modules:generator-core:check`, `./gradlew validateDesignControlPack qualityGate`, and `git diff --check` passed before acceptance was recorded.

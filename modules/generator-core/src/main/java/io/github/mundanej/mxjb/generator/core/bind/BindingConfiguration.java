@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/** Internal binding configuration used before public generator configuration exists. */
+/** Internal binding configuration for namespace and Java package selection. */
 public record BindingConfiguration(String defaultPackage, Map<String, String> namespacePackages) {
   public static final String DEFAULT_GENERATED_PACKAGE = "io.github.mundanej.mxjb.generated";
 

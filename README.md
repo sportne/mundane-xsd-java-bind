@@ -1,6 +1,6 @@
 # mundane XSD Java Binding
 
-**Status:** Design-Control Pack v0.1 scaffold. No XML schema compiler, runtime binding, reader, writer, validator, or generated-code implementation exists yet.
+**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice. The repository now includes generated model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, and a CLI `generate` command for the accepted subset.
 
 `mundane XSD Java Binding` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
 
@@ -70,6 +70,10 @@ Common commands after hydrating the wrapper and dependencies:
 ./gradlew printPublishedArtifacts
 ```
 
-No command is expected to generate XML binding code in this pack.
+Generate Java sources for an approved schema subset with:
+
+```bash
+./gradlew :modules:generator-cli:run --args='generate --schema schemas/order.xsd --output build/generated/mxjb'
+```
 
 Build conventions live in `build-logic/` as composable Gradle convention plugins. Published code modules live under `modules/`; non-published examples live under `examples/`.

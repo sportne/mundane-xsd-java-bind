@@ -13,7 +13,11 @@ plugins {
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
-description = 'Command-line generator entry point; intentionally empty in v0.1.'
+description = 'Command-line generator entry point for supported schema-to-Java generation.'
+
+application {
+    mainClass = 'io.github.mundanej.mxjb.generator.cli.MxjbCli'
+}
 
 publishing {
     publications {
