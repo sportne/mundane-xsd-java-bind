@@ -76,12 +76,19 @@ public final class SchemaIrBuilder {
     List<SchemaIrModelGroup> modelGroups = new ArrayList<>();
     List<SchemaIrAttributeGroup> attributeGroups = new ArrayList<>();
 
+    indexRestrictedSimpleTypeAliases(model, state);
     for (XsdSyntaxDocument document : model.documents()) {
       for (XsdSyntaxNode child : document.children()) {
         if (child.kind() == XsdSyntaxKind.GROUP) {
           addIfPresent(modelGroups, normalizeModelGroup(document, child, state));
         } else if (child.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP) {
           addIfPresent(attributeGroups, normalizeAttributeGroup(document, child, state));
+        } else if (child.kind() == XsdSyntaxKind.SIMPLE_TYPE) {
+          SchemaIrSimpleType simpleType = normalizeSimpleType(document, child, state);
+          addIfPresent(simpleTypes, simpleType);
+          if (simpleType != null) {
+            state.simpleTypes.put(simpleType.name(), simpleType);
+          }
         }
       }
     }
@@ -92,8 +99,10 @@ public final class SchemaIrBuilder {
           case ELEMENT -> addIfPresent(elements, normalizeElement(document, child, state));
           case COMPLEX_TYPE ->
               addIfPresent(complexTypes, normalizeComplexType(document, child, false, state));
-          case SIMPLE_TYPE ->
-              addIfPresent(simpleTypes, normalizeSimpleType(document, child, state));
+          case SIMPLE_TYPE -> {
+            // Normalized in a first pass so list/union aliases can resolve named restricted
+            // scalar aliases deterministically.
+          }
           case ATTRIBUTE -> addIfPresent(attributes, normalizeAttribute(document, child, state));
           case GROUP, ATTRIBUTE_GROUP -> {
             // Normalized in a first pass so complex type references can be flattened
@@ -131,6 +140,33 @@ public final class SchemaIrBuilder {
     }
     return new SchemaIrModel(
         elements, complexTypes, simpleTypes, attributes, modelGroups, attributeGroups);
+  }
+
+  private void indexRestrictedSimpleTypeAliases(XsdSyntaxModel model, BuildState state) {
+    for (XsdSyntaxDocument document : model.documents()) {
+      for (XsdSyntaxNode child : document.children()) {
+        if (child.kind() != XsdSyntaxKind.SIMPLE_TYPE) {
+          continue;
+        }
+        String localName = child.attributes().get("name");
+        if (localName == null || localName.isBlank() || child.children().size() != 1) {
+          continue;
+        }
+        XsdSyntaxNode definition = child.children().getFirst();
+        if (definition.kind() != XsdSyntaxKind.RESTRICTION) {
+          continue;
+        }
+        String baseText = definition.attributes().get("base");
+        if (baseText == null || baseText.isBlank()) {
+          continue;
+        }
+        SchemaQName base = resolveQName(document, baseText, state);
+        if (base != null && isSupportedRestrictionBase(base)) {
+          state.restrictedSimpleTypeAliases.put(
+              new SchemaQName(document.targetNamespace(), localName), base);
+        }
+      }
+    }
   }
 
   private SchemaIrModelGroup normalizeModelGroup(
@@ -631,25 +667,23 @@ public final class SchemaIrBuilder {
       return null;
     }
     SchemaIrSimpleRestriction restriction = null;
+    SchemaIrSimpleList list = null;
+    SchemaIrSimpleUnion union = null;
     for (XsdSyntaxNode child : node.children()) {
-      if (child.kind() == XsdSyntaxKind.RESTRICTION) {
-        if (restriction != null) {
-          diagnostic(
-              state,
-              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-              document.resourceId(),
-              "simpleType " + localName + " has multiple restriction children.");
-          return null;
-        }
-        restriction = normalizeSimpleRestriction(document, child, state);
-      } else if (child.kind() == XsdSyntaxKind.LIST || child.kind() == XsdSyntaxKind.UNION) {
+      if (restriction != null || list != null || union != null) {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "xs:"
-                + child.kind().manifestName()
-                + " is not supported by the accepted simple-type subset.");
+            "simpleType " + localName + " has multiple simple type definition children.");
+        return null;
+      }
+      if (child.kind() == XsdSyntaxKind.RESTRICTION) {
+        restriction = normalizeSimpleRestriction(document, child, state);
+      } else if (child.kind() == XsdSyntaxKind.LIST) {
+        list = normalizeSimpleList(document, child, state);
+      } else if (child.kind() == XsdSyntaxKind.UNION) {
+        union = normalizeSimpleUnion(document, child, state);
       } else {
         diagnostic(
             state,
@@ -661,7 +695,94 @@ public final class SchemaIrBuilder {
       }
     }
     return new SchemaIrSimpleType(
-        new SchemaQName(document.targetNamespace(), localName), restriction);
+        new SchemaQName(document.targetNamespace(), localName), restriction, list, union);
+  }
+
+  private SchemaIrSimpleList normalizeSimpleList(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    if (!node.children().isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:list supports only itemType references in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    String itemTypeText = node.attributes().get("itemType");
+    if (itemTypeText == null || itemTypeText.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:list is missing itemType.");
+      return null;
+    }
+    SchemaQName itemType = resolveQName(document, itemTypeText, state);
+    if (itemType == null) {
+      return null;
+    }
+    if (!isAcceptedSimpleCompositionMember(itemType, state)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Unsupported xs:list itemType " + itemType.toText() + ".");
+      return null;
+    }
+    return new SchemaIrSimpleList(itemType);
+  }
+
+  private SchemaIrSimpleUnion normalizeSimpleUnion(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    if (!node.children().isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:union supports only memberTypes references in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    String memberTypesText = node.attributes().get("memberTypes");
+    if (memberTypesText == null || memberTypesText.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:union is missing memberTypes.");
+      return null;
+    }
+    List<SchemaQName> memberTypes = new ArrayList<>();
+    for (String memberTypeText :
+        Pattern.compile("\\s+").splitAsStream(memberTypesText.trim()).toList()) {
+      SchemaQName memberType = resolveQName(document, memberTypeText, state);
+      if (memberType == null) {
+        continue;
+      }
+      if (!isAcceptedSimpleCompositionMember(memberType, state)) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Unsupported xs:union memberType " + memberType.toText() + ".");
+        continue;
+      }
+      memberTypes.add(memberType);
+    }
+    if (memberTypes.isEmpty()) {
+      return null;
+    }
+    return new SchemaIrSimpleUnion(memberTypes);
+  }
+
+  private boolean isAcceptedSimpleCompositionMember(SchemaQName type, BuildState state) {
+    if (isSupportedRestrictionBase(type)) {
+      return true;
+    }
+    SchemaIrSimpleType simpleType = state.simpleTypes.get(type);
+    if (simpleType != null) {
+      return simpleType.restriction() != null;
+    }
+    return state.restrictedSimpleTypeAliases.containsKey(type);
   }
 
   private SchemaIrSimpleRestriction normalizeSimpleRestriction(
@@ -1141,6 +1262,8 @@ public final class SchemaIrBuilder {
     private final Map<SchemaComponentKey, SchemaComponent> components = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrModelGroup> modelGroups = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrAttributeGroup> attributeGroups = new LinkedHashMap<>();
+    private final Map<SchemaQName, SchemaIrSimpleType> simpleTypes = new LinkedHashMap<>();
+    private final Map<SchemaQName, SchemaQName> restrictedSimpleTypeAliases = new LinkedHashMap<>();
     private final List<SchemaDiagnostic> diagnostics = new ArrayList<>();
   }
 

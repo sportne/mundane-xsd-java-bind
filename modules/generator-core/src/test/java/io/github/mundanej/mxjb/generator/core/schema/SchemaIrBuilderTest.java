@@ -220,18 +220,13 @@ final class SchemaIrBuilderTest {
                     <xs:minInclusive value="1"/>
                   </xs:restriction>
                 </xs:simpleType>
-                <xs:simpleType name="ListType">
-                  <xs:list itemType="xs:string"/>
-                </xs:simpleType>
                 """));
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_VALIDATION_10_BASIC);
 
     assertEquals(
         List.of(
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
         diagnosticCodes(result));
   }
 
@@ -283,6 +278,66 @@ final class SchemaIrBuilderTest {
     assertTrue(irText.contains("minInclusive=1.25 maxInclusive=9.75"));
     assertTrue(irText.contains("simpleType {urn:orders}Count restriction base=xs:integer"));
     assertTrue(irText.contains("simpleType {urn:orders}LongCount restriction base=xs:long"));
+  }
+
+  @Test
+  void buildsIrForAcceptedListAndUnionSimpleTypes() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="Quantity">
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="1"/>
+                    <xs:maxInclusive value="9"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="QuantityList">
+                  <xs:list itemType="tns:Quantity"/>
+                </xs:simpleType>
+                <xs:simpleType name="QuantityOrCode">
+                  <xs:union memberTypes="tns:Quantity xs:string"/>
+                </xs:simpleType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty());
+    String irText = result.model().toText();
+    assertTrue(
+        irText.contains("simpleType {urn:orders}QuantityList list itemType={urn:orders}Quantity"));
+    assertTrue(
+        irText.contains(
+            "simpleType {urn:orders}QuantityOrCode union memberTypes={urn:orders}Quantity,xs:string"));
+  }
+
+  @Test
+  void reportsUnsupportedListAndUnionMemberShapes() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="NestedList">
+                  <xs:list itemType="tns:OtherList"/>
+                </xs:simpleType>
+                <xs:simpleType name="OtherList">
+                  <xs:list itemType="xs:string"/>
+                </xs:simpleType>
+                <xs:simpleType name="BadUnion">
+                  <xs:union memberTypes="xs:date tns:OtherList"/>
+                </xs:simpleType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
   }
 
   @Test

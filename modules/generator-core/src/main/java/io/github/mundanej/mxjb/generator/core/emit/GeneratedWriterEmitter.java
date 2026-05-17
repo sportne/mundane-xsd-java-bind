@@ -76,7 +76,8 @@ public final class GeneratedWriterEmitter {
         if (!isSupportedFieldKind(field.kind())) {
           diagnostics.add(invalidModel("Unsupported writer field kind " + field.kind() + "."));
         }
-        if ("attribute".equals(field.kind()) && !"scalar".equals(field.type().kind())) {
+        if ("attribute".equals(field.kind())
+            && !Set.of("scalar", "list", "union").contains(field.type().kind())) {
           diagnostics.add(
               invalidModel("Writer attributes require scalar type " + field.type().toText() + "."));
         }
@@ -100,6 +101,14 @@ public final class GeneratedWriterEmitter {
         case "string", "boolean", "int", "integer", "long", "decimal" -> true;
         default -> false;
       };
+    }
+    if ("list".equals(reference.kind())) {
+      return reference.itemType() != null && isSupportedTypeReference(reference.itemType(), index);
+    }
+    if ("union".equals(reference.kind())) {
+      return !reference.unionMembers().isEmpty()
+          && reference.unionMembers().stream()
+              .allMatch(member -> isSupportedTypeReference(member, index));
     }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
@@ -322,6 +331,15 @@ public final class GeneratedWriterEmitter {
       if ("scalar".equals(reference.kind()) && "string".equals(reference.name())) {
         return valueExpression;
       }
+      if ("list".equals(reference.kind())) {
+        return valueExpression
+            + ".stream().map(item -> "
+            + scalarText(reference.itemType(), "item")
+            + ").collect(java.util.stream.Collectors.joining(\" \"))";
+      }
+      if ("union".equals(reference.kind())) {
+        return valueExpression;
+      }
       return "String.valueOf(" + valueExpression + ")";
     }
 
@@ -333,7 +351,17 @@ public final class GeneratedWriterEmitter {
         BindingType type = Objects.requireNonNull(index.type(field.type().name()));
         return typeText(type);
       }
-      return switch (field.type().name()) {
+      if ("list".equals(field.type().kind())) {
+        return "java.util.List<" + scalarType(field.type().itemType()) + ">";
+      }
+      if ("union".equals(field.type().kind())) {
+        return "String";
+      }
+      return scalarType(field.type());
+    }
+
+    private String scalarType(BindingTypeReference reference) {
+      return switch (reference.name()) {
         case "boolean" -> "Boolean";
         case "int" -> "Integer";
         case "integer" -> "java.math.BigInteger";

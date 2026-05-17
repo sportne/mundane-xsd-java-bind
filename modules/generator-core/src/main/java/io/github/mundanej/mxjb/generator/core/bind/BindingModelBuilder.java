@@ -201,6 +201,7 @@ public final class BindingModelBuilder {
         SchemaIrTypeReference type = declaration == null ? attribute.type() : declaration.type();
         BindingTypeReference bindingType = bindTypeReference(type, null, attribute.name());
         BindingCardinality cardinality = attributeCardinality(attribute);
+        validateListSimpleTypeCardinality(bindingType, cardinality, attribute.name());
         String fieldName = JavaNames.uniqueFieldName(attribute.name(), usedFieldNames);
         boolean required = "required".equals(attribute.use());
         fields.add(
@@ -223,6 +224,7 @@ public final class BindingModelBuilder {
       SchemaIrTypeReference type = declaration == null ? element.type() : declaration.type();
       BindingTypeReference bindingType = bindTypeReference(type, declaration, element.name());
       BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
+      validateListSimpleTypeCardinality(bindingType, cardinality, element.name());
       String fieldName = JavaNames.uniqueFieldName(element.name(), usedFieldNames);
       boolean required = cardinality.minOccurs() > 0;
       return new BindingField(
@@ -318,24 +320,86 @@ public final class BindingModelBuilder {
       }
       SchemaIrSimpleType simpleType = simpleTypes.get(name);
       if (simpleType != null && simpleType.restriction() != null) {
-        SchemaIrSimpleRestriction restriction = simpleType.restriction();
-        BindingSimpleRestriction bindingRestriction =
-            new BindingSimpleRestriction(
-                restriction.base().localName(),
-                restriction.enumerations(),
-                restriction.length(),
-                restriction.minLength(),
-                restriction.maxLength(),
-                restriction.minInclusive(),
-                restriction.maxInclusive(),
-                restriction.patterns());
-        return BindingTypeReference.scalar(restriction.base().localName(), bindingRestriction);
+        return bindRestrictedScalar(simpleType.restriction());
+      }
+      if (simpleType != null && simpleType.list() != null) {
+        BindingTypeReference itemType = bindSimpleCompositionMember(simpleType.list().itemType());
+        if (itemType == null) {
+          return BindingTypeReference.scalar("unsupported");
+        }
+        return BindingTypeReference.list(itemType);
+      }
+      if (simpleType != null && simpleType.union() != null) {
+        List<BindingTypeReference> members = new ArrayList<>();
+        for (SchemaQName memberType : simpleType.union().memberTypes()) {
+          BindingTypeReference member = bindSimpleCompositionMember(memberType);
+          if (member != null) {
+            members.add(member);
+          }
+        }
+        if (members.isEmpty()) {
+          return BindingTypeReference.scalar("unsupported");
+        }
+        return BindingTypeReference.union(members);
       }
       diagnostic(
           DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
           "binding",
           "Unsupported schema type " + name.toText() + ".");
       return BindingTypeReference.scalar("unsupported");
+    }
+
+    private BindingTypeReference bindSimpleCompositionMember(SchemaQName name) {
+      if (name.isXmlSchemaBuiltIn()) {
+        if (!SUPPORTED_BUILT_INS.contains(name.localName())) {
+          diagnostic(
+              DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+              "binding",
+              "Unsupported XML Schema built-in type " + name.toText() + ".");
+          return null;
+        }
+        return BindingTypeReference.scalar(name.localName());
+      }
+      SchemaIrSimpleType simpleType = simpleTypes.get(name);
+      if (simpleType != null && simpleType.restriction() != null) {
+        return bindRestrictedScalar(simpleType.restriction());
+      }
+      diagnostic(
+          DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+          "binding",
+          "Unsupported simple type composition member " + name.toText() + ".");
+      return null;
+    }
+
+    private BindingTypeReference bindRestrictedScalar(SchemaIrSimpleRestriction restriction) {
+      BindingSimpleRestriction bindingRestriction =
+          new BindingSimpleRestriction(
+              restriction.base().localName(),
+              restriction.enumerations(),
+              restriction.length(),
+              restriction.minLength(),
+              restriction.maxLength(),
+              restriction.minInclusive(),
+              restriction.maxInclusive(),
+              restriction.patterns());
+      return BindingTypeReference.scalar(restriction.base().localName(), bindingRestriction);
+    }
+
+    private void validateListSimpleTypeCardinality(
+        BindingTypeReference bindingType, BindingCardinality cardinality, SchemaQName name) {
+      if (!"list".equals(bindingType.kind())) {
+        return;
+      }
+      if (!"required".equals(cardinality.shape())
+          || cardinality.minOccurs() != 1
+          || !"1".equals(cardinality.maxOccurs())) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+            "binding",
+            "xs:list-valued field "
+                + name.toText()
+                + " supports only required singleton XML values in profile XP-XSD10-COMPOSED.");
+      }
     }
 
     private BindingCardinality attributeCardinality(SchemaIrAttribute attribute) {

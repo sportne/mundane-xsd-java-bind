@@ -27,8 +27,8 @@ generated code can preserve the existing explicit model, reader, writer, and val
 
 - Accepted named model groups and attribute groups are resolved from the component graph and flattened into
   containing complex types during normalization.
-- Planned list/union simple types are resolved as named simple-type aliases that carry item/member
-  metadata into binding and validation planning.
+- `TASK-0028` list/union simple types are resolved as named simple-type aliases that carry
+  item/member metadata into binding and validation planning.
 - Planned complex extension and simple restriction derivation chains are flattened or merged before
   emission; generated Java inheritance is not part of the planned model shape.
 - Recursive groups or derivation chains, unsupported composition depth, and out-of-scope constructs

@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group and accepted list/union simple type support, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -39,10 +39,13 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 26. `TASK-0025`: Practical Data Contracts readiness review. Completed and accepted.
 27. `TASK-0026`: Plan Composed XSD 1.0 schema support. Completed and accepted.
 28. `TASK-0027`: Implement named model groups and attribute groups. Completed and accepted.
-29. `TASK-0028` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
+29. `TASK-0028`: Implement accepted simple type composition. Completed and accepted.
+30. `TASK-0029` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
-without adding release tags or publication claims. The next implementation gate is `TASK-0028`.
+without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
+type support for `XP-XSD10-COMPOSED` without adding release tags or publication claims. The next
+implementation gate is `TASK-0029`.
 
 ## Draft completion backlog
 
@@ -80,7 +83,7 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0025` | 0.2.0 | accepted | Practical Data Contracts readiness review. |
 | `TASK-0026` | 0.3.0 | accepted | Plan Composed XSD 1.0 schema support. |
 | `TASK-0027` | 0.3.0 | accepted | Implement named model groups and attribute groups. |
-| `TASK-0028` | 0.3.0 | draft | Implement accepted simple type composition. |
+| `TASK-0028` | 0.3.0 | accepted | Implement accepted simple type composition. |
 | `TASK-0029` | 0.3.0 | draft | Implement initial derivation support. |
 | `TASK-0030` | 0.3.0 | draft | Composed XSD 1.0 readiness review. |
 | `TASK-0031` | 0.4.0 | draft | Plan XSD 1.0 semantic expansion. |
@@ -102,10 +105,10 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0028` is the current implementation gate. Before implementation, promote the implementation
-task from draft only after the named list/union simple type scope remains aligned with the accepted
-`TASK-0026` planning constraints and the accepted `TASK-0027` composed-profile behavior. The
-remaining work must preserve:
+`TASK-0029` is the current implementation gate. Before implementation, promote the implementation
+task from draft only after the initial derivation scope remains aligned with the accepted
+`TASK-0026` planning constraints and the accepted `TASK-0027`/`TASK-0028` composed-profile behavior.
+The remaining work must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
 - `TASK-0015` generated readers are the accepted source-emission baseline for constructing generated models from `runtime-core` `XmlEventReader` input.
@@ -138,5 +141,11 @@ remaining work must preserve:
   choice/facet profiles remain unchanged. Positive and negative composed conformance fixtures compare
   JDK XML Schema validation with generated bindings, and generated-code smoke fixtures exercise a
   representative composed path for the Native Image smoke lane.
+- `TASK-0028` accepted named `xs:list` simple types with supported scalar or restricted scalar alias
+  `itemType`, required singleton list-valued elements/attributes bound as immutable `List<T>`, named
+  `xs:union` simple types with supported scalar or restricted scalar alias `memberTypes`, and
+  lexical `String` union fields with generated member validation. Optional/repeated list-valued
+  fields, anonymous list/union members, nested list/union composition, and full datatype semantics
+  remain out of scope.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

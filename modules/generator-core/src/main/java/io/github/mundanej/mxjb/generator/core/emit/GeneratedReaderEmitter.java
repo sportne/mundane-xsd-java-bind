@@ -76,7 +76,8 @@ public final class GeneratedReaderEmitter {
         if (!isSupportedFieldKind(field.kind())) {
           diagnostics.add(invalidModel("Unsupported reader field kind " + field.kind() + "."));
         }
-        if ("attribute".equals(field.kind()) && !"scalar".equals(field.type().kind())) {
+        if ("attribute".equals(field.kind())
+            && !Set.of("scalar", "list", "union").contains(field.type().kind())) {
           diagnostics.add(
               invalidModel("Reader attributes require scalar type " + field.type().toText() + "."));
         }
@@ -103,6 +104,14 @@ public final class GeneratedReaderEmitter {
         case "string", "boolean", "int", "integer", "long", "decimal" -> true;
         default -> false;
       };
+    }
+    if ("list".equals(reference.kind())) {
+      return reference.itemType() != null && isSupportedTypeReference(reference.itemType(), index);
+    }
+    if ("union".equals(reference.kind())) {
+      return !reference.unionMembers().isEmpty()
+          && reference.unionMembers().stream()
+              .allMatch(member -> isSupportedTypeReference(member, index));
     }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
@@ -339,7 +348,7 @@ public final class GeneratedReaderEmitter {
             .append("Value = ")
             .append(textName)
             .append(" == null ? null : ")
-            .append(parseScalarExpression(field, textName))
+            .append(parseExpression(field.type(), textName))
             .append(";\n");
         source
             .append("    java.util.Optional<")
@@ -367,7 +376,7 @@ public final class GeneratedReaderEmitter {
             .append(' ')
             .append(field.javaName())
             .append(" = ")
-            .append(parseScalarExpression(field, textName))
+            .append(parseExpression(field.type(), textName))
             .append(";\n");
       }
     }
@@ -546,7 +555,7 @@ public final class GeneratedReaderEmitter {
         return helperName(nestedType) + "(input, " + nameConstant(field.xmlName()) + ")";
       }
       return "read"
-          + scalarMethodSuffix(field.type().name())
+          + readMethodSuffix(field.type())
           + "Element(input, "
           + nameConstant(field.xmlName())
           + ")";
@@ -558,7 +567,7 @@ public final class GeneratedReaderEmitter {
         return helperName(nestedType) + "(input, " + nameConstant(branch.xmlName()) + ")";
       }
       return "read"
-          + scalarMethodSuffix(branch.type().name())
+          + readMethodSuffix(branch.type())
           + "Element(input, "
           + nameConstant(branch.xmlName())
           + ")";
@@ -725,6 +734,46 @@ public final class GeneratedReaderEmitter {
           .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
           .append("    return parseDecimal(readTextElement(input, name), input.location());\n")
           .append("  }\n\n");
+      if (!needsListSupport()) {
+        return;
+      }
+      source
+          .append("  private static java.util.List<String> readStringListElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    return parseStringList(readTextElement(input, name), input.location());\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Boolean> readBooleanListElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    return parseBooleanList(readTextElement(input, name), input.location());\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Integer> readIntListElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    return parseIntList(readTextElement(input, name), input.location());\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<java.math.BigInteger> readIntegerListElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    return parseIntegerList(readTextElement(input, name), input.location());\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Long> readLongListElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    return parseLongList(readTextElement(input, name), input.location());\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<java.math.BigDecimal> readDecimalListElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    return parseDecimalList(readTextElement(input, name), input.location());\n")
+          .append("  }\n\n");
     }
 
     private void appendScalarParseHelpers(StringBuilder source) {
@@ -779,6 +828,72 @@ public final class GeneratedReaderEmitter {
               "      throw readException(location, \"MXJB-GR-006\", \"Invalid decimal value.\", exception);\n")
           .append("    }\n")
           .append("  }\n\n");
+      if (!needsListSupport()) {
+        return;
+      }
+      source
+          .append("  private static java.util.List<String> parseStringList(\n")
+          .append("      String value, io.github.mundanej.mxjb.runtime.XmlLocation location) {\n")
+          .append("    java.util.ArrayList<String> values = new java.util.ArrayList<>();\n")
+          .append("    for (String token : listTokens(value)) {\n")
+          .append("      values.add(token);\n")
+          .append("    }\n")
+          .append("    return java.util.List.copyOf(values);\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Boolean> parseBooleanList(\n")
+          .append("      String value, io.github.mundanej.mxjb.runtime.XmlLocation location)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    java.util.ArrayList<Boolean> values = new java.util.ArrayList<>();\n")
+          .append("    for (String token : listTokens(value)) {\n")
+          .append("      values.add(parseBoolean(token, location));\n")
+          .append("    }\n")
+          .append("    return java.util.List.copyOf(values);\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Integer> parseIntList(\n")
+          .append("      String value, io.github.mundanej.mxjb.runtime.XmlLocation location)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    java.util.ArrayList<Integer> values = new java.util.ArrayList<>();\n")
+          .append("    for (String token : listTokens(value)) {\n")
+          .append("      values.add(parseInt(token, location));\n")
+          .append("    }\n")
+          .append("    return java.util.List.copyOf(values);\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<java.math.BigInteger> parseIntegerList(\n")
+          .append("      String value, io.github.mundanej.mxjb.runtime.XmlLocation location)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append(
+              "    java.util.ArrayList<java.math.BigInteger> values = new java.util.ArrayList<>();\n")
+          .append("    for (String token : listTokens(value)) {\n")
+          .append("      values.add(parseInteger(token, location));\n")
+          .append("    }\n")
+          .append("    return java.util.List.copyOf(values);\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Long> parseLongList(\n")
+          .append("      String value, io.github.mundanej.mxjb.runtime.XmlLocation location)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    java.util.ArrayList<Long> values = new java.util.ArrayList<>();\n")
+          .append("    for (String token : listTokens(value)) {\n")
+          .append("      values.add(parseLong(token, location));\n")
+          .append("    }\n")
+          .append("    return java.util.List.copyOf(values);\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<java.math.BigDecimal> parseDecimalList(\n")
+          .append("      String value, io.github.mundanej.mxjb.runtime.XmlLocation location)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append(
+              "    java.util.ArrayList<java.math.BigDecimal> values = new java.util.ArrayList<>();\n")
+          .append("    for (String token : listTokens(value)) {\n")
+          .append("      values.add(parseDecimal(token, location));\n")
+          .append("    }\n")
+          .append("    return java.util.List.copyOf(values);\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<String> listTokens(String value) {\n")
+          .append("    String trimmed = value.trim();\n")
+          .append("    if (trimmed.isEmpty()) {\n")
+          .append("      return java.util.List.of();\n")
+          .append("    }\n")
+          .append("    return java.util.List.of(trimmed.split(\"\\\\s+\"));\n")
+          .append("  }\n\n");
     }
 
     private void appendDiagnosticHelpers(StringBuilder source) {
@@ -816,8 +931,18 @@ public final class GeneratedReaderEmitter {
           .append("  }\n");
     }
 
-    private String parseScalarExpression(BindingField field, String valueExpression) {
-      return switch (field.type().name()) {
+    private String parseExpression(BindingTypeReference reference, String valueExpression) {
+      if ("list".equals(reference.kind())) {
+        return "parse"
+            + scalarMethodSuffix(reference.itemType().name())
+            + "List("
+            + valueExpression
+            + ", input.location())";
+      }
+      if ("union".equals(reference.kind())) {
+        return valueExpression;
+      }
+      return switch (reference.name()) {
         case "boolean" -> "parseBoolean(" + valueExpression + ", input.location())";
         case "int" -> "parseInt(" + valueExpression + ", input.location())";
         case "integer" -> "parseInteger(" + valueExpression + ", input.location())";
@@ -825,6 +950,57 @@ public final class GeneratedReaderEmitter {
         case "decimal" -> "parseDecimal(" + valueExpression + ", input.location())";
         default -> valueExpression;
       };
+    }
+
+    private boolean needsListSupport() {
+      return needsListSupport(rootType, new LinkedHashSet<>());
+    }
+
+    private boolean needsListSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if (containsListType(field.type())) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsListSupport(nestedType, visited)) {
+          return true;
+        }
+        if ("choice".equals(field.kind())) {
+          for (BindingChoiceBranch branch : field.choice().branches()) {
+            if (containsListType(branch.type())) {
+              return true;
+            }
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null && needsListSupport(branchType, visited)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean containsListType(BindingTypeReference reference) {
+      if ("list".equals(reference.kind())) {
+        return true;
+      }
+      if ("union".equals(reference.kind())) {
+        return reference.unionMembers().stream().anyMatch(this::containsListType);
+      }
+      return false;
+    }
+
+    private String readMethodSuffix(BindingTypeReference reference) {
+      if ("list".equals(reference.kind())) {
+        return scalarMethodSuffix(reference.itemType().name()) + "List";
+      }
+      if ("union".equals(reference.kind())) {
+        return "String";
+      }
+      return scalarMethodSuffix(reference.name());
     }
 
     private String scalarMethodSuffix(String scalarName) {
@@ -846,7 +1022,17 @@ public final class GeneratedReaderEmitter {
         BindingType type = Objects.requireNonNull(index.type(field.type().name()));
         return typeText(type);
       }
-      return switch (field.type().name()) {
+      if ("list".equals(field.type().kind())) {
+        return "java.util.List<" + scalarType(field.type().itemType()) + ">";
+      }
+      if ("union".equals(field.type().kind())) {
+        return "String";
+      }
+      return scalarType(field.type());
+    }
+
+    private String scalarType(BindingTypeReference reference) {
+      return switch (reference.name()) {
         case "boolean" -> "Boolean";
         case "int" -> "Integer";
         case "integer" -> "java.math.BigInteger";

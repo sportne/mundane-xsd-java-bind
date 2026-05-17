@@ -42,16 +42,16 @@ succeeds. Unsupported facets, list/union, derivation chains, anonymous simple ty
 broader whitespace normalization, full date/time semantics, identity constraints, defaults/fixed,
 and XSD 1.1 assertions remain future-profile work with explicit diagnostics.
 
-## `TASK-0027` composed-schema validation
+## `TASK-0027` and `TASK-0028` composed-schema validation
 
 The `XP-XSD10-COMPOSED` validation behavior remains generated and explicit.
 
 - `TASK-0027` flattened model groups and attribute groups reuse existing required, order,
   cardinality, and nested validation rules after normalization.
-- Planned list simple types validate each lexical item against the resolved item scalar or restricted
-  alias and report deterministic generated validation errors for invalid items.
-- Planned union simple types validate that the lexical value matches at least one supported member
-  parser and member facet rule.
+- `TASK-0028` list simple types validate each parsed item against the resolved item scalar or
+  restricted alias and report deterministic generated validation errors for invalid items.
+- `TASK-0028` union simple types validate that the lexical value matches at least one supported
+  member parser and member facet rule.
 - Planned complex extension validates flattened base content before derived content in generated
   binding order; accepted simple restriction derivation chains validate merged facet metadata.
 - Unsupported composition, list/union, and derivation cases remain schema diagnostics rather than

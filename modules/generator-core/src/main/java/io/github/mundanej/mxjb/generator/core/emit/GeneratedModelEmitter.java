@@ -104,6 +104,13 @@ public final class GeneratedModelEmitter {
     if ("scalar".equals(reference.kind())) {
       return SCALAR_TYPES.containsKey(reference.name());
     }
+    if ("list".equals(reference.kind())) {
+      return reference.itemType() != null && isSupportedTypeReference(reference.itemType());
+    }
+    if ("union".equals(reference.kind())) {
+      return !reference.unionMembers().isEmpty()
+          && reference.unionMembers().stream().allMatch(this::isSupportedTypeReference);
+    }
     return "model".equals(reference.kind()) || "choice".equals(reference.kind());
   }
 
@@ -174,7 +181,7 @@ public final class GeneratedModelEmitter {
         .append("  public ")
         .append(javaName.simpleName())
         .append(" {\n")
-        .append("    Objects.requireNonNull(value, \"value\");\n")
+        .append(choiceBranchConstructorLine(branch))
         .append("  }\n")
         .append("}\n");
     return new GeneratedJavaSource(javaName, relativePath(javaName), source.toString());
@@ -182,12 +189,10 @@ public final class GeneratedModelEmitter {
 
   private String choiceBranchImports(BindingChoiceBranch branch) {
     Set<String> imports = new LinkedHashSet<>();
-    if ("scalar".equals(branch.type().kind()) && "integer".equals(branch.type().name())) {
-      imports.add("java.math.BigInteger");
+    if ("list".equals(branch.type().kind())) {
+      imports.add("java.util.List");
     }
-    if ("scalar".equals(branch.type().kind()) && "decimal".equals(branch.type().name())) {
-      imports.add("java.math.BigDecimal");
-    }
+    addScalarImports(imports, branch.type());
     imports.add("java.util.Objects");
     return imports.stream()
         .sorted()
@@ -234,18 +239,13 @@ public final class GeneratedModelEmitter {
     Set<String> imports = new LinkedHashSet<>();
     for (BindingField field : type.fields()) {
       String cardinality = field.cardinality().shape();
-      if ("list".equals(cardinality)) {
+      if ("list".equals(cardinality) || "list".equals(field.type().kind())) {
         imports.add("java.util.List");
       }
       if ("optional".equals(cardinality)) {
         imports.add("java.util.Optional");
       }
-      if ("scalar".equals(field.type().kind()) && "integer".equals(field.type().name())) {
-        imports.add("java.math.BigInteger");
-      }
-      if ("scalar".equals(field.type().kind()) && "decimal".equals(field.type().name())) {
-        imports.add("java.math.BigDecimal");
-      }
+      addScalarImports(imports, field.type());
     }
     if (!type.fields().isEmpty()) {
       imports.add("java.util.Objects");
@@ -276,6 +276,12 @@ public final class GeneratedModelEmitter {
     if ("scalar".equals(reference.kind())) {
       return SCALAR_TYPES.get(reference.name());
     }
+    if ("list".equals(reference.kind())) {
+      return "List<" + baseType(currentPackage, reference.itemType()) + ">";
+    }
+    if ("union".equals(reference.kind())) {
+      return "String";
+    }
     BindingJavaName name = javaName(reference.name());
     if (currentPackage.equals(name.packageName())) {
       return name.simpleName();
@@ -294,6 +300,15 @@ public final class GeneratedModelEmitter {
 
   private String constructorLine(BindingField field) {
     String fieldName = field.javaName();
+    if ("list".equals(field.type().kind())) {
+      return "    "
+          + fieldName
+          + " = List.copyOf(Objects.requireNonNull("
+          + fieldName
+          + ", \""
+          + fieldName
+          + "\"));\n";
+    }
     return switch (field.cardinality().shape()) {
       case "list" ->
           "    "
@@ -305,5 +320,24 @@ public final class GeneratedModelEmitter {
               + "\"));\n";
       default -> "    Objects.requireNonNull(" + fieldName + ", \"" + fieldName + "\");\n";
     };
+  }
+
+  private String choiceBranchConstructorLine(BindingChoiceBranch branch) {
+    if ("list".equals(branch.type().kind())) {
+      return "    value = List.copyOf(Objects.requireNonNull(value, \"value\"));\n";
+    }
+    return "    Objects.requireNonNull(value, \"value\");\n";
+  }
+
+  private void addScalarImports(Set<String> imports, BindingTypeReference reference) {
+    if ("scalar".equals(reference.kind()) && "integer".equals(reference.name())) {
+      imports.add("java.math.BigInteger");
+    }
+    if ("scalar".equals(reference.kind()) && "decimal".equals(reference.name())) {
+      imports.add("java.math.BigDecimal");
+    }
+    if ("list".equals(reference.kind())) {
+      addScalarImports(imports, reference.itemType());
+    }
   }
 }

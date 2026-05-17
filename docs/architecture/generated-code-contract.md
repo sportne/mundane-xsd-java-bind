@@ -84,10 +84,10 @@ runtime binding mechanisms.
   keep ordinary field and attribute components in deterministic schema order.
 - Planned complex-type extension is flattened with base fields before derived fields; generated
   Java model classes do not use inheritance for the planned derivation subset.
-- Planned list-valued simple types use immutable `List<T>` record components and explicit generated
-  reader/writer/validator token handling.
-- Planned union-valued simple types use lexical `String` record components with explicit generated
-  validator checks for member alternatives.
+- `TASK-0028` list-valued simple types use immutable `List<T>` record components for required
+  singleton XML values and explicit generated reader/writer/validator token handling.
+- `TASK-0028` union-valued simple types use lexical `String` record components with explicit
+  generated validator checks for member alternatives.
 - Generated source must keep the existing bans on annotations for binding, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, and external
   resource access.

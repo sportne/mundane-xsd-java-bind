@@ -195,16 +195,17 @@ public final class XsdSyntaxParser {
           "maxLength",
           "minInclusive",
           "maxInclusive",
-          "pattern",
-          "list",
-          "union" ->
+          "pattern" ->
           true;
       default -> false;
     };
   }
 
   private boolean isComposedSchemaConstruct(String localName) {
-    return "group".equals(localName) || "attributeGroup".equals(localName);
+    return "group".equals(localName)
+        || "attributeGroup".equals(localName)
+        || "list".equals(localName)
+        || "union".equals(localName);
   }
 
   private boolean supportsChoice(GeneratorProfile profile) {

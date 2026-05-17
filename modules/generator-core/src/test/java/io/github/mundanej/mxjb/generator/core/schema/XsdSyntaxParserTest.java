@@ -297,6 +297,42 @@ final class XsdSyntaxParserTest {
   }
 
   @Test
+  void reportsListAndUnionAsUnsupportedOutsideComposedProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="Codes">
+                  <xs:list itemType="xs:string"/>
+                </xs:simpleType>
+                <xs:simpleType name="CodeOrPriority">
+                  <xs:union memberTypes="xs:string xs:int"/>
+                </xs:simpleType>
+                """));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser()
+            .parse(
+                new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)))
+                    .resolve(tempDirectory.resolve("main.xsd"))
+                    .manifest(),
+                GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+            DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE),
+        diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:list requires profile XP-XSD10-COMPOSED.",
+        result.diagnostics().get(0).toManifestLine());
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:union requires profile XP-XSD10-COMPOSED.",
+        result.diagnostics().get(1).toManifestLine());
+  }
+
+  @Test
   void composedProfileParsesGroupsChoicesAndRestrictions() throws IOException {
     write(
         "main.xsd",
@@ -307,6 +343,12 @@ final class XsdSyntaxParserTest {
                   <xs:restriction base="xs:string">
                     <xs:minLength value="3"/>
                   </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="Codes">
+                  <xs:list itemType="tns:Code"/>
+                </xs:simpleType>
+                <xs:simpleType name="CodeOrPriority">
+                  <xs:union memberTypes="tns:Code xs:int"/>
                 </xs:simpleType>
                 <xs:group name="OrderFields">
                   <xs:sequence>
@@ -333,6 +375,8 @@ final class XsdSyntaxParserTest {
     assertTrue(syntaxText.contains("choice minOccurs=0 maxOccurs=1"), syntaxText);
     assertTrue(syntaxText.contains("attributeGroup name=OrderAttributes"), syntaxText);
     assertTrue(syntaxText.contains("restriction base=xs:string"), syntaxText);
+    assertTrue(syntaxText.contains("list itemType=tns:Code"), syntaxText);
+    assertTrue(syntaxText.contains("union memberTypes=tns:Code xs:int"), syntaxText);
   }
 
   @Test

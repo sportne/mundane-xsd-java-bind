@@ -7,7 +7,7 @@
 | `XP-DATA-10` | XSD 1.0 data-structure subset | Simple elements, complex types, attributes, nested elements, sequences, optional/repeated elements, namespaces, includes/imports, generated model/reader/writer/basic structural validation, and lexical conversion for the currently supported scalar types. | 1 |
 | `XP-DATA-10-CHOICE` | Data subset with choices | Opt-in `0.2.0` extension for local singleton `xs:choice` particles with local or referenced supported element branches, generated sealed choice model types, reader/writer support, and explicit diagnostics for out-of-scope model-group shapes. | 2 |
 | `XP-VALIDATION-10-BASIC` | Basic generated validation | Opt-in `0.2.0` extension for named simple-type restrictions using accepted enumeration, string length, numeric inclusive range, and string pattern facets over already supported scalar bases. | 2 |
-| `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening. List/union simple types and initial derivation flattening remain planned follow-ons. | 3 |
+| `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening, and `TASK-0028` adds accepted named list/union simple types. Initial derivation flattening remains a planned follow-on. | 3 |
 | `XP-XSD10-FULL` | Full XSD 1.0 | Substitution groups, derivation, wildcards, identity constraints, nillable, default/fixed, mixed content. | Future |
 | `XP-XSD11-ASSERT` | XSD 1.1 assertions | XSD 1.1 features including assertions and conditional alternatives. | Future |
 | `XP-XML11` | XML 1.1 | XML 1.1 parsing/serialization compatibility. | Future |
@@ -67,14 +67,17 @@ dependency metadata, a release tag, or a publication claim. The default profile 
   particles, direct singleton `xs:group ref` use, global `xs:attributeGroup` declarations containing
   supported attributes, and direct `xs:attributeGroup ref` use. Accepted groups are flattened into
   the containing model in deterministic order.
-- planned for `TASK-0028`: named `xs:list` simple types whose `itemType` resolves to a supported scalar built-in
-  or accepted named restricted scalar alias, and named `xs:union` simple types whose `memberTypes`
-  resolve to supported scalar built-ins or accepted named restricted scalar aliases.
+- accepted in `TASK-0028`: named `xs:list` simple types whose `itemType` resolves to a supported
+  scalar built-in or accepted named restricted scalar alias, with required singleton elements and
+  required attributes bound as immutable `List<T>` values; named `xs:union` simple types whose
+  `memberTypes` resolve to supported scalar built-ins or accepted named restricted scalar aliases,
+  with generated lexical `String` fields and explicit member validation.
 - planned for `TASK-0029`: named complex-type `xs:complexContent/xs:extension` flattening, with base fields
   before derived fields and no generated Java inheritance, plus named simple restriction derivation
   chains over supported scalar bases with merged accepted facet metadata.
 
 Repeated or optional group references, nested model groups beyond the accepted direct shape,
-`xs:all`, wildcards, anonymous list/union member types, `simpleContent`, complex restriction, mixed
-content, abstract types, substitution groups, identity constraints, defaults/fixed semantics, and
-full XSD 1.0 conformance remain out of scope with explicit diagnostics.
+`xs:all`, wildcards, anonymous list/union member types, optional or repeated list-valued XML fields,
+nested list/union composition, `simpleContent`, complex restriction, mixed content, abstract types,
+substitution groups, identity constraints, defaults/fixed semantics, and full XSD 1.0 conformance
+remain out of scope with explicit diagnostics.

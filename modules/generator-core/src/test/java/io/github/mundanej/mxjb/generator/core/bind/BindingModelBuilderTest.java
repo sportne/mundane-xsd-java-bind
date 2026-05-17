@@ -372,6 +372,71 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsListAndUnionSimpleTypesForComposedProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="Quantity">
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="QuantityList">
+                  <xs:list itemType="tns:Quantity"/>
+                </xs:simpleType>
+                <xs:simpleType name="QuantityOrCode">
+                  <xs:union memberTypes="tns:Quantity xs:string"/>
+                </xs:simpleType>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="quantities" type="tns:QuantityList"/>
+                    <xs:element name="status" type="tns:QuantityOrCode"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains(
+            "element quantities xml={urn:orders}quantities type=list:scalar:int facets[minInclusive=1]"),
+        bindingText);
+    assertTrue(
+        bindingText.contains("element status xml={urn:orders}status type=union:"), bindingText);
+    assertTrue(
+        bindingText.contains("scalar:int facets[minInclusive=1]|scalar:string"), bindingText);
+  }
+
+  @Test
+  void rejectsOptionalListValuedElementsForComposedProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="Codes">
+                  <xs:list itemType="xs:string"/>
+                </xs:simpleType>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="codes" type="tns:Codes" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("required singleton XML values"));
+  }
+
+  @Test
   void reportsUnsupportedBuiltInScalarTypesWithoutPartialModel() throws IOException {
     write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:date\"/>"));
 

@@ -248,6 +248,107 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void composedProfileGeneratesListAndUnionSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("list-union-order.xsd", listUnionOrderSchema(false));
+    Path output = tempDirectory.resolve("list-union-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_COMPOSED,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String writer = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlWriter.java"));
+    String reader = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlReader.java"));
+    String validator =
+        Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
+    assertTrue(order.contains("List<Integer> quantities"));
+    assertTrue(order.contains("String status"));
+    assertTrue(order.contains("List<Boolean> flags"));
+    assertTrue(writer.contains("Collectors.joining(\" \")"));
+    assertTrue(reader.contains("readIntListElement"));
+    assertTrue(validator.contains("MXJB-GV-008"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void narrowProfilesRejectListAndUnionWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("list-union-order.xsd", listUnionOrderSchema(false));
+    Path defaultOutput = tempDirectory.resolve("list-union-default");
+    Path validationOutput = tempDirectory.resolve("list-union-validation");
+
+    GeneratorResult defaultResult =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    defaultOutput,
+                    null,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+    GeneratorResult validationResult =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    validationOutput,
+                    GeneratorProfile.XP_VALIDATION_10_BASIC,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(defaultResult.successful());
+    assertFalse(validationResult.successful());
+    assertTrue(
+        defaultResult.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+    assertTrue(
+        validationResult.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+    assertFalse(Files.exists(defaultOutput));
+    assertFalse(Files.exists(validationOutput));
+  }
+
+  @Test
+  void composedProfileRejectsOptionalListValuedFields() throws IOException {
+    Path schema = writeSchema("optional-list-order.xsd", listUnionOrderSchema(true));
+    Path output = tempDirectory.resolve("optional-list-generated");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_COMPOSED,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic ->
+                    "SCHEMA_BINDING_UNSUPPORTED_TYPE".equals(diagnostic.code())
+                        && diagnostic.message().contains("required singleton XML values")));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
   void deniesNetworkResolutionAndWritesNoSources() throws IOException {
     Path schema = writeSchema("order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path output = tempDirectory.resolve("network-denied");
@@ -507,6 +608,46 @@ final class CoreGeneratorTest {
           </xs:complexType>
         </xs:schema>
         """;
+  }
+
+  private String listUnionOrderSchema(boolean optionalListElement) {
+    String listCardinality = optionalListElement ? " minOccurs=\"0\"" : "";
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:simpleType name="Quantity">
+            <xs:restriction base="xs:int">
+              <xs:minInclusive value="1"/>
+              <xs:maxInclusive value="9"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:simpleType name="QuantityList">
+            <xs:list itemType="tns:Quantity"/>
+          </xs:simpleType>
+          <xs:simpleType name="FlagList">
+            <xs:list itemType="xs:boolean"/>
+          </xs:simpleType>
+          <xs:simpleType name="Status">
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="NEW"/>
+              <xs:enumeration value="CLOSED"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:simpleType name="StatusOrPriority">
+            <xs:union memberTypes="tns:Status xs:int"/>
+          </xs:simpleType>
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="quantities" type="tns:QuantityList"LIST_CARDINALITY/>
+              <xs:element name="status" type="tns:StatusOrPriority"/>
+            </xs:sequence>
+            <xs:attribute name="flags" type="tns:FlagList" use="required"/>
+          </xs:complexType>
+        </xs:schema>
+        """
+        .replace("LIST_CARDINALITY", listCardinality);
   }
 
   private String lineSchema() {

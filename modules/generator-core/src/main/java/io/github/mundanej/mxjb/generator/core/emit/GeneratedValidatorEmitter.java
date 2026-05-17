@@ -108,6 +108,14 @@ public final class GeneratedValidatorEmitter {
         default -> false;
       };
     }
+    if ("list".equals(reference.kind())) {
+      return reference.itemType() != null && isSupportedTypeReference(reference.itemType(), index);
+    }
+    if ("union".equals(reference.kind())) {
+      return !reference.unionMembers().isEmpty()
+          && reference.unionMembers().stream()
+              .allMatch(member -> isSupportedTypeReference(member, index));
+    }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
@@ -265,9 +273,9 @@ public final class GeneratedValidatorEmitter {
       source.append("    }");
       BindingType nestedType = modelType(field);
       if (nestedType == null) {
-        if (hasFacetRules(field.type())) {
+        if (hasValidationRules(field.type())) {
           source.append(" else {\n");
-          appendFacetValidation(source, field.type(), accessor, "      ");
+          appendTypeValidation(source, field.type(), accessor, "      ");
           source.append("    }\n");
         } else {
           source.append("\n");
@@ -287,13 +295,13 @@ public final class GeneratedValidatorEmitter {
     private void appendOptionalValidation(
         StringBuilder source, BindingField field, String accessor) {
       BindingType nestedType = modelType(field);
-      if (nestedType == null && !hasFacetRules(field.type())) {
+      if (nestedType == null && !hasValidationRules(field.type())) {
         return;
       }
       source.append("    if (").append(accessor).append(" != null && ").append(accessor);
       source.append(".isPresent()) {\n");
       if (nestedType == null) {
-        appendFacetValidation(source, field.type(), accessor + ".get()", "      ");
+        appendTypeValidation(source, field.type(), accessor + ".get()", "      ");
       } else {
         source
             .append("      ")
@@ -332,14 +340,14 @@ public final class GeneratedValidatorEmitter {
               .append(helperName(nestedType))
               .append("(branch.value(), location, errors);\n")
               .append("      }\n");
-        } else if (hasFacetRules(branch.type())) {
+        } else if (hasValidationRules(branch.type())) {
           source
               .append("      if (")
               .append(valueExpression)
               .append(" instanceof ")
               .append(branch.branchJavaName().qualifiedName())
               .append(" branch) {\n");
-          appendFacetValidation(source, branch.type(), "branch.value()", "        ");
+          appendTypeValidation(source, branch.type(), "branch.value()", "        ");
           source.append("      }\n");
         }
       }
@@ -391,7 +399,7 @@ public final class GeneratedValidatorEmitter {
             .append("(item, location, errors);\n");
         source.append("        }\n");
         source.append("      }\n");
-      } else if (hasFacetRules(field.type())) {
+      } else if (hasValidationRules(field.type())) {
         source
             .append("      for (")
             .append(scalarTypeText(field.type()))
@@ -404,7 +412,7 @@ public final class GeneratedValidatorEmitter {
             .append(escape(field.javaName()))
             .append(".\", location);\n");
         source.append("        } else {\n");
-        appendFacetValidation(source, field.type(), "item", "          ");
+        appendTypeValidation(source, field.type(), "item", "          ");
         source.append("        }\n");
         source.append("      }\n");
       }
@@ -413,6 +421,163 @@ public final class GeneratedValidatorEmitter {
 
     private boolean hasFacetRules(BindingTypeReference reference) {
       return reference.restriction() != null && reference.restriction().hasRules();
+    }
+
+    private boolean hasValidationRules(BindingTypeReference reference) {
+      if (hasFacetRules(reference)) {
+        return true;
+      }
+      if ("list".equals(reference.kind())) {
+        return true;
+      }
+      return "union".equals(reference.kind());
+    }
+
+    private void appendTypeValidation(
+        StringBuilder source, BindingTypeReference reference, String accessor, String indent) {
+      if ("list".equals(reference.kind())) {
+        source
+            .append(indent)
+            .append("for (")
+            .append(scalarTypeText(reference.itemType()))
+            .append(" item : ")
+            .append(accessor)
+            .append(") {\n");
+        source.append(indent).append("  if (item == null) {\n");
+        source
+            .append(indent)
+            .append(
+                "    addError(errors, \"MXJB-GV-001\", \"Missing required value item.\", location);\n");
+        source.append(indent).append("  } else {\n");
+        appendFacetValidation(source, reference.itemType(), "item", indent + "    ");
+        source.append(indent).append("  }\n");
+        source.append(indent).append("}\n");
+        return;
+      }
+      if ("union".equals(reference.kind())) {
+        appendUnionValidation(source, reference, accessor, indent);
+        return;
+      }
+      appendFacetValidation(source, reference, accessor, indent);
+    }
+
+    private void appendUnionValidation(
+        StringBuilder source, BindingTypeReference reference, String accessor, String indent) {
+      source.append(indent).append("if (!(");
+      for (int indexValue = 0; indexValue < reference.unionMembers().size(); indexValue++) {
+        if (indexValue > 0) {
+          source.append(" || ");
+        }
+        source.append(unionMemberExpression(reference.unionMembers().get(indexValue), accessor));
+      }
+      source.append(")) {\n");
+      source
+          .append(indent)
+          .append(
+              "  addError(errors, \"MXJB-GV-008\", \"Value does not match any accepted union member.\", location);\n");
+      source.append(indent).append("}\n");
+    }
+
+    private String unionMemberExpression(BindingTypeReference reference, String accessor) {
+      String lexicalMatch = lexicalMatchExpression(reference.name(), accessor);
+      if (!hasFacetRules(reference)) {
+        return lexicalMatch;
+      }
+      return "(" + lexicalMatch + " && " + facetMatchExpression(reference, accessor) + ")";
+    }
+
+    private String lexicalMatchExpression(String scalar, String accessor) {
+      return switch (scalar) {
+        case "string" -> "true";
+        case "boolean" -> "parseBooleanOrNull(" + accessor + ") != null";
+        case "int" -> "parseIntOrNull(" + accessor + ") != null";
+        case "integer" -> "parseIntegerOrNull(" + accessor + ") != null";
+        case "long" -> "parseLongOrNull(" + accessor + ") != null";
+        case "decimal" -> "parseDecimalOrNull(" + accessor + ") != null";
+        default -> "false";
+      };
+    }
+
+    private String facetMatchExpression(BindingTypeReference reference, String accessor) {
+      BindingSimpleRestriction restriction = reference.restriction();
+      List<String> predicates = new ArrayList<>();
+      if (!restriction.enumerations().isEmpty()) {
+        List<String> enumerationPredicates = new ArrayList<>();
+        for (String value : restriction.enumerations()) {
+          enumerationPredicates.add(
+              enumerationMatchExpression(restriction.baseScalar(), accessor, value));
+        }
+        predicates.add("(" + String.join(" || ", enumerationPredicates) + ")");
+      }
+      if (restriction.length() != null) {
+        predicates.add(accessor + ".length() == " + restriction.length());
+      }
+      if (restriction.minLength() != null) {
+        predicates.add(accessor + ".length() >= " + restriction.minLength());
+      }
+      if (restriction.maxLength() != null) {
+        predicates.add(accessor + ".length() <= " + restriction.maxLength());
+      }
+      if (restriction.minInclusive() != null) {
+        predicates.add(
+            parsedValueExpression(restriction.baseScalar(), accessor)
+                + ".compareTo("
+                + numericLiteral(restriction.baseScalar(), restriction.minInclusive())
+                + ") >= 0");
+      }
+      if (restriction.maxInclusive() != null) {
+        predicates.add(
+            parsedValueExpression(restriction.baseScalar(), accessor)
+                + ".compareTo("
+                + numericLiteral(restriction.baseScalar(), restriction.maxInclusive())
+                + ") <= 0");
+      }
+      for (String pattern : restriction.patterns()) {
+        predicates.add(
+            "java.util.regex.Pattern.matches(\"" + escape(pattern) + "\", " + accessor + ")");
+      }
+      return predicates.isEmpty() ? "true" : String.join(" && ", predicates);
+    }
+
+    private String enumerationMatchExpression(String scalar, String accessor, String value) {
+      return switch (scalar) {
+        case "string" -> "java.util.Objects.equals(" + accessor + ", \"" + escape(value) + "\")";
+        case "boolean" ->
+            "java.util.Objects.equals(parseBooleanOrNull("
+                + accessor
+                + "), "
+                + booleanLiteral(value)
+                + ")";
+        case "int" ->
+            "java.util.Objects.equals(parseIntOrNull("
+                + accessor
+                + "), Integer.valueOf("
+                + value
+                + "))";
+        case "long" ->
+            "java.util.Objects.equals(parseLongOrNull("
+                + accessor
+                + "), Long.valueOf("
+                + value
+                + "L))";
+        case "integer", "decimal" ->
+            parsedValueExpression(scalar, accessor)
+                + ".compareTo("
+                + numericLiteral(scalar, value)
+                + ") == 0";
+        default -> "false";
+      };
+    }
+
+    private String parsedValueExpression(String scalar, String accessor) {
+      return switch (scalar) {
+        case "boolean" -> "parseBooleanOrNull(" + accessor + ")";
+        case "int" -> "parseIntOrNull(" + accessor + ")";
+        case "integer" -> "parseIntegerOrNull(" + accessor + ")";
+        case "long" -> "parseLongOrNull(" + accessor + ")";
+        case "decimal" -> "parseDecimalOrNull(" + accessor + ")";
+        default -> accessor;
+      };
     }
 
     private void appendFacetValidation(
@@ -579,6 +744,12 @@ public final class GeneratedValidatorEmitter {
     }
 
     private String scalarTypeText(BindingTypeReference reference) {
+      if ("union".equals(reference.kind())) {
+        return "String";
+      }
+      if ("list".equals(reference.kind())) {
+        return "java.util.List<" + scalarTypeText(reference.itemType()) + ">";
+      }
       return switch (reference.name()) {
         case "string" -> "String";
         case "boolean" -> "Boolean";
@@ -610,6 +781,87 @@ public final class GeneratedValidatorEmitter {
           .append(
               "    errors.add(new io.github.mundanej.mxjb.runtime.ValidationError(code, message, location));\n")
           .append("  }\n");
+      if (!needsUnionSupport()) {
+        return;
+      }
+      source
+          .append('\n')
+          .append("  private static Boolean parseBooleanOrNull(String value) {\n")
+          .append("    return switch (value.trim()) {\n")
+          .append("      case \"true\", \"1\" -> Boolean.TRUE;\n")
+          .append("      case \"false\", \"0\" -> Boolean.FALSE;\n")
+          .append("      default -> null;\n")
+          .append("    };\n")
+          .append("  }\n\n")
+          .append("  private static Integer parseIntOrNull(String value) {\n")
+          .append("    try {\n")
+          .append("      return Integer.valueOf(value.trim());\n")
+          .append("    } catch (NumberFormatException exception) {\n")
+          .append("      return null;\n")
+          .append("    }\n")
+          .append("  }\n\n")
+          .append("  private static java.math.BigInteger parseIntegerOrNull(String value) {\n")
+          .append("    try {\n")
+          .append("      return new java.math.BigInteger(value.trim());\n")
+          .append("    } catch (NumberFormatException exception) {\n")
+          .append("      return null;\n")
+          .append("    }\n")
+          .append("  }\n\n")
+          .append("  private static Long parseLongOrNull(String value) {\n")
+          .append("    try {\n")
+          .append("      return Long.valueOf(value.trim());\n")
+          .append("    } catch (NumberFormatException exception) {\n")
+          .append("      return null;\n")
+          .append("    }\n")
+          .append("  }\n\n")
+          .append("  private static java.math.BigDecimal parseDecimalOrNull(String value) {\n")
+          .append("    try {\n")
+          .append("      return new java.math.BigDecimal(value.trim());\n")
+          .append("    } catch (NumberFormatException exception) {\n")
+          .append("      return null;\n")
+          .append("    }\n")
+          .append("  }\n");
+    }
+
+    private boolean needsUnionSupport() {
+      return needsUnionSupport(rootType, new LinkedHashSet<>());
+    }
+
+    private boolean needsUnionSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if (containsUnionType(field.type())) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsUnionSupport(nestedType, visited)) {
+          return true;
+        }
+        if ("choice".equals(field.kind())) {
+          for (BindingChoiceBranch branch : field.choice().branches()) {
+            if (containsUnionType(branch.type())) {
+              return true;
+            }
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null && needsUnionSupport(branchType, visited)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean containsUnionType(BindingTypeReference reference) {
+      if ("union".equals(reference.kind())) {
+        return true;
+      }
+      if ("list".equals(reference.kind())) {
+        return containsUnionType(reference.itemType());
+      }
+      return false;
     }
 
     private List<BindingField> elements(BindingType type) {

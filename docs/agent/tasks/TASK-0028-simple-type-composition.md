@@ -1,6 +1,6 @@
 # TASK-0028: simple-type-composition
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0028`
 Gate: `0.3.0` Composed XSD 1.0 Schemas; starts only after `TASK-0027` is accepted.
@@ -35,3 +35,29 @@ Rollback notes: revert simple type composition implementation, tests, fixtures, 
   generated validators must check that at least one accepted member parser/facet rule matches.
 - Reject anonymous list/union member types, unsupported member bases, nested list/union composition,
   and full datatype semantics with deterministic diagnostics.
+
+## Acceptance Evidence
+
+Implemented in this task:
+
+- Added normalized IR branches for named `xs:list` and `xs:union` simple types in
+  `XP-XSD10-COMPOSED`, while default, choice, and basic-validation profiles keep deterministic
+  unsupported-profile diagnostics for list/union constructs.
+- Bound accepted list-valued required singleton elements and required attributes as immutable
+  `List<T>` generated model components, with explicit generated reader tokenization, writer
+  space-joined serialization, and validator item/facet checks.
+- Bound accepted union-valued elements and attributes as lexical `String` generated model
+  components, with explicit generated validator checks for member parser/facet alternatives.
+- Added generator-core frontend, IR, binding, CoreGenerator, generated-source compile, unsupported
+  diagnostic, deterministic, and conformance fixture coverage for accepted and rejected list/union
+  shapes.
+- Expanded the `XP-XSD10-COMPOSED` conformance fixture to compare list item and union validation
+  outcomes with JDK XML Schema validation and generated bindings.
+
+Verification run:
+
+- `./gradlew :modules:generator-core:check :modules:conformance-tests:check --console=plain`
+- `JAVA_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 GRAALVM_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 PATH=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2/lib/svm/bin:$PATH ./gradlew :modules:generator-core:generatedCodeNativeSmoke --console=plain`
+- `./gradlew nativeSmoke --console=plain` was attempted with the default Java 21 toolchain and
+  blocked because `/usr/lib/jvm/java-21-openjdk-amd64/bin/native-image` is unavailable.
+- `JAVA_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 GRAALVM_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 PATH=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2/lib/svm/bin:$PATH ./gradlew nativeSmoke --console=plain` built the generated-code native executable, then failed in `:modules:runtime-core:nativeTestCompile` because the GraalVM build plugin invoked a non-executable Gradle-managed `bin/native-image` stub.

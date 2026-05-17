@@ -7,10 +7,34 @@
     <xs:sequence>
       <xs:element name="id" type="xs:string"/>
       <xs:element name="total" type="xs:decimal"/>
+      <xs:element name="quantities" type="c:QuantityList"/>
+      <xs:element name="status" type="c:StatusOrPriority"/>
     </xs:sequence>
   </xs:group>
+  <xs:simpleType name="Quantity">
+    <xs:restriction base="xs:int">
+      <xs:minInclusive value="1"/>
+      <xs:maxInclusive value="9"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="QuantityList">
+    <xs:list itemType="c:Quantity"/>
+  </xs:simpleType>
+  <xs:simpleType name="FlagList">
+    <xs:list itemType="xs:boolean"/>
+  </xs:simpleType>
+  <xs:simpleType name="Status">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="NEW"/>
+      <xs:enumeration value="CLOSED"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StatusOrPriority">
+    <xs:union memberTypes="c:Status xs:int"/>
+  </xs:simpleType>
   <xs:attributeGroup name="OrderAttributes">
     <xs:attribute name="version" type="xs:string" use="required"/>
+    <xs:attribute name="flags" type="c:FlagList" use="required"/>
   </xs:attributeGroup>
   <xs:element name="order" type="c:Order"/>
   <xs:complexType name="Order">
