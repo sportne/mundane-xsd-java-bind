@@ -437,6 +437,67 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsComplexExtensionAsFlattenedRecordFields() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="OrderCode">
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="3"/>
+                    <xs:maxLength value="8"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="DomesticOrderCode">
+                  <xs:restriction base="tns:OrderCode">
+                    <xs:pattern value="[A-Z0-9]+"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="BaseOrder">
+                  <xs:sequence>
+                    <xs:element name="id" type="tns:DomesticOrderCode"/>
+                  </xs:sequence>
+                  <xs:attribute name="version" type="xs:string" use="required"/>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:complexContent>
+                    <xs:extension base="tns:BaseOrder">
+                      <xs:sequence>
+                        <xs:element name="total" type="xs:decimal"/>
+                      </xs:sequence>
+                      <xs:attribute name="region" type="xs:string" use="required"/>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains(
+            "element id xml={urn:orders}id type=scalar:string "
+                + "facets[minLength=3,maxLength=8,pattern=[A-Z0-9]+] "
+                + "cardinality=required 1..1 order=1"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "element total xml={urn:orders}total type=scalar:decimal cardinality=required 1..1 order=2"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "attribute version xml={urn:orders}version type=scalar:string cardinality=required 1..1 order=0"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "attribute region xml={urn:orders}region type=scalar:string cardinality=required 1..1 order=0"),
+        bindingText);
+  }
+
+  @Test
   void reportsUnsupportedBuiltInScalarTypesWithoutPartialModel() throws IOException {
     write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:date\"/>"));
 

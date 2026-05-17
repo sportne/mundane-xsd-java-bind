@@ -593,6 +593,184 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
+  void buildsIrForComplexExtensionAndSimpleRestrictionDerivationChains() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="OrderCode">
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="3"/>
+                    <xs:maxLength value="8"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="DomesticOrderCode">
+                  <xs:restriction base="tns:OrderCode">
+                    <xs:pattern value="[A-Z0-9]+"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="BaseOrder">
+                  <xs:sequence>
+                    <xs:element name="id" type="tns:DomesticOrderCode"/>
+                  </xs:sequence>
+                  <xs:attribute name="version" type="xs:string" use="required"/>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:complexContent>
+                    <xs:extension base="tns:BaseOrder">
+                      <xs:sequence>
+                        <xs:element name="total" type="xs:decimal"/>
+                      </xs:sequence>
+                      <xs:attribute name="region" type="xs:string" use="required"/>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(
+        irText.contains(
+            "simpleType {urn:orders}DomesticOrderCode restriction base=xs:string "
+                + "minLength=3 maxLength=8 pattern=[A-Z0-9]+"),
+        irText);
+    assertTrue(irText.contains("complexType {urn:orders}Order"), irText);
+    assertTrue(
+        irText.indexOf("element {urn:orders}id") < irText.indexOf("element {urn:orders}total"));
+    assertTrue(
+        irText.indexOf("attribute {urn:orders}version")
+            < irText.indexOf("attribute {urn:orders}region"));
+  }
+
+  @Test
+  void reportsUnsupportedDerivationShapes() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="Codes">
+                  <xs:list itemType="xs:string"/>
+                </xs:simpleType>
+                <xs:simpleType name="BadCode">
+                  <xs:restriction base="tns:Codes">
+                    <xs:minLength value="3"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="BaseOrder">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:complexContent>
+                    <xs:extension base="tns:BaseOrder">
+                      <xs:sequence>
+                        <xs:element name="id" type="xs:string"/>
+                      </xs:sequence>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="SimpleContentOrder">
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string"/>
+                  </xs:simpleContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
+  }
+
+  @Test
+  void reportsInvalidDerivationDetails() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="BaseCode">
+                  <xs:restriction base="xs:string">
+                    <xs:length value="4"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="BadCode">
+                  <xs:restriction base="tns:BaseCode">
+                    <xs:length value="5"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="AbstractOrder" abstract="true"/>
+                <xs:complexType name="MixedOrder" mixed="true"/>
+                <xs:complexType name="MissingBaseOrder">
+                  <xs:complexContent>
+                    <xs:extension/>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="RestrictedOrder">
+                  <xs:complexContent>
+                    <xs:restriction base="tns:AbstractOrder"/>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(
+        diagnosticCodes(result).stream()
+            .allMatch(code -> code == DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(d -> d.message().contains("incompatible length facets")));
+    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("abstract")));
+    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("mixed")));
+    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("missing a base")));
+    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("restriction")));
+  }
+
+  @Test
+  void reportsRecursiveDerivationChains() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="FirstCode">
+                  <xs:restriction base="tns:SecondCode"/>
+                </xs:simpleType>
+                <xs:simpleType name="SecondCode">
+                  <xs:restriction base="tns:FirstCode"/>
+                </xs:simpleType>
+                <xs:complexType name="FirstOrder">
+                  <xs:complexContent>
+                    <xs:extension base="tns:SecondOrder"/>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="SecondOrder">
+                  <xs:complexContent>
+                    <xs:extension base="tns:FirstOrder"/>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(
+        diagnosticCodes(result).stream()
+            .allMatch(code -> code == DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT));
+    assertTrue(diagnosticCodes(result).size() >= 2);
+    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("Recursive")));
+  }
+
+  @Test
   void reportsDuplicateGlobalDeclarations() throws IOException {
     write(
         "main.xsd",

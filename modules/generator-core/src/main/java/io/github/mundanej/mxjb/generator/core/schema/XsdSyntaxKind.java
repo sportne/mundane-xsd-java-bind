@@ -4,6 +4,9 @@ package io.github.mundanej.mxjb.generator.core.schema;
 public enum XsdSyntaxKind {
   ELEMENT("element"),
   COMPLEX_TYPE("complexType"),
+  COMPLEX_CONTENT("complexContent"),
+  EXTENSION("extension"),
+  SIMPLE_CONTENT("simpleContent"),
   SIMPLE_TYPE("simpleType"),
   RESTRICTION("restriction"),
   ENUMERATION("enumeration"),

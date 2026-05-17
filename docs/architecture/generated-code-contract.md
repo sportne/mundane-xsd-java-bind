@@ -75,15 +75,15 @@ opt-in profile `XP-DATA-10-CHOICE`.
 This shape does not imply support for repeated choices, nested model groups, wildcards,
 substitution groups, mixed content, anonymous branch complex types, or full XSD 1.0 model groups.
 
-## `TASK-0027` composed-schema shape
+## `TASK-0027` through `TASK-0029` composed-schema shape
 
 The `XP-XSD10-COMPOSED` profile preserves the generated-code contract instead of introducing new
 runtime binding mechanisms.
 
 - `TASK-0027` model groups and attribute groups are flattened before emission, so generated records
   keep ordinary field and attribute components in deterministic schema order.
-- Planned complex-type extension is flattened with base fields before derived fields; generated
-  Java model classes do not use inheritance for the planned derivation subset.
+- `TASK-0029` complex-type extension is flattened with base fields before derived fields; generated
+  Java model classes do not use inheritance for the accepted derivation subset.
 - `TASK-0028` list-valued simple types use immutable `List<T>` record components for required
   singleton XML values and explicit generated reader/writer/validator token handling.
 - `TASK-0028` union-valued simple types use lexical `String` record components with explicit

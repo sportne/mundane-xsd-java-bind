@@ -85,7 +85,7 @@ evidence for named model groups and attribute groups; the remaining executable e
   comparisons.
 - Derivation support: `T-DERIVATION-*` frontend, IR, binding, generated source, reader/writer/
   validator behavior, cycle diagnostics, unsupported diagnostics, conformance, and interop
-  comparisons.
+  comparisons are part of `TASK-0029` acceptance.
 - Composed conformance/interop: `T-CONF-XP-XSD10-COMPOSED-*` and `T-INTEROP-COMPOSED-*` fixtures
   should include positive and negative cases compared against JDK XML Schema validation where
   practical.

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ public final class SchemaIrBuilder {
 
   private void indexGlobalComponents(XsdSyntaxModel model, BuildState state) {
     for (XsdSyntaxDocument document : model.documents()) {
+      state.documentsByResourceId.put(document.resourceId(), document);
       for (XsdSyntaxNode child : document.children()) {
         SchemaComponentKind kind = componentKind(child.kind());
         if (kind == null) {
@@ -76,7 +78,6 @@ public final class SchemaIrBuilder {
     List<SchemaIrModelGroup> modelGroups = new ArrayList<>();
     List<SchemaIrAttributeGroup> attributeGroups = new ArrayList<>();
 
-    indexRestrictedSimpleTypeAliases(model, state);
     for (XsdSyntaxDocument document : model.documents()) {
       for (XsdSyntaxNode child : document.children()) {
         if (child.kind() == XsdSyntaxKind.GROUP) {
@@ -84,11 +85,8 @@ public final class SchemaIrBuilder {
         } else if (child.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP) {
           addIfPresent(attributeGroups, normalizeAttributeGroup(document, child, state));
         } else if (child.kind() == XsdSyntaxKind.SIMPLE_TYPE) {
-          SchemaIrSimpleType simpleType = normalizeSimpleType(document, child, state);
+          SchemaIrSimpleType simpleType = normalizeNamedSimpleType(document, child, state);
           addIfPresent(simpleTypes, simpleType);
-          if (simpleType != null) {
-            state.simpleTypes.put(simpleType.name(), simpleType);
-          }
         }
       }
     }
@@ -98,7 +96,7 @@ public final class SchemaIrBuilder {
         switch (child.kind()) {
           case ELEMENT -> addIfPresent(elements, normalizeElement(document, child, state));
           case COMPLEX_TYPE ->
-              addIfPresent(complexTypes, normalizeComplexType(document, child, false, state));
+              addIfPresent(complexTypes, normalizeNamedComplexType(document, child, state));
           case SIMPLE_TYPE -> {
             // Normalized in a first pass so list/union aliases can resolve named restricted
             // scalar aliases deterministically.
@@ -121,6 +119,9 @@ public final class SchemaIrBuilder {
                   document.resourceId(),
                   "Global xs:choice is not valid in profile XP-DATA-10-CHOICE.");
           case RESTRICTION,
+              COMPLEX_CONTENT,
+              EXTENSION,
+              SIMPLE_CONTENT,
               ENUMERATION,
               LENGTH,
               MIN_LENGTH,
@@ -140,33 +141,6 @@ public final class SchemaIrBuilder {
     }
     return new SchemaIrModel(
         elements, complexTypes, simpleTypes, attributes, modelGroups, attributeGroups);
-  }
-
-  private void indexRestrictedSimpleTypeAliases(XsdSyntaxModel model, BuildState state) {
-    for (XsdSyntaxDocument document : model.documents()) {
-      for (XsdSyntaxNode child : document.children()) {
-        if (child.kind() != XsdSyntaxKind.SIMPLE_TYPE) {
-          continue;
-        }
-        String localName = child.attributes().get("name");
-        if (localName == null || localName.isBlank() || child.children().size() != 1) {
-          continue;
-        }
-        XsdSyntaxNode definition = child.children().getFirst();
-        if (definition.kind() != XsdSyntaxKind.RESTRICTION) {
-          continue;
-        }
-        String baseText = definition.attributes().get("base");
-        if (baseText == null || baseText.isBlank()) {
-          continue;
-        }
-        SchemaQName base = resolveQName(document, baseText, state);
-        if (base != null && isSupportedRestrictionBase(base)) {
-          state.restrictedSimpleTypeAliases.put(
-              new SchemaQName(document.targetNamespace(), localName), base);
-        }
-      }
-    }
   }
 
   private SchemaIrModelGroup normalizeModelGroup(
@@ -361,7 +335,53 @@ public final class SchemaIrBuilder {
       }
       name = new SchemaQName(document.targetNamespace(), localName);
     }
+    if ("true".equals(node.attributes().get("abstract"))) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "abstract complexType is not supported in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    if ("true".equals(node.attributes().get("mixed"))) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "mixed complexType is not supported in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
 
+    List<XsdSyntaxNode> complexContentChildren =
+        node.children().stream()
+            .filter(child -> child.kind() == XsdSyntaxKind.COMPLEX_CONTENT)
+            .toList();
+    if (!complexContentChildren.isEmpty()) {
+      if (anonymous) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:complexContent/xs:extension is supported only for named complexType declarations.");
+        return null;
+      }
+      if (node.children().size() != 1 || complexContentChildren.size() != 1) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:complexContent must be the only child of complexType in profile XP-XSD10-COMPOSED.");
+        return null;
+      }
+      return normalizeComplexContent(document, complexContentChildren.getFirst(), name, state);
+    }
+
+    ComplexTypeContent content = normalizeComplexTypeContent(document, node.children(), state);
+    return new SchemaIrComplexType(name, content.attributes(), content.sequences(), anonymous);
+  }
+
+  private ComplexTypeContent normalizeComplexTypeContent(
+      XsdSyntaxDocument document, List<XsdSyntaxNode> children, BuildState state) {
     List<SchemaIrAttribute> attributes = new ArrayList<>();
     List<SchemaIrSequence> sequences = new ArrayList<>();
     int contentParticleCount = 0;
@@ -369,7 +389,7 @@ public final class SchemaIrBuilder {
     boolean directGroupSeen = false;
     boolean sequenceGroupSeen = false;
     boolean attributeGroupSeen = false;
-    for (XsdSyntaxNode child : node.children()) {
+    for (XsdSyntaxNode child : children) {
       if (child.kind() == XsdSyntaxKind.ATTRIBUTE) {
         addIfPresent(attributes, normalizeAttribute(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP) {
@@ -421,7 +441,136 @@ public final class SchemaIrBuilder {
     if (attributeGroupSeen) {
       validateDuplicateAttributeNames(document, attributes, state);
     }
-    return new SchemaIrComplexType(name, attributes, sequences, anonymous);
+    return new ComplexTypeContent(attributes, sequences);
+  }
+
+  private SchemaIrComplexType normalizeComplexContent(
+      XsdSyntaxDocument document, XsdSyntaxNode node, SchemaQName typeName, BuildState state) {
+    if ("true".equals(node.attributes().get("mixed"))) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "mixed xs:complexContent is not supported in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    if (node.children().size() != 1) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:complexContent supports exactly one xs:extension child in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    XsdSyntaxNode child = node.children().getFirst();
+    if (child.kind() == XsdSyntaxKind.RESTRICTION) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:complexContent/xs:restriction is not supported in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    if (child.kind() != XsdSyntaxKind.EXTENSION) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:complexContent supports only xs:extension in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    return normalizeComplexExtension(document, child, typeName, state);
+  }
+
+  private SchemaIrComplexType normalizeComplexExtension(
+      XsdSyntaxDocument document, XsdSyntaxNode node, SchemaQName typeName, BuildState state) {
+    String baseText = node.attributes().get("base");
+    if (baseText == null || baseText.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:extension is missing a base.");
+      return null;
+    }
+    SchemaQName baseName = resolveQName(document, baseText, state);
+    if (baseName == null) {
+      return null;
+    }
+    SchemaComponentKey baseKey = new SchemaComponentKey(SchemaComponentKind.COMPLEX_TYPE, baseName);
+    requireComponent(state, document.resourceId(), baseKey);
+    if (!state.components.containsKey(baseKey)) {
+      return null;
+    }
+    SchemaIrComplexType baseType = normalizeReferencedComplexType(document, baseName, state);
+    ComplexTypeContent extensionContent =
+        normalizeComplexTypeContent(document, node.children(), state);
+    if (baseType == null) {
+      return null;
+    }
+    List<SchemaIrAttribute> attributes = new ArrayList<>(baseType.attributes());
+    attributes.addAll(extensionContent.attributes());
+    List<SchemaIrSequence> sequences = new ArrayList<>(baseType.sequences());
+    sequences.addAll(extensionContent.sequences());
+    validateDuplicateElementNames(document, sequences, state);
+    validateDuplicateAttributeNames(document, attributes, state);
+    return new SchemaIrComplexType(typeName, attributes, sequences, false);
+  }
+
+  private SchemaIrComplexType normalizeNamedComplexType(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String localName = node.attributes().get("name");
+    if (localName == null || localName.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_MISSING_NAME,
+          document.resourceId(),
+          "complexType declaration is missing a name.");
+      return null;
+    }
+    SchemaQName name = new SchemaQName(document.targetNamespace(), localName);
+    SchemaIrComplexType cached = state.complexTypes.get(name);
+    if (cached != null) {
+      return cached;
+    }
+    if (state.complexTypeStack.contains(name)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Recursive complexType extension involving " + name.toText() + ".");
+      return null;
+    }
+    state.complexTypeStack.add(name);
+    SchemaIrComplexType normalized = normalizeComplexType(document, node, false, state);
+    state.complexTypeStack.remove(name);
+    if (normalized != null) {
+      state.complexTypes.put(name, normalized);
+    }
+    return normalized;
+  }
+
+  private SchemaIrComplexType normalizeReferencedComplexType(
+      XsdSyntaxDocument currentDocument, SchemaQName name, BuildState state) {
+    SchemaIrComplexType cached = state.complexTypes.get(name);
+    if (cached != null) {
+      return cached;
+    }
+    SchemaComponent component =
+        state.components.get(new SchemaComponentKey(SchemaComponentKind.COMPLEX_TYPE, name));
+    if (component == null) {
+      return null;
+    }
+    XsdSyntaxDocument document = state.documentsByResourceId.get(component.resourceId());
+    if (document == null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE,
+          currentDocument.resourceId(),
+          "Cannot locate schema document for complexType " + name.toText() + ".");
+      return null;
+    }
+    return normalizeNamedComplexType(document, component.syntaxNode(), state);
   }
 
   private boolean containsGroupReference(XsdSyntaxNode node) {
@@ -778,11 +927,11 @@ public final class SchemaIrBuilder {
     if (isSupportedRestrictionBase(type)) {
       return true;
     }
-    SchemaIrSimpleType simpleType = state.simpleTypes.get(type);
+    SchemaIrSimpleType simpleType = normalizeReferencedSimpleType(type, state);
     if (simpleType != null) {
       return simpleType.restriction() != null;
     }
-    return state.restrictedSimpleTypeAliases.containsKey(type);
+    return false;
   }
 
   private SchemaIrSimpleRestriction normalizeSimpleRestriction(
@@ -800,18 +949,47 @@ public final class SchemaIrBuilder {
     if (base == null) {
       return null;
     }
+    SchemaIrSimpleRestriction baseRestriction = null;
+    SchemaQName effectiveBase = base;
     if (!isSupportedRestrictionBase(base)) {
+      SchemaIrSimpleType baseType = normalizeReferencedSimpleType(base, state);
+      if (baseType != null && baseType.restriction() != null) {
+        baseRestriction = baseType.restriction();
+        effectiveBase = baseRestriction.base();
+      } else {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Unsupported simpleType restriction base " + base.toText() + ".");
+        return null;
+      }
+    }
+    if (!isSupportedRestrictionBase(effectiveBase)) {
       diagnostic(
           state,
           DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
           document.resourceId(),
-          "Unsupported simpleType restriction base " + base.toText() + ".");
+          "Unsupported simpleType restriction base " + effectiveBase.toText() + ".");
       return null;
     }
-    SimpleRestrictionState restrictionState = new SimpleRestrictionState(base);
+    SimpleRestrictionState restrictionState = new SimpleRestrictionState(effectiveBase);
     for (XsdSyntaxNode child : node.children()) {
       normalizeFacet(document, child, restrictionState, state);
     }
+    SchemaIrSimpleRestriction localRestriction =
+        validateRestriction(document, restrictionState, state);
+    if (localRestriction == null) {
+      return null;
+    }
+    if (baseRestriction == null) {
+      return localRestriction;
+    }
+    return mergeRestrictionChain(document, baseRestriction, localRestriction, state);
+  }
+
+  private SchemaIrSimpleRestriction validateRestriction(
+      XsdSyntaxDocument document, SimpleRestrictionState restrictionState, BuildState state) {
     if (restrictionState.length != null
         && (restrictionState.minLength != null || restrictionState.maxLength != null)) {
       diagnostic(
@@ -844,6 +1022,222 @@ public final class SchemaIrBuilder {
       return null;
     }
     return restrictionState.toRestriction();
+  }
+
+  private SchemaIrSimpleRestriction mergeRestrictionChain(
+      XsdSyntaxDocument document,
+      SchemaIrSimpleRestriction base,
+      SchemaIrSimpleRestriction derived,
+      BuildState state) {
+    if (!base.base().equals(derived.base())) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Simple restriction derivation chain has incompatible scalar bases.");
+      return null;
+    }
+    int diagnosticsBeforeMerge = state.diagnostics.size();
+    List<String> enumerations = mergeEnumerations(document, base, derived, state);
+    Integer length = mergeLength(document, base, derived, state);
+    Integer minLength = mergeMinLength(base, derived);
+    Integer maxLength = mergeMaxLength(base, derived);
+    String minInclusive = mergeMinInclusive(base, derived);
+    String maxInclusive = mergeMaxInclusive(base, derived);
+    List<String> patterns = new ArrayList<>(base.patterns());
+    patterns.addAll(derived.patterns());
+    if (state.diagnostics.size() == diagnosticsBeforeMerge
+        && length != null
+        && ((minLength != null && length < minLength)
+            || (maxLength != null && length > maxLength))) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Simple restriction derivation chain has incompatible length facets.");
+      return null;
+    }
+    if (length != null) {
+      minLength = null;
+      maxLength = null;
+    }
+    if (minLength != null && maxLength != null && minLength > maxLength) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Simple restriction derivation chain has incompatible length facets.");
+      return null;
+    }
+    if (minInclusive != null
+        && maxInclusive != null
+        && new BigDecimal(minInclusive).compareTo(new BigDecimal(maxInclusive)) > 0) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Simple restriction derivation chain has incompatible numeric range facets.");
+      return null;
+    }
+    if (state.diagnostics.size() > diagnosticsBeforeMerge) {
+      return null;
+    }
+    return new SchemaIrSimpleRestriction(
+        base.base(),
+        enumerations,
+        length,
+        minLength,
+        maxLength,
+        minInclusive,
+        maxInclusive,
+        patterns);
+  }
+
+  private List<String> mergeEnumerations(
+      XsdSyntaxDocument document,
+      SchemaIrSimpleRestriction base,
+      SchemaIrSimpleRestriction derived,
+      BuildState state) {
+    if (base.enumerations().isEmpty()) {
+      return derived.enumerations();
+    }
+    if (derived.enumerations().isEmpty()) {
+      return base.enumerations();
+    }
+    List<String> merged = new ArrayList<>();
+    for (String value : derived.enumerations()) {
+      if (base.enumerations().contains(value)) {
+        merged.add(value);
+      } else {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Simple restriction enumeration " + value + " is not allowed by the base type.");
+      }
+    }
+    return merged;
+  }
+
+  private Integer mergeLength(
+      XsdSyntaxDocument document,
+      SchemaIrSimpleRestriction base,
+      SchemaIrSimpleRestriction derived,
+      BuildState state) {
+    if (base.length() != null
+        && derived.length() != null
+        && !base.length().equals(derived.length())) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Simple restriction derivation chain has incompatible length facets.");
+      return null;
+    }
+    if (derived.length() != null) {
+      return derived.length();
+    }
+    return base.length();
+  }
+
+  private Integer mergeMinLength(
+      SchemaIrSimpleRestriction base, SchemaIrSimpleRestriction derived) {
+    if (base.minLength() == null) {
+      return derived.minLength();
+    }
+    if (derived.minLength() == null) {
+      return base.minLength();
+    }
+    return Math.max(base.minLength(), derived.minLength());
+  }
+
+  private Integer mergeMaxLength(
+      SchemaIrSimpleRestriction base, SchemaIrSimpleRestriction derived) {
+    if (base.maxLength() == null) {
+      return derived.maxLength();
+    }
+    if (derived.maxLength() == null) {
+      return base.maxLength();
+    }
+    return Math.min(base.maxLength(), derived.maxLength());
+  }
+
+  private String mergeMinInclusive(
+      SchemaIrSimpleRestriction base, SchemaIrSimpleRestriction derived) {
+    if (base.minInclusive() == null) {
+      return derived.minInclusive();
+    }
+    if (derived.minInclusive() == null) {
+      return base.minInclusive();
+    }
+    return new BigDecimal(base.minInclusive()).compareTo(new BigDecimal(derived.minInclusive()))
+            >= 0
+        ? base.minInclusive()
+        : derived.minInclusive();
+  }
+
+  private String mergeMaxInclusive(
+      SchemaIrSimpleRestriction base, SchemaIrSimpleRestriction derived) {
+    if (base.maxInclusive() == null) {
+      return derived.maxInclusive();
+    }
+    if (derived.maxInclusive() == null) {
+      return base.maxInclusive();
+    }
+    return new BigDecimal(base.maxInclusive()).compareTo(new BigDecimal(derived.maxInclusive()))
+            <= 0
+        ? base.maxInclusive()
+        : derived.maxInclusive();
+  }
+
+  private SchemaIrSimpleType normalizeNamedSimpleType(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String localName = node.attributes().get("name");
+    if (localName == null || localName.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_MISSING_NAME,
+          document.resourceId(),
+          "simpleType declaration is missing a name.");
+      return null;
+    }
+    SchemaQName name = new SchemaQName(document.targetNamespace(), localName);
+    SchemaIrSimpleType cached = state.simpleTypes.get(name);
+    if (cached != null) {
+      return cached;
+    }
+    if (state.simpleTypeStack.contains(name)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Recursive simpleType restriction derivation involving " + name.toText() + ".");
+      return null;
+    }
+    state.simpleTypeStack.add(name);
+    SchemaIrSimpleType normalized = normalizeSimpleType(document, node, state);
+    state.simpleTypeStack.remove(name);
+    if (normalized != null) {
+      state.simpleTypes.put(name, normalized);
+    }
+    return normalized;
+  }
+
+  private SchemaIrSimpleType normalizeReferencedSimpleType(SchemaQName name, BuildState state) {
+    SchemaIrSimpleType cached = state.simpleTypes.get(name);
+    if (cached != null) {
+      return cached;
+    }
+    SchemaComponent component =
+        state.components.get(new SchemaComponentKey(SchemaComponentKind.SIMPLE_TYPE, name));
+    if (component == null) {
+      return null;
+    }
+    XsdSyntaxDocument document = state.documentsByResourceId.get(component.resourceId());
+    if (document == null) {
+      return null;
+    }
+    return normalizeNamedSimpleType(document, component.syntaxNode(), state);
   }
 
   private void normalizeFacet(
@@ -1223,6 +1617,9 @@ public final class SchemaIrBuilder {
       case GROUP -> SchemaComponentKind.MODEL_GROUP;
       case ATTRIBUTE_GROUP -> SchemaComponentKind.ATTRIBUTE_GROUP;
       case RESTRICTION,
+          COMPLEX_CONTENT,
+          EXTENSION,
+          SIMPLE_CONTENT,
           ENUMERATION,
           LENGTH,
           MIN_LENGTH,
@@ -1259,12 +1656,23 @@ public final class SchemaIrBuilder {
   }
 
   private static final class BuildState {
+    private final Map<String, XsdSyntaxDocument> documentsByResourceId = new LinkedHashMap<>();
     private final Map<SchemaComponentKey, SchemaComponent> components = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrModelGroup> modelGroups = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrAttributeGroup> attributeGroups = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrSimpleType> simpleTypes = new LinkedHashMap<>();
-    private final Map<SchemaQName, SchemaQName> restrictedSimpleTypeAliases = new LinkedHashMap<>();
+    private final Map<SchemaQName, SchemaIrComplexType> complexTypes = new LinkedHashMap<>();
+    private final Set<SchemaQName> simpleTypeStack = new LinkedHashSet<>();
+    private final Set<SchemaQName> complexTypeStack = new LinkedHashSet<>();
     private final List<SchemaDiagnostic> diagnostics = new ArrayList<>();
+  }
+
+  private record ComplexTypeContent(
+      List<SchemaIrAttribute> attributes, List<SchemaIrSequence> sequences) {
+    private ComplexTypeContent {
+      attributes = List.copyOf(attributes);
+      sequences = List.copyOf(sequences);
+    }
   }
 
   private static final class SimpleRestrictionState {

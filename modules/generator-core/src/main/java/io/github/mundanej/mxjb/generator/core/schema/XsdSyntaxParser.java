@@ -182,6 +182,17 @@ public final class XsdSyntaxParser {
     }
 
     Map<String, String> attributes = attributes(kind, reader);
+    if (kind == XsdSyntaxKind.RESTRICTION
+        && !supportsComposedSchema(profile)
+        && !isXmlSchemaBuiltInBase(attributes.get("base"), reader)) {
+      diagnostics.add(
+          new SchemaDiagnostic(
+              DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+              resourceId,
+              "xs:restriction derivation chains require profile XP-XSD10-COMPOSED."));
+      skipSubtree(reader);
+      return null;
+    }
     List<XsdSyntaxNode> children = readChildren(resourceId, reader, diagnostics, profile);
     return new XsdSyntaxNode(kind, attributes, children);
   }
@@ -205,7 +216,10 @@ public final class XsdSyntaxParser {
     return "group".equals(localName)
         || "attributeGroup".equals(localName)
         || "list".equals(localName)
-        || "union".equals(localName);
+        || "union".equals(localName)
+        || "complexContent".equals(localName)
+        || "extension".equals(localName)
+        || "simpleContent".equals(localName);
   }
 
   private boolean supportsChoice(GeneratorProfile profile) {
@@ -226,6 +240,9 @@ public final class XsdSyntaxParser {
     return switch (localName) {
       case "element" -> XsdSyntaxKind.ELEMENT;
       case "complexType" -> XsdSyntaxKind.COMPLEX_TYPE;
+      case "complexContent" -> XsdSyntaxKind.COMPLEX_CONTENT;
+      case "extension" -> XsdSyntaxKind.EXTENSION;
+      case "simpleContent" -> XsdSyntaxKind.SIMPLE_CONTENT;
       case "simpleType" -> XsdSyntaxKind.SIMPLE_TYPE;
       case "restriction" -> XsdSyntaxKind.RESTRICTION;
       case "enumeration" -> XsdSyntaxKind.ENUMERATION;
@@ -255,9 +272,19 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "type", reader.getAttributeValue(null, "type"));
         addCardinality(attributes, reader);
       }
-      case COMPLEX_TYPE, SIMPLE_TYPE ->
-          addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
-      case RESTRICTION -> addIfPresent(attributes, "base", reader.getAttributeValue(null, "base"));
+      case COMPLEX_TYPE -> {
+        addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+        addIfPresent(attributes, "mixed", reader.getAttributeValue(null, "mixed"));
+        addIfPresent(attributes, "abstract", reader.getAttributeValue(null, "abstract"));
+      }
+      case SIMPLE_TYPE -> addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+      case COMPLEX_CONTENT ->
+          addIfPresent(attributes, "mixed", reader.getAttributeValue(null, "mixed"));
+      case EXTENSION, RESTRICTION ->
+          addIfPresent(attributes, "base", reader.getAttributeValue(null, "base"));
+      case SIMPLE_CONTENT -> {
+        // No accepted attributes for this out-of-scope construct.
+      }
       case ENUMERATION, LENGTH, MIN_LENGTH, MAX_LENGTH, MIN_INCLUSIVE, MAX_INCLUSIVE, PATTERN ->
           addIfPresent(attributes, "value", reader.getAttributeValue(null, "value"));
       case ATTRIBUTE -> {
@@ -293,6 +320,18 @@ public final class XsdSyntaxParser {
     if (value != null && !value.isBlank()) {
       attributes.put(name, value);
     }
+  }
+
+  private boolean isXmlSchemaBuiltInBase(String base, XMLStreamReader reader) {
+    if (base == null || base.isBlank()) {
+      return true;
+    }
+    int colon = base.indexOf(':');
+    if (colon < 0) {
+      return false;
+    }
+    String prefix = base.substring(0, colon);
+    return XSD_NAMESPACE.equals(reader.getNamespaceContext().getNamespaceURI(prefix));
   }
 
   private Map<String, String> namespaceDeclarations(XMLStreamReader reader) {

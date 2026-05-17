@@ -349,6 +349,105 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void narrowProfilesRejectDerivationWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("derivation-order.xsd", derivationOrderSchema(false));
+    Path defaultOutput = tempDirectory.resolve("derivation-default");
+    Path validationOutput = tempDirectory.resolve("derivation-validation");
+
+    GeneratorResult defaultResult =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    defaultOutput,
+                    null,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+    GeneratorResult validationResult =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    validationOutput,
+                    GeneratorProfile.XP_VALIDATION_10_BASIC,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(defaultResult.successful());
+    assertFalse(validationResult.successful());
+    assertTrue(
+        defaultResult.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+    assertTrue(
+        validationResult.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> diagnostic.message().contains("derivation chains require profile")));
+    assertFalse(Files.exists(defaultOutput));
+    assertFalse(Files.exists(validationOutput));
+  }
+
+  @Test
+  void composedProfileGeneratesFlattenedDerivationSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("derivation-order.xsd", derivationOrderSchema(false));
+    Path output = tempDirectory.resolve("derivation-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_COMPOSED,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String validator =
+        Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
+    assertTrue(order.contains("String id"));
+    assertTrue(order.contains("BigDecimal total"));
+    assertTrue(order.indexOf("String id") < order.indexOf("BigDecimal total"));
+    assertFalse(order.contains("extends"));
+    assertTrue(validator.contains("Value length is outside the accepted range."));
+    assertTrue(validator.contains("Pattern.matches"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void composedProfileRejectsUnsupportedDerivationWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("bad-derivation-order.xsd", derivationOrderSchema(true));
+    Path output = tempDirectory.resolve("bad-derivation-generated");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_COMPOSED,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic ->
+                    "SCHEMA_IR_INVALID_COMPONENT".equals(diagnostic.code())
+                        && diagnostic.message().contains("Duplicate flattened XML element")));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
   void deniesNetworkResolutionAndWritesNoSources() throws IOException {
     Path schema = writeSchema("order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path output = tempDirectory.resolve("network-denied");
@@ -648,6 +747,48 @@ final class CoreGeneratorTest {
         </xs:schema>
         """
         .replace("LIST_CARDINALITY", listCardinality);
+  }
+
+  private String derivationOrderSchema(boolean duplicateDerivedField) {
+    String derivedElement =
+        duplicateDerivedField
+            ? "<xs:element name=\"id\" type=\"xs:string\"/>"
+            : "<xs:element name=\"total\" type=\"xs:decimal\"/>";
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:simpleType name="OrderCode">
+            <xs:restriction base="xs:string">
+              <xs:minLength value="3"/>
+              <xs:maxLength value="8"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:simpleType name="DomesticOrderCode">
+            <xs:restriction base="tns:OrderCode">
+              <xs:pattern value="[A-Z0-9]+"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="BaseOrder">
+            <xs:sequence>
+              <xs:element name="id" type="tns:DomesticOrderCode"/>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:string" use="required"/>
+          </xs:complexType>
+          <xs:complexType name="Order">
+            <xs:complexContent>
+              <xs:extension base="tns:BaseOrder">
+                <xs:sequence>
+                  DERIVED_ELEMENT
+                </xs:sequence>
+                <xs:attribute name="region" type="xs:string" use="required"/>
+              </xs:extension>
+            </xs:complexContent>
+          </xs:complexType>
+        </xs:schema>
+        """
+        .replace("DERIVED_ELEMENT", derivedElement);
   }
 
   private String lineSchema() {

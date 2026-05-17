@@ -333,6 +333,61 @@ final class XsdSyntaxParserTest {
   }
 
   @Test
+  void reportsDerivationAsUnsupportedOutsideComposedProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="BaseCode">
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="3"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="DerivedCode">
+                  <xs:restriction base="tns:BaseCode">
+                    <xs:maxLength value="8"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="BaseOrder">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:complexContent>
+                    <xs:extension base="tns:BaseOrder">
+                      <xs:sequence>
+                        <xs:element name="total" type="xs:decimal"/>
+                      </xs:sequence>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser()
+            .parse(
+                new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)))
+                    .resolve(tempDirectory.resolve("main.xsd"))
+                    .manifest(),
+                GeneratorProfile.XP_VALIDATION_10_BASIC);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+            DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE),
+        diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | "
+            + "xs:restriction derivation chains require profile XP-XSD10-COMPOSED.",
+        result.diagnostics().get(0).toManifestLine());
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:complexContent requires profile XP-XSD10-COMPOSED.",
+        result.diagnostics().get(1).toManifestLine());
+  }
+
+  @Test
   void composedProfileParsesGroupsChoicesAndRestrictions() throws IOException {
     write(
         "main.xsd",
@@ -361,6 +416,20 @@ final class XsdSyntaxParserTest {
                 <xs:attributeGroup name="OrderAttributes">
                   <xs:attribute name="version" type="xs:string"/>
                 </xs:attributeGroup>
+                <xs:complexType name="BaseOrder">
+                  <xs:sequence>
+                    <xs:element name="id" type="tns:Code"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:complexContent>
+                    <xs:extension base="tns:BaseOrder">
+                      <xs:sequence>
+                        <xs:element name="total" type="xs:decimal"/>
+                      </xs:sequence>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
                 """));
     SchemaResolver resolver =
         new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
@@ -377,6 +446,8 @@ final class XsdSyntaxParserTest {
     assertTrue(syntaxText.contains("restriction base=xs:string"), syntaxText);
     assertTrue(syntaxText.contains("list itemType=tns:Code"), syntaxText);
     assertTrue(syntaxText.contains("union memberTypes=tns:Code xs:int"), syntaxText);
+    assertTrue(syntaxText.contains("complexContent"), syntaxText);
+    assertTrue(syntaxText.contains("extension base=tns:BaseOrder"), syntaxText);
   }
 
   @Test

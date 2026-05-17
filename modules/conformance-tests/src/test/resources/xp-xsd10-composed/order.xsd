@@ -3,14 +3,29 @@
     xmlns:c="urn:composed"
     elementFormDefault="qualified"
     attributeFormDefault="qualified">
+  <xs:group name="BaseOrderFields">
+    <xs:sequence>
+      <xs:element name="id" type="c:OrderId"/>
+      <xs:element name="total" type="xs:decimal"/>
+    </xs:sequence>
+  </xs:group>
   <xs:group name="OrderFields">
     <xs:sequence>
-      <xs:element name="id" type="xs:string"/>
-      <xs:element name="total" type="xs:decimal"/>
       <xs:element name="quantities" type="c:QuantityList"/>
       <xs:element name="status" type="c:StatusOrPriority"/>
     </xs:sequence>
   </xs:group>
+  <xs:simpleType name="BaseOrderId">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="3"/>
+      <xs:maxLength value="12"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="OrderId">
+    <xs:restriction base="c:BaseOrderId">
+      <xs:pattern value="[A-Z0-9-]+"/>
+    </xs:restriction>
+  </xs:simpleType>
   <xs:simpleType name="Quantity">
     <xs:restriction base="xs:int">
       <xs:minInclusive value="1"/>
@@ -32,15 +47,27 @@
   <xs:simpleType name="StatusOrPriority">
     <xs:union memberTypes="c:Status xs:int"/>
   </xs:simpleType>
-  <xs:attributeGroup name="OrderAttributes">
+  <xs:attributeGroup name="BaseOrderAttributes">
     <xs:attribute name="version" type="xs:string" use="required"/>
+  </xs:attributeGroup>
+  <xs:attributeGroup name="OrderAttributes">
     <xs:attribute name="flags" type="c:FlagList" use="required"/>
   </xs:attributeGroup>
   <xs:element name="order" type="c:Order"/>
-  <xs:complexType name="Order">
+  <xs:complexType name="BaseOrder">
     <xs:sequence>
-      <xs:group ref="c:OrderFields"/>
+      <xs:group ref="c:BaseOrderFields"/>
     </xs:sequence>
-    <xs:attributeGroup ref="c:OrderAttributes"/>
+    <xs:attributeGroup ref="c:BaseOrderAttributes"/>
+  </xs:complexType>
+  <xs:complexType name="Order">
+    <xs:complexContent>
+      <xs:extension base="c:BaseOrder">
+        <xs:sequence>
+          <xs:group ref="c:OrderFields"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="c:OrderAttributes"/>
+      </xs:extension>
+    </xs:complexContent>
   </xs:complexType>
 </xs:schema>

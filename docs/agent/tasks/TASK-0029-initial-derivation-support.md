@@ -1,6 +1,6 @@
 # TASK-0029: initial-derivation-support
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0029`
 Gate: `0.3.0` Composed XSD 1.0 Schemas; starts only after `TASK-0028` is accepted.
@@ -35,3 +35,34 @@ Rollback notes: revert derivation implementation, tests, fixtures, golden output
 - Reject `simpleContent`, complex restriction, mixed content, abstract types, substitution groups,
   incompatible derivation graphs, cyclic derivation, and unsupported facet merging with deterministic
   diagnostics.
+
+## Acceptance Evidence
+
+Implemented in this task:
+
+- Added `XP-XSD10-COMPOSED` frontend/profile gating for `xs:complexContent` and `xs:extension`,
+  while default, choice, and basic-validation profiles keep deterministic unsupported-profile
+  diagnostics for derivation.
+- Flattened accepted named complex-type `xs:complexContent/xs:extension` during normalized IR
+  construction, preserving base elements and attributes before derived elements and attributes
+  without adding generated Java inheritance.
+- Added named simple restriction derivation-chain resolution over accepted scalar restriction bases,
+  with merged accepted facet metadata carried into existing binding and generated validator paths.
+- Added deterministic diagnostics for unsupported derivation shapes, including `simpleContent`,
+  complex restriction, abstract/mixed complex types, duplicate flattened fields, unsupported bases,
+  incompatible facets, and recursive derivation chains.
+- Expanded `XP-XSD10-COMPOSED` conformance fixtures so JDK XML Schema validation and generated
+  bindings both exercise flattened complex extension and merged simple restriction derivation.
+
+Verification run:
+
+- `./gradlew :modules:generator-core:test --console=plain`
+- `./gradlew :modules:conformance-tests:test --console=plain`
+- `./gradlew :modules:generator-core:check :modules:conformance-tests:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
+- `JAVA_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 GRAALVM_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 PATH=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2/lib/svm/bin:$PATH ./gradlew :modules:generator-core:generatedCodeNativeSmoke --console=plain`
+- `./gradlew :modules:generator-core:generatedCodeNativeSmoke --console=plain` was attempted with
+  the default Java 21 toolchain and blocked because `native-image` is unavailable on that
+  toolchain.
+- `JAVA_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 GRAALVM_HOME=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2 PATH=/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2/lib/svm/bin:$PATH ./gradlew nativeSmoke --console=plain` was attempted; the generated-code native executable passed, then the aggregate failed because the GraalVM Gradle plugin invoked the non-executable zero-byte `/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2/bin/native-image` instead of the executable `/home/jack/.gradle/jdks/graalvm_community-21-amd64-linux.2/lib/svm/bin/native-image`.
