@@ -12,6 +12,9 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
 import io.github.mundanej.mxjb.generator.core.bind.BindingValidationPlan;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
+import io.github.mundanej.mxjb.runtime.XmlEventKind;
+import io.github.mundanej.mxjb.runtime.XmlEventReader;
+import io.github.mundanej.mxjb.runtime.XmlLocation;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
 import java.io.IOException;
@@ -19,6 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -48,6 +52,7 @@ final class GeneratedSourceVerificationHarnessTest {
     try (GeneratedSourceVerifier.CompiledSources compiledSources = verifier.compile(first)) {
       Class<?> orderClass = compiledSources.load("com.example.orders.Order");
       Class<?> lineClass = compiledSources.load("com.example.lines.Line");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
       Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
       Object firstLine = lineClass.getConstructor(String.class).newInstance("SKU-1");
       Object secondLine = lineClass.getConstructor(String.class).newInstance("SKU-2");
@@ -58,6 +63,12 @@ final class GeneratedSourceVerificationHarnessTest {
                   Optional.of("v1"), "A-1", Optional.of("gift"), List.of(firstLine, secondLine));
 
       writerClass.getMethod("write", XmlOutput.class, orderClass).invoke(null, output, order);
+      Object parsed =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, orderInput());
+      assertEquals(Optional.of("v1"), orderClass.getMethod("version").invoke(parsed));
+      assertEquals("A-1", orderClass.getMethod("id").invoke(parsed));
+      assertEquals(Optional.of("gift"), orderClass.getMethod("note").invoke(parsed));
+      assertEquals(2, ((List<?>) orderClass.getMethod("line").invoke(parsed)).size());
     }
 
     assertEquals(
@@ -86,11 +97,14 @@ final class GeneratedSourceVerificationHarnessTest {
 
   private List<GeneratedJavaSource> generatedSources(BindingModel model) {
     GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
     GeneratedWriterEmissionResult writerResult = new GeneratedWriterEmitter().emit(model);
     assertFalse(modelResult.hasErrors());
+    assertFalse(readerResult.hasErrors());
     assertFalse(writerResult.hasErrors());
     List<GeneratedJavaSource> sources = new ArrayList<>();
     sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
     sources.addAll(writerResult.sources());
     return sources;
   }
@@ -166,6 +180,52 @@ final class GeneratedSourceVerificationHarnessTest {
     return new SchemaQName("urn:orders", localName);
   }
 
+  private EventXmlReader orderInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(
+            XmlEventKind.START_ELEMENT,
+            new XmlName("urn:orders", "order"),
+            Map.of(new XmlName("urn:orders", "version"), "v1")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "id")),
+        text("A-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "note")),
+        text("gift"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "note")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "sku")),
+        text("SKU-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "sku")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "sku")),
+        text("SKU-2"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "sku")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader reader(Event... events) {
+    return new EventXmlReader(List.of(events));
+  }
+
+  private Event event(XmlEventKind kind, XmlName name) {
+    return new Event(kind, name, "", Map.of());
+  }
+
+  private Event event(XmlEventKind kind, XmlName name, Map<XmlName, String> attributes) {
+    return new Event(kind, name, "", attributes);
+  }
+
+  private Event text(String value) {
+    return new Event(XmlEventKind.TEXT, null, value, Map.of());
+  }
+
+  private record Event(
+      XmlEventKind kind, XmlName name, String text, Map<XmlName, String> attributes) {}
+
   private static final class RecordingXmlOutput implements XmlOutput {
     private final List<String> events = new ArrayList<>();
 
@@ -200,6 +260,63 @@ final class GeneratedSourceVerificationHarnessTest {
 
     private String toText(XmlName name) {
       return "{" + name.namespaceUri() + "}" + name.localName();
+    }
+  }
+
+  private static final class EventXmlReader implements XmlEventReader {
+    private final List<Event> events;
+    private int index;
+
+    private EventXmlReader(List<Event> events) {
+      this.events = events;
+    }
+
+    @Override
+    public XmlEventKind kind() {
+      return current().kind();
+    }
+
+    @Override
+    public XmlName name() {
+      return current().name();
+    }
+
+    @Override
+    public String text() {
+      return current().text();
+    }
+
+    @Override
+    public int attributeCount() {
+      return current().attributes().size();
+    }
+
+    @Override
+    public XmlName attributeName(int indexValue) {
+      return current().attributes().keySet().stream().toList().get(indexValue);
+    }
+
+    @Override
+    public String attributeValue(int indexValue) {
+      return current().attributes().values().stream().toList().get(indexValue);
+    }
+
+    @Override
+    public XmlLocation location() {
+      return new XmlLocation("golden.xml", index + 1, 1);
+    }
+
+    @Override
+    public boolean next() {
+      if (index + 1 >= events.size()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
+
+    private Event current() {
+      return events.get(index);
     }
   }
 }

@@ -21,3 +21,7 @@ Validation is a first-class generated-code concern.
 - Location should be included where available.
 - Unsupported schema features must produce explicit profile diagnostics.
 - Validation errors must be stable and testable.
+
+## `TASK-0015` reader diagnostics baseline
+
+Generated readers now report deterministic `XmlReadException` diagnostics for root/name mismatches, unexpected attributes/elements, missing required content, repeated singleton content, out-of-order sequence content, invalid scalar lexical values, and malformed event streams. Full generated validation behavior, including richer validation result APIs and facet semantics, remains staged for the basic validation task.

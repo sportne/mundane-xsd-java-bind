@@ -37,6 +37,19 @@ The first generated-writer emitter supports root static XML writers for supporte
 - Generated writer source uses fully qualified names for generated model types, `java.util.Objects`, and `runtime-core` `XmlName`, `XmlOutput`, and `XmlWriteException` to avoid import collisions with schema-derived model names.
 - Generated writer source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML reader behavior, validation behavior, or external resource access.
 
+## `TASK-0015` reader source shape
+
+The first generated-reader emitter supports root static XML readers for supported data-structure record models.
+
+- One public final reader class is emitted per root element in `<model-package>.xml`, named `<RootTypeSimpleName>XmlReader`.
+- The public reader entry point is `public static RootType read(XmlEventReader input) throws XmlReadException`.
+- Reader classes have private constructors, static `XmlName` constants, and private static helper methods for nested complex types.
+- Readers require non-null `input`, accept `START_DOCUMENT` or root `START_ELEMENT`, skip whitespace-only text between elements, match expanded names namespace-aware, and parse children in binding order.
+- Optional fields are produced as `Optional.empty()` when absent, repeated fields are copied into immutable lists through generated model construction, and missing/repeated/out-of-order content produces deterministic `XmlReadException` diagnostics.
+- Scalar lexical conversion covers `String`, `Boolean`, `Integer`, `BigInteger`, `Long`, and `BigDecimal`; full XSD datatype/facet validation remains a later validation task.
+- Generated reader source uses fully qualified names for generated model types, `java.util.Objects`, collection helpers, and `runtime-core` `XmlName`, `XmlEventReader`, `XmlDiagnostic`, `XmlDiagnosticSeverity`, and `XmlReadException` to avoid import collisions.
+- Generated reader source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, validation engine behavior, or external resource access.
+
 ## Package layout example
 
 ```text

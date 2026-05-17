@@ -2,19 +2,25 @@ package io.github.mundanej.mxjb.generator.core.smoke;
 
 import com.example.lines.Line;
 import com.example.orders.Order;
+import com.example.orders.xml.OrderXmlReader;
 import com.example.orders.xml.OrderXmlWriter;
+import io.github.mundanej.mxjb.runtime.XmlEventKind;
+import io.github.mundanej.mxjb.runtime.XmlEventReader;
+import io.github.mundanej.mxjb.runtime.XmlLocation;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
+import io.github.mundanej.mxjb.runtime.XmlReadException;
 import io.github.mundanej.mxjb.runtime.XmlWriteException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-/** Executable smoke check for approved generated model and writer fixtures. */
+/** Executable smoke check for approved generated model, reader, and writer fixtures. */
 public final class GeneratedCodeSmokeMain {
   private GeneratedCodeSmokeMain() {}
 
-  public static void main(String[] args) throws XmlWriteException {
+  public static void main(String[] args) throws XmlReadException, XmlWriteException {
     RecordingXmlOutput output = new RecordingXmlOutput();
     Order order =
         new Order(
@@ -49,7 +55,60 @@ public final class GeneratedCodeSmokeMain {
     if (!expected.equals(output.events)) {
       throw new AssertionError("Generated-code smoke output mismatch: " + output.events);
     }
+
+    Order parsed = OrderXmlReader.read(orderInput());
+    if (!order.version().equals(parsed.version())
+        || !order.id().equals(parsed.id())
+        || !order.note().equals(parsed.note())
+        || parsed.line().size() != 2
+        || !"SKU-1".equals(parsed.line().get(0).sku())
+        || !"SKU-2".equals(parsed.line().get(1).sku())) {
+      throw new AssertionError("Generated-code smoke reader mismatch: " + parsed);
+    }
   }
+
+  private static EventXmlReader orderInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(
+                XmlEventKind.START_ELEMENT,
+                new XmlName("urn:orders", "order"),
+                Map.of(new XmlName("urn:orders", "version"), "v1")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "id")),
+            text("A-1"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "note")),
+            text("gift"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "note")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "line")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "sku")),
+            text("SKU-1"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "sku")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "line")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "sku")),
+            text("SKU-2"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "sku")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
+  private static Event event(XmlEventKind kind, XmlName name) {
+    return new Event(kind, name, "", Map.of());
+  }
+
+  private static Event event(XmlEventKind kind, XmlName name, Map<XmlName, String> attributes) {
+    return new Event(kind, name, "", attributes);
+  }
+
+  private static Event text(String value) {
+    return new Event(XmlEventKind.TEXT, null, value, Map.of());
+  }
+
+  private record Event(
+      XmlEventKind kind, XmlName name, String text, Map<XmlName, String> attributes) {}
 
   private static final class RecordingXmlOutput implements XmlOutput {
     private final List<String> events = new ArrayList<>();
@@ -85,6 +144,63 @@ public final class GeneratedCodeSmokeMain {
 
     private String toText(XmlName name) {
       return "{" + name.namespaceUri() + "}" + name.localName();
+    }
+  }
+
+  private static final class EventXmlReader implements XmlEventReader {
+    private final List<Event> events;
+    private int index;
+
+    private EventXmlReader(List<Event> events) {
+      this.events = events;
+    }
+
+    @Override
+    public XmlEventKind kind() {
+      return current().kind();
+    }
+
+    @Override
+    public XmlName name() {
+      return current().name();
+    }
+
+    @Override
+    public String text() {
+      return current().text();
+    }
+
+    @Override
+    public int attributeCount() {
+      return current().attributes().size();
+    }
+
+    @Override
+    public XmlName attributeName(int indexValue) {
+      return current().attributes().keySet().stream().toList().get(indexValue);
+    }
+
+    @Override
+    public String attributeValue(int indexValue) {
+      return current().attributes().values().stream().toList().get(indexValue);
+    }
+
+    @Override
+    public XmlLocation location() {
+      return new XmlLocation("smoke.xml", index + 1, 1);
+    }
+
+    @Override
+    public boolean next() {
+      if (index + 1 >= events.size()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
+
+    private Event current() {
+      return events.get(index);
     }
   }
 }

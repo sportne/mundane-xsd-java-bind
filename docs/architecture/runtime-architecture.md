@@ -18,6 +18,8 @@ Active public concepts:
 
 Generated writer source emitted by `TASK-0012` targets `XmlOutput` and `XmlName` directly. Concrete XML serialization, namespace prefix assignment, and adapter behavior remain outside `runtime-core`; generated writers operate only on expanded names and scalar text values.
 
+Generated reader source emitted by `TASK-0015` targets `XmlEventReader`, `XmlName`, `XmlLocation`, `XmlDiagnostic`, and `XmlReadException` directly. Concrete XML parsing, entity/resource policy, and adapter behavior remain outside generated code; generated readers consume only the project-owned event abstraction.
+
 ## `runtime-jdkxml`
 
 Optional adapter module that bridges JDK StAX to `runtime-core` interfaces. Generated code must not require this module; it is a convenience adapter for tests, examples, and user code.
