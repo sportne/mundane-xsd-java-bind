@@ -27,9 +27,11 @@
 - `:modules:generator-core:generatedCodeSmoke` compiles approved generated fixtures plus a small smoke main and is part of `:modules:generator-core:check`; after `TASK-0016` it also verifies generated validation results.
 - `:modules:generator-core:generatedCodeNativeSmoke` builds and runs the same approved generated fixture path as a Native Image smoke executable when GraalVM native-image is available.
 - `TASK-0017` adds executable purchase-order and multi-namespace example fixtures that exercise
-  checked-in generated-style model, reader, writer, and validator sources through JDK XML adapters.
-  The example `nativeTest` tasks are the representative round-trip Native Image smoke lane until
-  `TASK-0020` hardens and broadens native quality gates.
+  generated model, reader, writer, and validator sources through JDK XML adapters.
+- `TASK-0020` adds the root `nativeSmoke` aggregate for runtime-core, runtime-jdkxml,
+  generator-core generated-code smoke, and both representative example native tests. The normal
+  `qualityGate` remains JVM-focused; the native CI workflow runs
+  `./gradlew validateDesignControlPack nativeSmoke --console=plain`.
 
 ## Phase-one verification minimum
 

@@ -10,9 +10,10 @@
 | `xs:choice` | XSD 1.0 | `XP-DATA-10-CHOICE` | future | `T-CHOICE-FRONTEND-*` | feasibility gate; `TASK-0007` emits unsupported-profile diagnostics |
 | `xs:include`/`xs:import` | XSD 1.0 | `XP-DATA-10` | verified | `T-RES-*`, `T-RT-MNS-*` | phase one resolver; first implementation card is `TASK-0006`; imported multi-namespace example fixture added in `TASK-0017` |
 | Schema resource policy | XML Base / XSD resource resolution | `XP-DATA-10` | designed | `T-RES-POLICY-*` | local roots and catalog mappings only unless explicitly configured |
-| Network-denied resolver behavior | XML security | `XP-DATA-10` | designed | `T-SEC-RES-*` | default resolver must not open network resources |
+| Network-denied resolver behavior | XML security | `XP-DATA-10` | verified | `T-SEC-RES-*`, `T-RT-PO-*`, `T-RT-MNS-*` | default resolver must not open network resources; `TASK-0020` adds generated-validator example coverage for denied entity/resource behavior through the secure JDK XML adapter |
 | Include/import cycle diagnostics | XSD 1.0 | `XP-DATA-10` | designed | `T-RES-CYCLE-*` | deterministic diagnostic for recursive schema graphs |
 | basic validation results | XSD 1.0 validation | `XP-DATA-10` | verified | `T-VALIDATOR-*`, `T-RT-PO-*`, `T-RT-MNS-*`, `T-CONF-XP-DATA-10-*` | generated `ValidationResult` support for required values, repeated cardinality, nested aggregation, and preserved reader diagnostics in `TASK-0016`; executable round-trip and negative fixtures in `TASK-0017` |
+| Native Image smoke | GraalVM Native Image | `NI-SMOKE` | verified | `nativeSmoke` | `TASK-0020` aggregates runtime-core, runtime-jdkxml, generated-code, purchase-order, and multi-namespace native smoke tasks; CI runs the aggregate on GraalVM Java 21 and Java 25 |
 | simple facets basic | XSD 1.0 Datatypes | `XP-VALIDATION-10-BASIC` | future | `T-FACET-*` | practical subset beyond TASK-0016 |
 | substitution groups | XSD 1.0 | `XP-XSD10-FULL` | future | W3C subset | not phase one |
 | identity constraints | XSD 1.0 | `XP-XSD10-FULL` | future | W3C subset | not phase one |

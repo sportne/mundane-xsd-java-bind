@@ -90,6 +90,23 @@ final class MultiNamespaceRoundTripTest {
     assertEquals("MXJB-GR-002", result.errors().get(0).code());
   }
 
+  @Test
+  void generatedXmlValidatorRejectsEntityReferenceThroughSecureAdapter() throws XMLStreamException {
+    String xml =
+        """
+        <!DOCTYPE order [<!ENTITY externalId SYSTEM "https://example.invalid/id.txt">]>
+        <o:order xmlns:o="urn:orders" xmlns:l="urn:lines">
+          <o:id>&externalId;</o:id>
+          <l:line><l:sku>SKU-A</l:sku></l:line>
+        </o:order>
+        """;
+
+    ValidationResult result = OrderXmlValidator.validate(readerFor(xml));
+
+    assertFalse(result.isValid());
+    assertEquals("MXJB-JDKXML-R-001", result.errors().get(0).code());
+  }
+
   private static Order readXml(String xml) throws XMLStreamException, XmlReadException {
     return OrderXmlReader.read(readerFor(xml));
   }

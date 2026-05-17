@@ -27,6 +27,8 @@ See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
 - `./gradlew validateDesignControlPack` checks required governance and design docs.
 - `./gradlew checkAll` runs each included project's `check` task.
 - `./gradlew qualityGate` runs the normal local and CI gate.
+- `./gradlew nativeSmoke` runs the representative GraalVM Native Image smoke lane when
+  `native-image` is available.
 - `./gradlew printPublishedArtifacts` prints the planned Maven coordinates.
 - `./gradlew printOfflineBuildInstructions` prints the offline build command pattern.
 - `generateMxjbSources` is registered by the public `io.github.mundanej.mxjb` plugin in consumer

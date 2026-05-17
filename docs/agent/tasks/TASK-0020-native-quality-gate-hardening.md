@@ -1,6 +1,6 @@
 # TASK-0020: native-quality-gate-hardening
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0020`
 Gate: Phase 5 first complete public vertical slice; starts only after `TASK-0019` is accepted.
@@ -23,3 +23,16 @@ Rollback notes: revert native/coverage/build/CI/test/docs changes from this task
 - Native Image: this task hardens the existing native smoke/conformance lane; it must not be the first task to exercise native compatibility.
 - Security: native and JVM paths must preserve denied network/resource behavior.
 - Documentation: any change to gates must be reflected in contributor-facing build docs.
+
+## Completion Notes
+
+- Added the root `nativeSmoke` aggregate for runtime-core, runtime-jdkxml, generator-core
+  generated-code, purchase-order, and multi-namespace Native Image smoke tasks.
+- Updated the native-image CI workflow to run
+  `./gradlew validateDesignControlPack nativeSmoke --console=plain` on the existing GraalVM
+  Java 21 and Java 25 matrix while keeping `qualityGate` JVM-focused.
+- Added generated-validator example coverage for secure-adapter entity/resource denial.
+- Updated native, verification, coverage, CI, build, conformance, traceability, and handoff docs.
+- Verification: `./gradlew validateDesignControlPack qualityGate`,
+  `JAVA_HOME=/home/jack/.sdkman/candidates/java/21.0.2-graalce PATH=/home/jack/.sdkman/candidates/java/21.0.2-graalce/bin:$PATH ./gradlew nativeSmoke --console=plain`,
+  and `git diff --check` passed before acceptance was recorded.

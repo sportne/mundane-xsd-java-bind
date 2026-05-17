@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -31,10 +31,11 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 18. `TASK-0018`: Public generator API and CLI vertical slice. Completed and accepted.
 19. `TASK-0047`: Ad hoc ArchUnit architecture-rule hardening. Completed and accepted.
 20. `TASK-0019`: Implement the Gradle plugin vertical slice. Completed and accepted.
-21. `TASK-0020` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
-22. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
+21. `TASK-0020`: Harden Native Image and quality-gate evidence for the public vertical slice. Completed and accepted.
+22. `TASK-0021`: Draft release-readiness gate for the first public vertical slice. Not approved for implementation until `TASK-0020` is accepted.
+23. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
 
-`TASK-0019` is completed and accepted. The next draft gate is `TASK-0020`, Native Image and quality-gate hardening.
+`TASK-0020` is completed and accepted. The next draft gate is `TASK-0021`, first public vertical slice release-readiness review.
 
 ## Draft completion backlog
 
@@ -57,7 +58,7 @@ The draft backlog covers the project charter's first success milestone: CLI or G
 | `TASK-0018` | 5 | accepted | Public generator API and CLI vertical slice. |
 | `TASK-0047` | ad hoc | accepted | ArchUnit architecture-rule hardening. |
 | `TASK-0019` | 5 | accepted | Gradle plugin vertical slice. |
-| `TASK-0020` | 5 | draft | Native Image and quality-gate hardening. |
+| `TASK-0020` | 5 | accepted | Native Image and quality-gate hardening. |
 | `TASK-0021` | 5 | draft | First public vertical slice release-readiness review. |
 
 ## Post-0.1.0 draft vertical-slice backlog
@@ -94,7 +95,7 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0020` remains draft. Before implementation, review and promote the task card for Native Image and quality-gate hardening. The implementation must preserve:
+`TASK-0021` remains draft. Before implementation, review and promote the task card for the first public vertical slice release-readiness review. The implementation must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
 - `TASK-0015` generated readers are the accepted source-emission baseline for constructing generated models from `runtime-core` `XmlEventReader` input.
@@ -102,5 +103,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 - `TASK-0017` accepted representative purchase-order and multi-namespace round-trip examples, selected conformance fixtures, and example Native Image smoke evidence.
 - `TASK-0018` accepted the public generator API and CLI vertical slice only; `TASK-0019` is the first approved place to add Gradle plugin behavior after its gate is promoted.
 - `TASK-0019` accepted the public Gradle plugin id `io.github.mundanej.mxjb`, `mxjb` extension, and cacheable `generateMxjbSources` task backed by the public generator pipeline.
+- `TASK-0020` accepted the root `nativeSmoke` aggregate and native CI command
+  `./gradlew validateDesignControlPack nativeSmoke --console=plain` while keeping `qualityGate`
+  JVM-focused.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

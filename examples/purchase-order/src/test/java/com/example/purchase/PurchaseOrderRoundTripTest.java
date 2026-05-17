@@ -102,6 +102,23 @@ final class PurchaseOrderRoundTripTest {
     assertEquals("MXJB-GR-006", result.errors().get(0).code());
   }
 
+  @Test
+  void generatedXmlValidatorRejectsEntityReferenceThroughSecureAdapter() throws XMLStreamException {
+    String xml =
+        """
+        <!DOCTYPE order [<!ENTITY externalId SYSTEM "https://example.invalid/id.txt">]>
+        <p:order xmlns:p="urn:purchase">
+          <p:id>&externalId;</p:id>
+          <p:line><p:sku>SKU-1</p:sku><p:quantity>2</p:quantity></p:line>
+        </p:order>
+        """;
+
+    ValidationResult result = OrderXmlValidator.validate(readerFor(xml));
+
+    assertFalse(result.isValid());
+    assertEquals("MXJB-JDKXML-R-001", result.errors().get(0).code());
+  }
+
   private static Order readXml(String xml) throws XMLStreamException, XmlReadException {
     return OrderXmlReader.read(readerFor(xml));
   }

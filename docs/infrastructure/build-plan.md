@@ -33,6 +33,7 @@ Contributor-facing setup instructions live in `docs/build/README.md`. This file 
 - `designControlStatus` remains as a compatibility alias.
 - `checkAll` runs checks for every included project.
 - `qualityGate` is the local and CI quality gate.
+- `nativeSmoke` is the GraalVM Native Image smoke aggregate and remains separate from `qualityGate`.
 - `printPublishedArtifacts` prints planned Maven coordinates.
 - `printOfflineBuildInstructions` explains the offline build path.
 
