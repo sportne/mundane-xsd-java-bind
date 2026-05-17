@@ -4,7 +4,13 @@ Optional adapters for JDK XML APIs.
 
 ## Current status
 
-Scaffold only. This module may adapt JDK `java.xml` types to `runtime-core` abstractions, but generated code must not require it.
+This module adapts JDK StAX `java.xml` types to `runtime-core` abstractions, but generated code must not require it.
+
+Public entry points:
+
+- `JdkXmlAdapters.secureInputFactory()` creates an `XMLInputFactory` with DTD and external entity support disabled and a resolver that denies external XML resources by default.
+- `JdkXmlAdapters.eventReader(XMLStreamReader)` adapts StAX input to `XmlEventReader`.
+- `JdkXmlAdapters.output(XMLStreamWriter)` adapts StAX output to `XmlOutput`.
 
 ## Contributor notes
 

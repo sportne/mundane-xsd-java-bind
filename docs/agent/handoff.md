@@ -24,10 +24,11 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 11. `TASK-0011`: Implement deterministic generated Java model source emission. Completed and accepted.
 12. `TASK-0012`: Implement deterministic generated XML writer source emission. Completed and accepted.
 13. `TASK-0013`: Implement generated-source verification harness, golden fixtures, JVM smoke, and generated-code Native Image smoke. Completed and accepted.
-14. `TASK-0014` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
-15. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
+14. `TASK-0014`: Implement `runtime-jdkxml` adapters for generated-code tests and examples. Completed and accepted.
+15. `TASK-0015` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
+16. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
 
-`TASK-0014` is the next draft task, but it is not approved for implementation until the JDK XML adapter scope is reviewed and explicitly promoted.
+`TASK-0015` is the next draft task, but it is not approved for implementation until the generated reader emitter scope is reviewed and explicitly promoted.
 
 ## Draft completion backlog
 
@@ -43,7 +44,7 @@ The draft backlog covers the project charter's first success milestone: CLI or G
 | `TASK-0011` | 3 | accepted | Generated immutable Java model source emission. |
 | `TASK-0012` | 3 | accepted | Generated XML writer source emission. |
 | `TASK-0013` | 3 | accepted | Generated-source compile, golden, determinism, JVM smoke, and Native Image smoke harness. |
-| `TASK-0014` | 4 | draft | JDK XML adapters for generated-code tests and examples. |
+| `TASK-0014` | 4 | accepted | JDK XML adapters for generated-code tests and examples. |
 | `TASK-0015` | 4 | draft | Generated XML reader source emission. |
 | `TASK-0016` | 4 | draft | Basic generated validation and diagnostics. |
 | `TASK-0017` | 4 | draft | Round-trip examples and conformance fixture expansion. |
@@ -86,8 +87,9 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Next implementation gate
 
-Implementation for `TASK-0014` remains blocked until it is promoted from draft to approved. The next readiness review should confirm:
+Implementation for `TASK-0015` remains blocked until it is promoted from draft to approved. The next readiness review should confirm:
 
-- `TASK-0013` generated-source harness is the accepted reusable compile/golden/determinism/native-smoke baseline.
-- `TASK-0014` must add adapter behavior only in `runtime-jdkxml` and tests/examples; it must not add XML reader generation, validation engine behavior, public generator API, CLI behavior, or Gradle plugin behavior.
-- Generated-code Native Image smoke passes with SDKMAN GraalVM CE 21.0.2 when run with explicit `JAVA_HOME` and `PATH`; later round-trip lanes should reuse the generated-source harness instead of introducing separate native smoke mechanics.
+- `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
+- `TASK-0015` must add generated XML reader source emission only; it must not add validation engine behavior, public generator API, CLI behavior, or Gradle plugin behavior.
+- Generated readers must continue to target `runtime-core` `XmlEventReader`, diagnostics, names, and locations directly; `runtime-jdkxml` remains optional adapter infrastructure.
+- Later round-trip lanes should reuse the generated-source harness and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

@@ -20,4 +20,12 @@ Generated writer source emitted by `TASK-0012` targets `XmlOutput` and `XmlName`
 
 ## `runtime-jdkxml`
 
-Optional adapter module that may bridge JDK StAX/JAXP to `runtime-core` interfaces. Generated code must not require this module; it is a convenience adapter.
+Optional adapter module that bridges JDK StAX to `runtime-core` interfaces. Generated code must not require this module; it is a convenience adapter for tests, examples, and user code.
+
+Active public concepts:
+
+- `JdkXmlAdapters.secureInputFactory()`: creates a JDK StAX input factory with DTD and external entity support disabled and external XML resources denied by default.
+- `JdkXmlAdapters.eventReader(XMLStreamReader)`: adapts a StAX reader to `XmlEventReader`.
+- `JdkXmlAdapters.output(XMLStreamWriter)`: adapts a StAX writer to `XmlOutput`.
+
+The adapter maps StAX element, text, document, and end events to the project event model and preserves best-effort StAX location data. Writer adapters assign deterministic namespace prefixes for non-empty namespace URIs. Adapter diagnostics use stable `MXJB-JDKXML-*` codes and wrap the original JDK XML exception.
