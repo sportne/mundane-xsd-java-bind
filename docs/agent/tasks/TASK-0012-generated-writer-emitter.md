@@ -1,6 +1,6 @@
 # TASK-0012: generated-writer-emitter
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0012`
 Gate: Phase 3 generated model and writer vertical slice; starts only after `TASK-0011` is accepted.
@@ -23,3 +23,11 @@ Rollback notes: revert writer emitter source, tests, fixtures, golden files, and
 - Native Image: generated writers must be reflection-free and statically reachable.
 - Security: writers must not perform resource access.
 - Documentation: conformance status may move only for writer scenarios with tests.
+
+## Accepted Evidence
+
+- `GeneratedWriterEmitter` emits one deterministic public final root writer class per accepted `BindingRootElement`, sorted by root XML name.
+- Generated writer source uses the root static API: `<RootTypeSimpleName>XmlWriter.write(XmlOutput output, RootType value) throws XmlWriteException`.
+- Writer classes are generated under `<model-package>.xml`, use private static helpers for nested complex types, write attributes before child elements, preserve sequence element order, skip empty `Optional` values, and iterate repeated values in source list order.
+- Generated writer behavior tests compile generated model and writer source under Java 21 with `-Xlint:all -Werror` and verify emitted `XmlOutput` events for attributes, optional elements, repeated elements, nested complex types, and cross-package model references.
+- Binding diagnostics and unsupported writer models return diagnostics without partial writer source.

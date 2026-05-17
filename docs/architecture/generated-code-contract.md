@@ -25,6 +25,18 @@ The first generated-model emitter supports data-structure record candidates only
 - Supported scalar mappings are `xs:string` to `String`, `xs:boolean` to `Boolean`, `xs:int` to `Integer`, `xs:integer` to `BigInteger`, `xs:long` to `Long`, and `xs:decimal` to `BigDecimal`.
 - Generated model source contains no binding annotations, XML reader/writer behavior, validation methods, reflection, ServiceLoader, or classpath scanning.
 
+## `TASK-0012` writer source shape
+
+The first generated-writer emitter supports root static XML writers for supported data-structure record models.
+
+- One public final writer class is emitted per root element in `<model-package>.xml`, named `<RootTypeSimpleName>XmlWriter`.
+- The public writer entry point is `public static void write(XmlOutput output, RootType value) throws XmlWriteException`.
+- Writer classes have private constructors, static `XmlName` constants, and private static helper methods for nested complex types.
+- Writers require non-null `output` and root `value`, write attributes immediately after `startElement`, write child elements in binding order, skip empty `Optional` values, and iterate repeated fields in list order.
+- Scalar lexical conversion uses the string value directly for `String` and `String.valueOf(...)` for non-string scalar values.
+- Generated writer source uses fully qualified names for generated model types, `java.util.Objects`, and `runtime-core` `XmlName`, `XmlOutput`, and `XmlWriteException` to avoid import collisions with schema-derived model names.
+- Generated writer source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML reader behavior, validation behavior, or external resource access.
+
 ## Package layout example
 
 ```text
@@ -35,9 +47,8 @@ com.example.invoice
   InvoiceChoice.java
 
 com.example.invoice.xml
-  InvoiceXml.java
-  InvoiceXmlReader.java
   InvoiceXmlWriter.java
+  InvoiceXmlReader.java
   InvoiceXmlValidator.java
   InvoiceSchema.java
 

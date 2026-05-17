@@ -25,4 +25,6 @@ publishing {
 dependencies {
     // api means consumers of generator-core also see the public generator API types.
     api project(':modules:generator-api')
+    // Generated writer compile/behavior tests use the public runtime XML output interfaces.
+    testImplementation project(':modules:runtime-core')
 }

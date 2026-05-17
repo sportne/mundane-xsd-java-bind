@@ -16,6 +16,8 @@ Active public concepts:
 
 `runtime-core` remains dependency-free and parser-neutral. It defines generated-code-facing values and interfaces only; it does not parse XML, adapt JDK XML APIs, generate code, or validate documents by itself.
 
+Generated writer source emitted by `TASK-0012` targets `XmlOutput` and `XmlName` directly. Concrete XML serialization, namespace prefix assignment, and adapter behavior remain outside `runtime-core`; generated writers operate only on expanded names and scalar text values.
+
 ## `runtime-jdkxml`
 
 Optional adapter module that may bridge JDK StAX/JAXP to `runtime-core` interfaces. Generated code must not require this module; it is a convenience adapter.
