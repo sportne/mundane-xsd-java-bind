@@ -26,7 +26,8 @@ final class GeneratorCoreArchitectureTest {
   static final ArchRule resolver_code_avoids_dynamic_runtime_mechanisms =
       noClasses()
           .that()
-          .resideInAnyPackage("..bind..", "..resolver..", "..schema..", "..diagnostics..")
+          .resideInAnyPackage(
+              "..bind..", "..emit..", "..resolver..", "..schema..", "..diagnostics..")
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage("java.lang.reflect..")

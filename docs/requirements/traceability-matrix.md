@@ -15,10 +15,10 @@
 | `REQ-SCHEMA-007` | `ADR-0006`, `ADR-0008` | `generated-code-contract.md`, `conformance/matrix.md` | `TASK-0007` profile-gated unsupported diagnostics until approved | deferred |
 | `REQ-RES-001` | `ADR-0014` | `security-architecture.md`, `compiler-pipeline.md` | `TASK-0006` local resolver and catalog tests | accepted |
 | `REQ-SEC-001` | `ADR-0014` | `security-architecture.md` | `TASK-0006` denied-network and cycle tests | accepted |
-| `REQ-NS-001` | `ADR-0009` | `compiler-pipeline.md`, `generated-code-contract.md` | `TASK-0008` QName/namespace IR tests; `TASK-0009` namespace-to-package binding tests; later public binding config tests | accepted |
-| `REQ-GEN-001` | `ADR-0008` | `compiler-pipeline.md` | `TASK-0009` deterministic binding tests; later golden source tests | accepted |
-| `REQ-GEN-002` | `ADR-0008`, `ADR-0011` | `generated-code-contract.md`, `build-plan.md` | Compile and static-analysis tests | accepted |
-| `REQ-MODEL-001` | `ADR-0008` | `generated-code-contract.md` | `TASK-0009` record-candidate binding tests; later source and behavior tests | accepted |
+| `REQ-NS-001` | `ADR-0009` | `compiler-pipeline.md`, `generated-code-contract.md` | `TASK-0008` QName/namespace IR tests; `TASK-0009` namespace-to-package binding tests; `TASK-0011` package/path and cross-package model reference tests; later public binding config tests | accepted |
+| `REQ-GEN-001` | `ADR-0008` | `compiler-pipeline.md` | `TASK-0009` deterministic binding tests; `TASK-0011` deterministic generated model source tests; later writer/reader golden source tests | accepted |
+| `REQ-GEN-002` | `ADR-0008`, `ADR-0011` | `generated-code-contract.md`, `build-plan.md` | `TASK-0011` generated model compile tests and generator-core static-analysis checks; later generated-source harness tests | accepted |
+| `REQ-MODEL-001` | `ADR-0008` | `generated-code-contract.md` | `TASK-0009` record-candidate binding tests; `TASK-0011` generated record source and behavior tests; later source and behavior tests for non-record shapes | accepted |
 | `REQ-XML-W-001` | `ADR-0005`, `ADR-0009` | `runtime-architecture.md`, `generated-code-contract.md` | `TASK-0010` `XmlOutput` interface tests; later generated XML output tests | accepted |
 | `REQ-XML-R-001` | `ADR-0005`, `ADR-0007` | `runtime-architecture.md`, `validation-architecture.md` | `TASK-0010` `XmlEventReader` interface tests; later generated XML input tests | accepted |
 | `REQ-VAL-001` | `ADR-0007` | `validation-architecture.md` | `TASK-0010` runtime diagnostic and validation result tests; later negative XML diagnostic tests | accepted |

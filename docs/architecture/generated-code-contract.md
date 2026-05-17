@@ -15,6 +15,16 @@ Generated source must be production-quality Java.
 9. Do not rely on classpath scanning or ServiceLoader in generated runtime paths.
 10. Generated source must pass formatting and static analysis.
 
+## `TASK-0011` model source shape
+
+The first generated-model emitter supports data-structure record candidates only.
+
+- Required fields are non-null reference types and compact constructors call `Objects.requireNonNull`.
+- Optional fields are `Optional<T>` values and the `Optional` reference itself must be non-null.
+- Repeated fields are `List<T>` values and compact constructors assign `List.copyOf(Objects.requireNonNull(...))`.
+- Supported scalar mappings are `xs:string` to `String`, `xs:boolean` to `Boolean`, `xs:int` to `Integer`, `xs:integer` to `BigInteger`, `xs:long` to `Long`, and `xs:decimal` to `BigDecimal`.
+- Generated model source contains no binding annotations, XML reader/writer behavior, validation methods, reflection, ServiceLoader, or classpath scanning.
+
 ## Package layout example
 
 ```text

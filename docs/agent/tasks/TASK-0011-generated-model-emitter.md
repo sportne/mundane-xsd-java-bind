@@ -1,6 +1,6 @@
 # TASK-0011: generated-model-emitter
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0011`
 Gate: Phase 3 generated model and writer vertical slice; starts only after `TASK-0010` is accepted.
@@ -23,3 +23,10 @@ Rollback notes: revert model emitter source, tests, fixtures, golden files, and 
 - Native Image: generated models must not require reflection metadata.
 - Security: no XML or external resource access is added.
 - Documentation: golden outputs are allowed only as approved test artifacts.
+
+## Accepted Evidence
+
+- `GeneratedModelEmitter` emits one deterministic Java 21 record source file per supported binding type.
+- Generated model records use required reference fields, `Optional<T>` for optional fields, `List<T>` with defensive copies for repeated fields, and scalar mappings documented in the generated-code contract.
+- Emitter tests cover deterministic output, field ordering, cross-package references, inherited Java names, generated source compilation, repeated-field defensive copies, optional/list null invariants, binding diagnostic propagation, and unsupported emission diagnostics with no partial source.
+- Generator-core architecture tests include the emitter package in the no-dynamic-runtime-mechanism rule.
