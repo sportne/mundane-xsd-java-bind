@@ -24,3 +24,5 @@ Native Image checks are not part of the default `qualityGate` while there is no 
 ## Failure policy
 
 A Native Image failure caused by reflection, resource lookup, proxy generation, serialization metadata, or classpath scanning must be treated as an architecture issue unless explicitly approved by ADR.
+
+JVM-only verification tools, such as architecture-analysis engines, should remain in the normal JVM `check` lane and must not be required inside native smoke executables unless the tool itself is part of the supported runtime surface.

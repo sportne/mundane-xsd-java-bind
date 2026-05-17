@@ -1,4 +1,8 @@
 // This plugin configures GraalVM Native Image checks for modules that need native compatibility.
+import org.graalvm.buildtools.gradle.tasks.BuildNativeImageTask
+import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.tasks.bundling.Jar
+
 plugins {
     // Adds native image build and test tasks.
     id 'org.graalvm.buildtools.native'
@@ -7,15 +11,66 @@ plugins {
 graalvmNative {
     // Let the plugin locate a usable GraalVM toolchain when possible.
     toolchainDetection = true
+    metadataRepository {
+        // Runtime and generated-code paths are intentionally dependency-light. Keep native tests focused
+        // on this project's code instead of external reachability metadata repository compatibility.
+        enabled = false
+    }
     binaries {
         // Configure the native test binary.
         test {
             // quickBuild trades peak optimization for faster CI feedback.
             quickBuild = true
+            // Use the filtered test classpath jar configured below for native smoke execution.
+            useFatJar = true
             // --no-fallback fails instead of producing a slower JVM fallback executable.
             buildArgs.add('--no-fallback')
             // More stack trace detail makes native-image failures easier to understand.
             buildArgs.add('-H:+ReportExceptionStackTraces')
         }
+    }
+}
+
+tasks.withType(BuildNativeImageTask).configureEach {
+    // The GraalVM plugin still wires a metadata service provider even when the repository is disabled.
+    // Set the task inputs directly so native tests do not resolve the external metadata repository.
+    metadataRepositoryEnabled = false
+    metadataRepositoryRootPath = ''
+    doFirst {
+        // Native smoke tests should execute runtime behavior, not JVM-only architecture-analysis engines.
+        testListDirectory.get().asFileTree.matching {
+            include '**/junit-platform-unique-ids*.txt'
+        }.files.each { testList ->
+            def runtimeTestIds = testList.readLines('UTF-8')
+                .findAll { !it.startsWith('[engine:archunit]') }
+            testList.write(runtimeTestIds.join(System.lineSeparator()) + System.lineSeparator(), 'UTF-8')
+        }
+    }
+}
+
+tasks.named('nativeTestCompileClasspathJar', Jar).configure {
+    // ArchUnit is a JVM architecture-test engine, not runtime behavior to prove in Native Image.
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    eachFile { fileCopyDetails ->
+        if (fileCopyDetails.path.startsWith('com/tngtech/archunit/')
+            || fileCopyDetails.path.endsWith('/RuntimeArchitectureTest.class')
+            || fileCopyDetails.path == 'io/github/mundanej/mxjb/runtime/RuntimeArchitectureTest.class') {
+            fileCopyDetails.exclude()
+        }
+        // The fat native-test classpath jar has one TestEngine service file; make it Jupiter-only.
+        if (fileCopyDetails.path == 'META-INF/services/org.junit.platform.engine.TestEngine'
+            && !fileCopyDetails.file.path.contains('junit-jupiter-service')) {
+            fileCopyDetails.exclude()
+        }
+    }
+    def jupiterServiceFile = layout.buildDirectory.file(
+        'native/generated/junit-jupiter-service/org.junit.platform.engine.TestEngine')
+    doFirst {
+        def serviceFile = jupiterServiceFile.get().asFile
+        serviceFile.parentFile.mkdirs()
+        serviceFile.text = 'org.junit.jupiter.engine.JupiterTestEngine' + System.lineSeparator()
+    }
+    from(jupiterServiceFile) {
+        into 'META-INF/services'
     }
 }

@@ -4,10 +4,16 @@ Runtime core API and primitives; no third-party dependencies.
 
 ## Current status
 
-Scaffold only. No XML binding implementation behavior belongs here until the design-control gate allows it.
+`TASK-0010` runtime primitives are implemented. This module exposes dependency-free values and interfaces for generated bindings:
+
+- XML names, locations, diagnostics, and checked read/write exceptions.
+- Pull-style XML event reader and output interfaces.
+- Validation error and result values.
+
+No parser adapter, XML reader/writer implementation, validation engine, generated source, CLI behavior, or Gradle plugin behavior belongs in this module.
 
 ## Contributor notes
 
 - Keep generated-code runtime paths dependency-free.
-- Add package documentation for every public package.
-- Update architecture, requirements, and verification docs before adding behavior.
+- Keep `runtime-core` parser-neutral; JDK XML adapters belong in `runtime-jdkxml`.
+- Keep public runtime concepts documented before generated code depends on them.

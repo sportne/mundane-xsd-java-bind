@@ -1,6 +1,6 @@
 # TASK-0009: binding-model-planning
 
-Status: approved.
+Status: accepted.
 
 Task ID: `TASK-0009`
 Gate: Phase 2 schema compiler vertical slice; starts only after `TASK-0008` is accepted.

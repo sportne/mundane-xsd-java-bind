@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, and active generator-core coverage enforcement are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, active generator-core coverage enforcement, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -19,11 +19,12 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 6. `TASK-0006`: Implement the schema resource-resolution vertical slice in `generator-core`. Completed and accepted.
 7. `TASK-0007`: Implement the XSD syntax frontend subset in `generator-core`. Completed and accepted.
 8. `TASK-0008`: Implement the component graph and normalized IR in `generator-core`. Completed and accepted.
-9. `TASK-0009`: Implement binding model planning for names, packages, fields, and validation shape. Approved current task.
-10. `TASK-0010` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
-11. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
+9. `TASK-0009`: Implement binding model planning for names, packages, fields, and validation shape. Completed and accepted.
+10. `TASK-0010`: Implement `runtime-core` public primitives and XML event/output interfaces. Completed and accepted.
+11. `TASK-0011` through `TASK-0021`: Draft backlog for the first public vertical slice. Not approved for implementation until each prior gate is accepted.
+12. `TASK-0022` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task is accepted.
 
-`TASK-0009` may build on normalized schema IR to produce an internal binding model. It must not implement Java source emission, runtime primitives, XML readers, XML writers, validation behavior, public generator API, CLI behavior, or Gradle plugin behavior.
+`TASK-0011` is the next draft task, but it is not approved for implementation until the generated-model emitter scope is reviewed and explicitly promoted.
 
 ## Draft completion backlog
 
@@ -34,8 +35,8 @@ The draft backlog covers the project charter's first success milestone: CLI or G
 | `TASK-0006` | 2 | accepted | Schema resource resolution and resolved-schema manifest. |
 | `TASK-0007` | 2 | accepted | XSD syntax frontend for the supported data-structure subset. |
 | `TASK-0008` | 2 | accepted | Component graph, QName resolution, and normalized schema IR. |
-| `TASK-0009` | 2 | approved | Binding model planning for names, packages, fields, and validation shape. |
-| `TASK-0010` | 3 | draft | `runtime-core` public primitives and XML event/output interfaces. |
+| `TASK-0009` | 2 | accepted | Binding model planning for names, packages, fields, and validation shape. |
+| `TASK-0010` | 3 | accepted | `runtime-core` public primitives and XML event/output interfaces. |
 | `TASK-0011` | 3 | draft | Generated immutable Java model source emission. |
 | `TASK-0012` | 3 | draft | Generated XML writer source emission. |
 | `TASK-0013` | 3 | draft | Generated-source compile, golden, and determinism harness. |
@@ -80,16 +81,10 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0045` | 0.6.0 | draft | Release engineering and publication readiness. |
 | `TASK-0046` | 0.6.0 | draft | Hardening and release maturity readiness review. |
 
-## Implementation unlock criteria
+## Next implementation gate
 
-Implementation for `TASK-0009` may begin because:
+Implementation for `TASK-0011` remains blocked until it is promoted from draft to approved. The next readiness review should confirm:
 
-- Design-Control Pack v0.1 scaffold acceptance is recorded through the completed scaffold tasks.
-- Build scaffold sanity tasks pass.
-- ADRs are approved.
-- Phase-one requirement IDs are accepted, except deferred `REQ-SCHEMA-007`.
-- `TASK-0008` component graph and normalized IR implementation is accepted as the schema IR baseline.
-- Generator-core coverage enforcement is active for implemented production classes.
-- Branding and root package identity are settled before binding and generated package decisions expand.
-- Native Image trigger points are documented for the first meaningful runtime and generated-code executable surfaces.
-- `TASK-0009` is approved for scoped internal binding-model implementation.
+- `TASK-0010` runtime primitives are the accepted runtime baseline for generated model and writer work.
+- `TASK-0011` must not add XML reader/writer generation, validation engine behavior, public generator API, CLI behavior, or Gradle plugin behavior.
+- Native Image verification for runtime primitives passes with SDKMAN GraalVM CE 21.0.2 when run with explicit `JAVA_HOME` and configuration cache disabled. Later generated-code native lanes should keep JVM-only architecture-analysis engines outside native smoke executables.
