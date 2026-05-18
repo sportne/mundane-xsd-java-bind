@@ -97,8 +97,8 @@ flattening, and `TASK-0030` records readiness evidence for the composed slice.
 
 `TASK-0031` defines planned verification for `XP-XSD10-SEMANTIC`. `TASK-0032` adds implementation
 evidence for the accepted nillable/default/fixed subset; `TASK-0033` adds implementation evidence
-for the accepted direct substitution-group subset; remaining semantic implementation evidence
-belongs to `TASK-0034`, and readiness evidence belongs to `TASK-0035`.
+for the accepted direct substitution-group subset; `TASK-0034` adds expanded semantic validation
+evidence for the accepted `0.4.0` behavior; readiness evidence belongs to `TASK-0035`.
 
 - Nillable/default/fixed support: `T-SEMANTIC-NIL-*`, `T-SEMANTIC-DEFAULT-*`, and
   `T-SEMANTIC-FIXED-*` frontend, IR, binding, generated source, reader/writer/validator,
@@ -108,8 +108,9 @@ belongs to `TASK-0034`, and readiness evidence belongs to `TASK-0035`.
   reader/writer/validator, graph diagnostics, unsupported diagnostics, conformance, interop
   comparisons, and generated-code smoke coverage are executable `TASK-0033` evidence.
 - Semantic validation: `T-SEMANTIC-VALIDATION-*` generated validation source, object/XML validation,
-  diagnostic ordering, fixed-value checks, nil-content checks, substitution dispatch diagnostics,
-  conformance, and interop comparisons.
+  diagnostic ordering, fixed-value checks, nil-content checks, substitution branch validation,
+  unsupported validation-category diagnostics, conformance, and interop comparisons are executable
+  `TASK-0034` evidence.
 - Semantic conformance/interop: `T-CONF-XP-XSD10-SEMANTIC-*` and `T-INTEROP-SEMANTIC-*` fixtures
   should include positive and negative cases compared against JDK XML Schema validation where
   practical.

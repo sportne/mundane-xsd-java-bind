@@ -1,5 +1,6 @@
 package io.github.mundanej.mxjb.conformance;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -71,6 +72,39 @@ final class XpXsd10SemanticConformanceTest {
       assertTrue(validResult.isValid());
       assertFalse(invalidResult.isValid());
       assertFalse(invalidResult.errors().isEmpty());
+    }
+  }
+
+  @Test
+  void semanticValidationFixturesReportDeterministicGeneratedDiagnostics()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema();
+    String nilContentXml = resource("/xp-xsd10-semantic/semantic-nil-content-invalid.xml");
+    String fixedMismatchXml = resource("/xp-xsd10-semantic/semantic-fixed-invalid.xml");
+
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(nilContentXml))));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(fixedMismatchXml))));
+
+    try (CompiledGeneratedSemanticBindings bindings = generateAndCompileSemanticBindings()) {
+      Class<?> validatorClass = bindings.load("com.example.semantic.xml.OrderXmlValidator");
+
+      ValidationResult nilResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(nilContentXml));
+      ValidationResult fixedResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(fixedMismatchXml));
+
+      assertEquals(List.of("MXJB-GR-009"), codes(nilResult));
+      assertEquals(List.of("MXJB-GR-008"), codes(fixedResult));
     }
   }
 
@@ -206,6 +240,10 @@ final class XpXsd10SemanticConformanceTest {
         XpXsd10SemanticConformanceTest.class.getResourceAsStream(resourceName)) {
       return new String(input.readAllBytes(), StandardCharsets.UTF_8);
     }
+  }
+
+  private List<String> codes(ValidationResult result) {
+    return result.errors().stream().map(error -> error.code()).toList();
   }
 
   private record CompiledGeneratedSemanticBindings(URLClassLoader loader) implements AutoCloseable {

@@ -1,6 +1,6 @@
 # TASK-0034: expanded-validation-semantics
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0034`
 Gate: `0.4.0` XSD 1.0 Semantic Expansion; starts only after `TASK-0033` is accepted.
@@ -39,3 +39,24 @@ Rollback notes: revert validation implementation, tests, fixtures, golden output
 - Reject identity constraints, XSD 1.1 assertions, wildcards, mixed content, full datatype
   semantics, full derivation semantics, and unsupported validation categories with deterministic
   schema diagnostics rather than partial runtime behavior.
+
+## Acceptance Evidence
+
+- Added `T-SEMANTIC-VALIDATION-*` generator-core coverage for deterministic semantic object
+  diagnostics, nil-content XML diagnostics, fixed-value XML diagnostics, and substitution branch
+  value recursion through generated validators.
+- Added CoreGenerator coverage proving unsupported semantic validation categories fail with
+  deterministic schema diagnostics and no generated output for wildcards, mixed content, XSD 1.1
+  assertions, identity constraints, unsupported scalar datatypes, and unsupported complex
+  restriction.
+- Extended `xp-xsd10-semantic` conformance fixtures with isolated nil-content and fixed-value
+  negative XML compared against JDK XML Schema validation and generated validation diagnostics.
+- Extended generated-code smoke coverage for invalid semantic nil-content XML and invalid
+  substitution branch XML while preserving reflection-free generated validation paths.
+- Verification:
+  `./gradlew :modules:generator-core:check :modules:conformance-tests:check --console=plain`
+  passed; `./gradlew validateDesignControlPack qualityGate --console=plain` passed; `git diff
+  --check` passed.
+- Native Image: `./gradlew :modules:generator-core:generatedCodeNativeSmoke --console=plain`
+  was attempted and blocked before native compilation because `native-image` was not found on
+  `PATH` and `JAVA_HOME` does not point to a GraalVM installation with `native-image`.

@@ -1,0 +1,7 @@
+<order xmlns="urn:semantic"
+    xmlns:sem="urn:semantic"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    sem:version="2">
+  <code xsi:nil="true"/>
+  <kind>STANDARD</kind>
+</order>

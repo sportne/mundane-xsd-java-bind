@@ -16,6 +16,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingSimpleRestriction;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
 import io.github.mundanej.mxjb.generator.core.bind.BindingValidationPlan;
+import io.github.mundanej.mxjb.generator.core.bind.BindingValueSemantics;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
@@ -311,6 +312,100 @@ final class GeneratedValidatorEmitterTest {
   }
 
   @Test
+  void generatedValidatorReportsSemanticValidationInDeterministicOrder()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = semanticValidationOrderModel();
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.SemanticOrder");
+      Class<?> validatorClass =
+          compiledSources.load("com.example.orders.xml.SemanticOrderXmlValidator");
+      Object valid =
+          orderClass
+              .getConstructor(String.class, String.class, Optional.class)
+              .newInstance("NEW", "1", Optional.empty());
+      Object invalid =
+          orderClass
+              .getConstructor(String.class, String.class, Optional.class)
+              .newInstance("BAD", "2", Optional.of("A-1"));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult invalidResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, invalid);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-004", "MXJB-GV-009"), codes(invalidResult));
+      assertEquals(
+          List.of(
+              "Value is not in the accepted enumeration.", "Value does not match the fixed value."),
+          invalidResult.errors().stream().map(ValidationError::message).toList());
+      assertEquals(XmlLocation.UNKNOWN, invalidResult.errors().getFirst().location());
+    }
+  }
+
+  @Test
+  void generatedValidatorConvertsSemanticXmlReaderDiagnosticsWithLocations()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = semanticValidationOrderModel();
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> validatorClass =
+          compiledSources.load("com.example.orders.xml.SemanticOrderXmlValidator");
+
+      assertXmlValidationDiagnostic(validatorClass, semanticNilContentInput(), "MXJB-GR-009");
+      assertXmlValidationDiagnostic(validatorClass, semanticFixedMismatchInput(), "MXJB-GR-008");
+    }
+  }
+
+  @Test
+  void generatedValidatorRecursesIntoSubstitutionBranchValues()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = substitutionValidationOrderModel();
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.SubstitutionOrder");
+      Class<?> cardPaymentClass = compiledSources.load("com.example.orders.CardPayment");
+      Class<?> branchClass = compiledSources.load("com.example.orders.CardPaymentBranch");
+      Class<?> validatorClass =
+          compiledSources.load("com.example.orders.xml.SubstitutionOrderXmlValidator");
+      Object branch =
+          branchClass
+              .getConstructor(cardPaymentClass)
+              .newInstance(cardPaymentClass.getConstructor(String.class).newInstance("42"));
+      Object order = orderClass.getConstructor(Optional.class).newInstance(Optional.of(branch));
+
+      ValidationResult result =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+
+      assertEquals(List.of("MXJB-GV-005"), codes(result));
+      assertEquals(
+          List.of("Value length is outside the accepted range."),
+          result.errors().stream().map(ValidationError::message).toList());
+    }
+  }
+
+  @Test
   void emitsDeterministicSourcesSortedByRootName() {
     BindingModel model =
         new BindingModel(
@@ -449,6 +544,71 @@ final class GeneratedValidatorEmitterTest {
                 List.of(field("element", "country", scalar("string"), required(), 1)))));
   }
 
+  private BindingModel semanticValidationOrderModel() {
+    return new BindingModel(
+        List.of(root("semanticOrder", model("com.example.orders.SemanticOrder"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "SemanticOrder",
+                List.of(
+                    field(
+                        "attribute",
+                        "status",
+                        restrictedStatus(),
+                        required(),
+                        0,
+                        new BindingValueSemantics(false, "NEW", null)),
+                    field(
+                        "attribute",
+                        "version",
+                        scalar("string"),
+                        required(),
+                        1,
+                        new BindingValueSemantics(false, null, "1")),
+                    field(
+                        "element",
+                        "code",
+                        scalar("string"),
+                        required(),
+                        2,
+                        new BindingValueSemantics(true, null, null))))));
+  }
+
+  private BindingModel substitutionValidationOrderModel() {
+    BindingJavaName choiceName = new BindingJavaName("com.example.orders", "PaymentSubstitution");
+    BindingChoice choice =
+        new BindingChoice(
+            choiceName,
+            List.of(
+                new BindingChoiceBranch(
+                    schemaName("cardPayment"),
+                    "cardPayment",
+                    model("com.example.orders.CardPayment"),
+                    new BindingJavaName("com.example.orders", "CardPaymentBranch"))),
+            "substitution");
+    return new BindingModel(
+        List.of(root("substitutionOrder", model("com.example.orders.SubstitutionOrder"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "SubstitutionOrder",
+                List.of(
+                    new BindingField(
+                        "choice",
+                        schemaName("payment"),
+                        "payment",
+                        new BindingTypeReference("choice", choiceName.qualifiedName()),
+                        optional(),
+                        1,
+                        false,
+                        choice))),
+            type(
+                "com.example.orders",
+                "CardPayment",
+                List.of(field("element", "cardLast4", fixedLengthString(4), required(), 1)))));
+  }
+
   private EventXmlReader orderInput() {
     return reader(
         event(XmlEventKind.START_DOCUMENT, null),
@@ -533,6 +693,39 @@ final class GeneratedValidatorEmitterTest {
         event(XmlEventKind.END_DOCUMENT, null));
   }
 
+  private EventXmlReader semanticNilContentInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(
+            XmlEventKind.START_ELEMENT,
+            new XmlName("urn:orders", "semanticOrder"),
+            Map.of(new XmlName("urn:orders", "version"), "1")),
+        event(
+            XmlEventKind.START_ELEMENT,
+            new XmlName("urn:orders", "code"),
+            Map.of(new XmlName("http://www.w3.org/2001/XMLSchema-instance", "nil"), "true")),
+        text("not-empty"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "code")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "semanticOrder")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader semanticFixedMismatchInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(
+            XmlEventKind.START_ELEMENT,
+            new XmlName("urn:orders", "semanticOrder"),
+            Map.of(new XmlName("urn:orders", "version"), "2")),
+        event(
+            XmlEventKind.START_ELEMENT,
+            new XmlName("urn:orders", "code"),
+            Map.of(new XmlName("http://www.w3.org/2001/XMLSchema-instance", "nil"), "true")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "code")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "semanticOrder")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
   private BindingRootElement root(String localName, BindingTypeReference type) {
     return new BindingRootElement(schemaName(localName), type, required());
   }
@@ -564,6 +757,24 @@ final class GeneratedValidatorEmitterTest {
       int order) {
     return new BindingField(
         kind, xmlName, javaName, type, cardinality, order, cardinality.minOccurs() > 0);
+  }
+
+  private BindingField field(
+      String kind,
+      String localName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      BindingValueSemantics semantics) {
+    return new BindingField(
+        kind,
+        schemaName(localName),
+        localName,
+        type,
+        cardinality,
+        order,
+        cardinality.minOccurs() > 0,
+        semantics);
   }
 
   private BindingField choiceField() {
@@ -603,6 +814,22 @@ final class GeneratedValidatorEmitterTest {
         "string",
         new BindingSimpleRestriction(
             "string", List.of(), null, minLength, maxLength, null, null, List.of(pattern)));
+  }
+
+  private BindingTypeReference fixedLengthString(int length) {
+    return new BindingTypeReference(
+        "scalar",
+        "string",
+        new BindingSimpleRestriction(
+            "string", List.of(), length, null, null, null, null, List.of()));
+  }
+
+  private BindingTypeReference restrictedStatus() {
+    return new BindingTypeReference(
+        "scalar",
+        "string",
+        new BindingSimpleRestriction(
+            "string", List.of("NEW", "CLOSED"), null, null, null, null, null, List.of()));
   }
 
   private BindingTypeReference restrictedInt(String minInclusive, String maxInclusive) {

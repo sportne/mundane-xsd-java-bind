@@ -628,6 +628,106 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void semanticProfileRejectsUnsupportedValidationCategoriesWithoutWritingSources()
+      throws IOException {
+    List<String> schemas =
+        List.of(
+            unsupportedValidationSchema("<xs:any namespace=\"##other\"/>"),
+            unsupportedValidationSchema("<xs:element name=\"id\" type=\"xs:string\"/>", true),
+            unsupportedValidationSchema(
+                """
+                <xs:element name="id" type="xs:string"/>
+                <xs:assert test="true()"/>
+                """),
+            """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                xmlns:tns="urn:orders"
+                targetNamespace="urn:orders">
+              <xs:element name="order" type="tns:Order">
+                <xs:key name="orderId">
+                  <xs:selector xpath="tns:id"/>
+                  <xs:field xpath="."/>
+                </xs:key>
+              </xs:element>
+              <xs:complexType name="Order">
+                <xs:sequence>
+                  <xs:element name="id" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:schema>
+            """,
+            """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                xmlns:tns="urn:orders"
+                targetNamespace="urn:orders">
+              <xs:element name="order" type="tns:Order"/>
+              <xs:complexType name="Order">
+                <xs:sequence>
+                  <xs:element name="date" type="xs:date"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:schema>
+            """,
+            """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                xmlns:tns="urn:orders"
+                targetNamespace="urn:orders">
+              <xs:element name="order" type="tns:Order"/>
+              <xs:complexType name="Order">
+                <xs:complexContent>
+                  <xs:restriction base="tns:BaseOrder">
+                    <xs:sequence>
+                      <xs:element name="id" type="xs:string"/>
+                    </xs:sequence>
+                  </xs:restriction>
+                </xs:complexContent>
+              </xs:complexType>
+              <xs:complexType name="BaseOrder">
+                <xs:sequence>
+                  <xs:element name="id" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:schema>
+            """);
+
+    for (int index = 0; index < schemas.size(); index++) {
+      Path schema = writeSchema("bad-semantic-validation-" + index + ".xsd", schemas.get(index));
+      Path output = tempDirectory.resolve("bad-semantic-validation-" + index);
+      Path repeatOutput = tempDirectory.resolve("bad-semantic-validation-repeat-" + index);
+
+      GeneratorResult result =
+          new CoreGenerator()
+              .generate(
+                  new GeneratorRequest(
+                      List.of(schema),
+                      output,
+                      GeneratorProfile.XP_XSD10_SEMANTIC,
+                      "com.acme.generated",
+                      Map.of("urn:orders", "com.acme.orders"),
+                      List.of(),
+                      Map.of()));
+      GeneratorResult repeatResult =
+          new CoreGenerator()
+              .generate(
+                  new GeneratorRequest(
+                      List.of(schema),
+                      repeatOutput,
+                      GeneratorProfile.XP_XSD10_SEMANTIC,
+                      "com.acme.generated",
+                      Map.of("urn:orders", "com.acme.orders"),
+                      List.of(),
+                      Map.of()));
+
+      assertFalse(result.successful(), "schema " + index + " unexpectedly generated");
+      assertFalse(result.diagnostics().isEmpty(), "schema " + index + " had no diagnostics");
+      assertEquals(result.diagnostics(), repeatResult.diagnostics(), "schema " + index);
+      assertTrue(result.generatedSources().isEmpty(), "schema " + index + " wrote sources");
+      assertFalse(Files.exists(output), "schema " + index + " created output");
+      assertFalse(Files.exists(repeatOutput), "schema " + index + " created repeat output");
+    }
+  }
+
+  @Test
   void deniesNetworkResolutionAndWritesNoSources() throws IOException {
     Path schema = writeSchema("order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path output = tempDirectory.resolve("network-denied");
@@ -1000,6 +1100,27 @@ final class CoreGeneratorTest {
         """
         .replace("NILLABLE_CARDINALITY", nillableCardinality)
         .replace("STATUS_SEMANTICS", statusSemantics);
+  }
+
+  private String unsupportedValidationSchema(String sequenceContent) {
+    return unsupportedValidationSchema(sequenceContent, false);
+  }
+
+  private String unsupportedValidationSchema(String sequenceContent, boolean mixed) {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order"MIXED>
+            <xs:sequence>
+              SEQUENCE_CONTENT
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """
+        .replace("MIXED", mixed ? " mixed=\"true\"" : "")
+        .replace("SEQUENCE_CONTENT", sequenceContent);
   }
 
   private String substitutionOrderSchema(boolean repeatedHeadRef) {

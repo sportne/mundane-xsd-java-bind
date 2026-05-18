@@ -67,7 +67,8 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
   absent and preserve absent optional elements as absent rather than defaulted.
 - `TASK-0033` validates substitution group dispatch using the resolved element name and generated
   sealed branch type.
-- `TASK-0034` consolidates semantic diagnostics for accepted `0.4.0` behavior with deterministic
-  ordering and location-aware XML validation where the generated reader can preserve locations.
+- `TASK-0034` verifies deterministic semantic object diagnostics, location-aware XML diagnostics
+  for nil-content and fixed-value reader failures, substitution branch value recursion, and
+  explicit schema diagnostics for unsupported validation categories.
 - Identity constraints, wildcards, mixed content, XSD 1.1 assertions, and full XSD 1.0 validation
   semantics remain future-profile work with explicit diagnostics.

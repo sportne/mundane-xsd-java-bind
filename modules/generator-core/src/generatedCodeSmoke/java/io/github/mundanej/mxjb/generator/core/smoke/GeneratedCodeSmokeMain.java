@@ -234,14 +234,21 @@ public final class GeneratedCodeSmokeMain {
     ValidationResult invalidValidation =
         com.example.semantic.xml.OrderXmlValidator.validate(
             new com.example.semantic.Order("NEW", "2", Optional.of("A-1")));
-    if (!objectValidation.isValid() || !xmlValidation.isValid() || invalidValidation.isValid()) {
+    ValidationResult invalidXmlValidation =
+        com.example.semantic.xml.OrderXmlValidator.validate(semanticNilContentInput());
+    if (!objectValidation.isValid()
+        || !xmlValidation.isValid()
+        || invalidValidation.isValid()
+        || invalidXmlValidation.isValid()) {
       throw new AssertionError(
           "Generated-code semantic smoke validator mismatch: "
               + objectValidation.errors()
               + " / "
               + xmlValidation.errors()
               + " / "
-              + invalidValidation.errors());
+              + invalidValidation.errors()
+              + " / "
+              + invalidXmlValidation.errors());
     }
   }
 
@@ -287,12 +294,16 @@ public final class GeneratedCodeSmokeMain {
         com.example.substitution.xml.OrderXmlValidator.validate(order);
     ValidationResult xmlValidation =
         com.example.substitution.xml.OrderXmlValidator.validate(substitutionInput());
-    if (!objectValidation.isValid() || !xmlValidation.isValid()) {
+    ValidationResult invalidXmlValidation =
+        com.example.substitution.xml.OrderXmlValidator.validate(substitutionInvalidInput());
+    if (!objectValidation.isValid() || !xmlValidation.isValid() || invalidXmlValidation.isValid()) {
       throw new AssertionError(
           "Generated-code substitution smoke validator mismatch: "
               + objectValidation.errors()
               + " / "
-              + xmlValidation.errors());
+              + xmlValidation.errors()
+              + " / "
+              + invalidXmlValidation.errors());
     }
   }
 
@@ -386,6 +397,21 @@ public final class GeneratedCodeSmokeMain {
             event(XmlEventKind.END_DOCUMENT, null)));
   }
 
+  private static EventXmlReader semanticNilContentInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:semantic", "order")),
+            event(
+                XmlEventKind.START_ELEMENT,
+                new XmlName("urn:semantic", "code"),
+                Map.of(new XmlName("http://www.w3.org/2001/XMLSchema-instance", "nil"), "true")),
+            text("not-empty"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:semantic", "code")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:semantic", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
   private static EventXmlReader substitutionInput() {
     return new EventXmlReader(
         List.of(
@@ -401,6 +427,23 @@ public final class GeneratedCodeSmokeMain {
             event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "cardLast4")),
             text("4242"),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "cardLast4")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "cardPayment")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
+  private static EventXmlReader substitutionInvalidInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "order")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "id")),
+            text("S-1"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "id")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "cardPayment")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "amount")),
+            text("12.50"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "amount")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "cardPayment")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "order")),
             event(XmlEventKind.END_DOCUMENT, null)));
