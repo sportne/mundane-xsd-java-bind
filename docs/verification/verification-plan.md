@@ -72,9 +72,10 @@ executable evidence for `XP-VALIDATION-10-BASIC`.
 
 ## `0.3.0` verification evidence
 
-`TASK-0026` defined planned verification for `XP-XSD10-COMPOSED`. `TASK-0027` adds executable
-evidence for named model groups and attribute groups; the remaining executable evidence belongs to
-`TASK-0028` through `TASK-0030`.
+`TASK-0026` defined planned verification for `XP-XSD10-COMPOSED`. `TASK-0027` added executable
+evidence for named model groups and attribute groups, `TASK-0028` added executable evidence for
+named list/union simple types, `TASK-0029` added executable evidence for initial derivation
+flattening, and `TASK-0030` records readiness evidence for the composed slice.
 
 - Group support: `T-GROUP-*` and `T-ATTRGROUP-*` frontend, IR, binding, generated source,
   reader/writer/validator, deterministic emission, generated compile, unsupported diagnostics,
@@ -82,13 +83,12 @@ evidence for named model groups and attribute groups; the remaining executable e
   acceptance.
 - Simple type composition: `T-LIST-*` and `T-UNION-*` frontend, IR, binding, generated source,
   lexical reader/writer/validator behavior, unsupported diagnostics, conformance, and interop
-  comparisons.
+  comparisons are part of `TASK-0028` acceptance.
 - Derivation support: `T-DERIVATION-*` frontend, IR, binding, generated source, reader/writer/
   validator behavior, cycle diagnostics, unsupported diagnostics, conformance, and interop
   comparisons are part of `TASK-0029` acceptance.
 - Composed conformance/interop: `T-CONF-XP-XSD10-COMPOSED-*` and `T-INTEROP-COMPOSED-*` fixtures
-  should include positive and negative cases compared against JDK XML Schema validation where
-  practical.
-- Native Image: at least one representative composed-schema generated-code path should join the
-  smoke lane once implementation exists; broader Native Image conformance remains a later
-  `TASK-0044` concern.
+  include positive and negative cases compared against JDK XML Schema validation where practical.
+- Native Image: representative composed-schema generated-code paths for group/attribute-group,
+  list/union, and derivation behavior join the smoke lane as implementation evidence; broader
+  Native Image conformance remains a later `TASK-0044` concern.

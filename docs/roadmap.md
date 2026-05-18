@@ -26,7 +26,7 @@ Deliver CLI and Gradle plugin generation for supported data-structure schemas wi
 
 ## Future phases
 
-Profile composition, full simple type semantics beyond `XP-VALIDATION-10-BASIC`, derivation,
-substitution groups, mixed content, wildcards, identity constraints, nillable/default/fixed values,
-XSD 1.1 assertions, streaming optimization, canonicalization, interop hardening, performance
-tuning, and release engineering.
+Full simple type semantics beyond `XP-VALIDATION-10-BASIC`, full derivation semantics, substitution
+groups, mixed content, wildcards, identity constraints, nillable/default/fixed values, XSD 1.1
+assertions, streaming optimization, canonicalization, interop hardening, performance tuning, and
+release engineering.

@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -41,13 +41,15 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 28. `TASK-0027`: Implement named model groups and attribute groups. Completed and accepted.
 29. `TASK-0028`: Implement accepted simple type composition. Completed and accepted.
 30. `TASK-0029`: Implement initial derivation support. Completed and accepted.
-31. `TASK-0030` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
+31. `TASK-0030`: Composed XSD 1.0 readiness review. Completed and accepted.
+32. `TASK-0031` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
 type support for `XP-XSD10-COMPOSED` without adding release tags or publication claims.
 `TASK-0029` has accepted initial derivation flattening for `XP-XSD10-COMPOSED` without adding
-release tags or publication claims. The next gate is `TASK-0030`.
+release tags or publication claims. `TASK-0030` has accepted the `0.3.0` Composed XSD 1.0
+readiness review without adding release tags or publication claims. The next gate is `TASK-0031`.
 
 ## Draft completion backlog
 
@@ -87,7 +89,7 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0027` | 0.3.0 | accepted | Implement named model groups and attribute groups. |
 | `TASK-0028` | 0.3.0 | accepted | Implement accepted simple type composition. |
 | `TASK-0029` | 0.3.0 | accepted | Implement initial derivation support. |
-| `TASK-0030` | 0.3.0 | draft | Composed XSD 1.0 readiness review. |
+| `TASK-0030` | 0.3.0 | accepted | Composed XSD 1.0 readiness review. |
 | `TASK-0031` | 0.4.0 | draft | Plan XSD 1.0 semantic expansion. |
 | `TASK-0032` | 0.4.0 | draft | Implement `nillable`, `default`, and `fixed` semantics. |
 | `TASK-0033` | 0.4.0 | draft | Implement accepted substitution group support. |
@@ -107,8 +109,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0030` is the current gate. It is a readiness review for the accepted `0.3.0`
-`XP-XSD10-COMPOSED` slice after `TASK-0027`, `TASK-0028`, and `TASK-0029`.
+`TASK-0031` is the current gate. It is a planning task for the `0.4.0` XSD 1.0 semantic expansion
+slice and starts only after accepted `TASK-0030` readiness evidence.
 The remaining work must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
@@ -153,5 +155,9 @@ The remaining work must preserve:
   restriction derivation chains over accepted scalar restrictions with merged facet metadata.
   `simpleContent`, complex restriction, abstract types, substitution groups, mixed content, full
   derivation semantics, and XSD 1.1 remain out of scope.
+- `TASK-0030` accepted `0.3.0` `XP-XSD10-COMPOSED` readiness evidence, confirmed support claims
+  cover only accepted named model group/attribute-group, list/union, and initial derivation
+  behavior, recorded conformance/interop and representative generated-code Native Image evidence,
+  kept full XSD 1.0 conformance out of scope, and introduced no release tag or publication claim.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

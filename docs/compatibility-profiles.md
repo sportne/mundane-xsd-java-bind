@@ -55,10 +55,12 @@ future work.
 
 ## `0.3.0` Readiness Baseline
 
-`TASK-0026` accepted `XP-XSD10-COMPOSED` as a planning profile. `TASK-0027` adds the public API token
-and generator behavior for accepted named model groups and attribute groups only. It does not add
-dependency metadata, a release tag, or a publication claim. The default profile remains
-`XP-DATA-10`, and the standalone `0.2.0` choice and facet profiles remain narrower.
+`TASK-0026` accepted `XP-XSD10-COMPOSED` as a planning profile. `TASK-0027` added the public API
+token and generator behavior for accepted named model groups and attribute groups; `TASK-0028` added
+accepted named list/union simple types; `TASK-0029` added accepted initial derivation flattening;
+`TASK-0030` records the readiness evidence. These tasks do not add dependency metadata, a release
+tag, or a publication claim. The default profile remains `XP-DATA-10`, and the standalone `0.2.0`
+choice and facet profiles remain narrower.
 
 `XP-XSD10-COMPOSED` composes the accepted `XP-DATA-10`, `XP-DATA-10-CHOICE`, and
 `XP-VALIDATION-10-BASIC` behavior with these `0.3.0` additions:

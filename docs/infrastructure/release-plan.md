@@ -24,6 +24,12 @@ representative round trips, and Native Image smoke tests, but it is not a public
 choice and facet subsets, conformance/interop fixtures, and representative Native Image smoke paths;
 it still does not authorize artifact publication or a `v0.1.0`/`v0.2.0` release tag.
 
+`TASK-0030` accepts additional `0.3.0` Composed XSD 1.0 readiness evidence for the opt-in
+`XP-XSD10-COMPOSED` profile. That evidence documents accepted named model group and
+attribute-group flattening, named list/union simple types, initial derivation flattening,
+conformance/interop fixtures, and representative Native Image smoke paths; it still does not
+authorize artifact publication or a `v0.1.0`/`v0.2.0`/`v0.3.0` release tag.
+
 Public alpha/beta releases must state supported compatibility profiles and conformance status.
 
 ## Release gate

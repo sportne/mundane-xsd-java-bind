@@ -1,7 +1,8 @@
 # mundane XSD Java Binding
 
-**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice
-and accepted `0.2.0` Practical Data Contracts readiness evidence. The repository includes generated
+**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice,
+accepted `0.2.0` Practical Data Contracts readiness evidence, and accepted `0.3.0`
+`XP-XSD10-COMPOSED` readiness evidence. The repository includes generated
 model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a
 CLI `generate` command, a Gradle plugin for the accepted subsets, representative round-trip examples,
 and Native Image smoke coverage.
@@ -50,9 +51,17 @@ The first implementation phase supports schemas that primarily define XML data-s
 
 Opt-in `0.2.0` profiles now cover the accepted local singleton `xs:choice` subset and practical
 named simple-type facets for enumeration, string length, numeric inclusive range, and string
-pattern validation. Schemas requiring both opt-in profiles at once, full simple type semantics,
-derivation, substitution groups, wildcards, mixed content, identity constraints, nillable/default/fixed
-semantics, and XSD 1.1 remain future-profile work.
+pattern validation.
+
+The opt-in `0.3.0` `XP-XSD10-COMPOSED` profile composes the accepted `XP-DATA-10`,
+`XP-DATA-10-CHOICE`, and `XP-VALIDATION-10-BASIC` behavior with accepted named model group and
+attribute-group flattening, named list/union simple types, and initial derivation flattening.
+Generated models keep explicit code shapes: flattened group and extension fields in deterministic
+order, required singleton list values as immutable `List<T>`, and union values as lexical `String`.
+
+Full simple type semantics, repeated or optional list-valued XML fields, full derivation semantics,
+substitution groups, wildcards, mixed content, identity constraints, nillable/default/fixed
+semantics, full XSD 1.0 conformance, and XSD 1.1 remain future-profile work.
 
 ## Repository entry points
 
