@@ -1,0 +1,29 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:semantic-substitution"
+    targetNamespace="urn:semantic-substitution"
+    elementFormDefault="qualified"
+    attributeFormDefault="qualified">
+  <xs:element name="order" type="tns:Order"/>
+  <xs:element name="payment" type="tns:Payment"/>
+  <xs:element name="cardPayment" substitutionGroup="tns:payment" type="tns:CardPayment"/>
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="id" type="xs:string"/>
+      <xs:element ref="tns:payment" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Payment">
+    <xs:sequence>
+      <xs:element name="amount" type="xs:decimal"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="CardPayment">
+    <xs:complexContent>
+      <xs:extension base="tns:Payment">
+        <xs:sequence>
+          <xs:element name="cardLast4" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+</xs:schema>

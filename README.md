@@ -59,15 +59,16 @@ attribute-group flattening, named list/union simple types, and initial derivatio
 Generated models keep explicit code shapes: flattened group and extension fields in deterministic
 order, required singleton list values as immutable `List<T>`, and union values as lexical `String`.
 
-The opt-in `0.4.0` `XP-XSD10-SEMANTIC` profile adds accepted `nillable`, scalar `default`, and
-scalar `fixed` semantics. Required singleton nillable elements bind as `Optional<T>`, where
-`Optional.empty()` represents explicit `xsi:nil`; defaulted/fixed scalar attributes are read as
-effective model values; generated readers, writers, and validators remain explicit and
-reflection-free.
+The opt-in `0.4.0` `XP-XSD10-SEMANTIC` profile adds accepted `nillable`, scalar `default`,
+scalar `fixed`, and direct substitution-group semantics. Required singleton nillable elements bind
+as `Optional<T>`, where `Optional.empty()` represents explicit `xsi:nil`; defaulted/fixed scalar
+attributes are read as effective model values; accepted substitution head references bind as sealed
+branch models that preserve actual XML element names; generated readers, writers, and validators
+remain explicit and reflection-free.
 
 Full simple type semantics, repeated or optional list-valued XML fields, full derivation semantics,
-substitution groups, wildcards, mixed content, identity constraints, full semantic validation
-hardening, full XSD 1.0 conformance, and XSD 1.1 remain future-profile work.
+full substitution group semantics, wildcards, mixed content, identity constraints, full semantic
+validation hardening, full XSD 1.0 conformance, and XSD 1.1 remain future-profile work.
 
 ## Repository entry points
 

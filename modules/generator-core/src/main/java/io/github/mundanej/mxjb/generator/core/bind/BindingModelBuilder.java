@@ -13,6 +13,7 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrResult;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSequence;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleRestriction;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleType;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSubstitutionGroup;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrTypeReference;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrValueSemantics;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
@@ -62,6 +63,8 @@ public final class BindingModelBuilder {
     private final Map<SchemaQName, SchemaIrAttribute> globalAttributes = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrComplexType> complexTypes = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrSimpleType> simpleTypes = new LinkedHashMap<>();
+    private final Map<SchemaQName, SchemaIrSubstitutionGroup> substitutionGroups =
+        new LinkedHashMap<>();
     private final Map<SchemaQName, BindingJavaName> complexTypeNames = new LinkedHashMap<>();
     private final IdentityHashMap<SchemaIrComplexType, BindingJavaName> inlineComplexTypeNames =
         new IdentityHashMap<>();
@@ -108,6 +111,9 @@ public final class BindingModelBuilder {
       }
       for (SchemaIrSimpleType simpleType : model.simpleTypes()) {
         simpleTypes.put(simpleType.name(), simpleType);
+      }
+      for (SchemaIrSubstitutionGroup substitutionGroup : model.substitutionGroups()) {
+        substitutionGroups.put(substitutionGroup.head(), substitutionGroup);
       }
       for (SchemaIrComplexType complexType : model.complexTypes()) {
         complexTypeNames.put(complexType.name(), javaName(complexType.name()));
@@ -231,6 +237,10 @@ public final class BindingModelBuilder {
 
     private BindingField bindElementField(
         SchemaIrElement element, Set<String> usedFieldNames, int order) {
+      if (element.reference() && substitutionGroups.containsKey(element.name())) {
+        return bindSubstitutionField(
+            element, substitutionGroups.get(element.name()), usedFieldNames, order);
+      }
       SchemaIrElement declaration =
           element.reference() ? globalElements.get(element.name()) : element;
       SchemaIrTypeReference type = declaration == null ? element.type() : declaration.type();
@@ -251,6 +261,74 @@ public final class BindingModelBuilder {
           order,
           required,
           semantics);
+    }
+
+    private BindingField bindSubstitutionField(
+        SchemaIrElement element,
+        SchemaIrSubstitutionGroup substitutionGroup,
+        Set<String> usedFieldNames,
+        int order) {
+      BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
+      if ("list".equals(cardinality.shape())) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            "binding",
+            "Repeated substitution group head " + element.name().toText() + " is not supported.");
+      }
+      String packageName = javaName(element.name()).packageName();
+      String substitutionSimpleName =
+          uniqueTypeName(packageName, JavaNames.typeName(element.name()) + "Substitution");
+      BindingJavaName substitutionName = new BindingJavaName(packageName, substitutionSimpleName);
+      Set<String> branchNames = new HashSet<>();
+      List<BindingChoiceBranch> branches = new ArrayList<>();
+      for (SchemaIrElement branch : substitutionGroup.branches()) {
+        validateSubstitutionBranch(branch);
+        BindingTypeReference bindingType = bindTypeReference(branch.type(), branch, branch.name());
+        String branchFieldName = JavaNames.uniqueFieldName(branch.name(), branchNames);
+        String branchSimpleName =
+            uniqueTypeName(packageName, JavaNames.typeName(branch.name()) + "SubstitutionBranch");
+        branches.add(
+            new BindingChoiceBranch(
+                branch.name(),
+                branchFieldName,
+                bindingType,
+                new BindingJavaName(packageName, branchSimpleName)));
+      }
+      BindingChoice bindingChoice = new BindingChoice(substitutionName, branches, "substitution");
+      String fieldName = JavaNames.unique(JavaNames.fieldName(element.name()), usedFieldNames);
+      boolean required = cardinality.minOccurs() > 0;
+      return new BindingField(
+          "choice",
+          element.name(),
+          fieldName,
+          BindingTypeReference.choice(substitutionName),
+          cardinality,
+          order,
+          required,
+          bindingChoice);
+    }
+
+    private void validateSubstitutionBranch(SchemaIrElement branch) {
+      if (branch.semantics().hasAny()) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            "binding",
+            "Substitution group branch "
+                + branch.name().toText()
+                + " cannot carry nillable/default/fixed semantics in TASK-0033.");
+      }
+      if (branch.type().anonymous()) {
+        return;
+      }
+      if (branch.type().name().isXmlSchemaBuiltIn()
+          || complexTypes.containsKey(branch.type().name())
+          || simpleTypes.containsKey(branch.type().name())) {
+        return;
+      }
+      diagnostic(
+          DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+          "binding",
+          "Unsupported substitution group branch type " + branch.type().name().toText() + ".");
     }
 
     private BindingField bindChoiceField(

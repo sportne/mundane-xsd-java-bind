@@ -193,6 +193,15 @@ public final class XsdSyntaxParser {
       skipSubtree(reader);
       return null;
     }
+    if (hasSubstitutionAttributes(kind, attributes) && !supportsSemanticSchema(profile)) {
+      diagnostics.add(
+          new SchemaDiagnostic(
+              DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+              resourceId,
+              "xs:element substitutionGroup requires profile XP-XSD10-SEMANTIC."));
+      skipSubtree(reader);
+      return null;
+    }
     if (kind == XsdSyntaxKind.RESTRICTION
         && !supportsComposedSchema(profile)
         && !isXmlSchemaBuiltInBase(attributes.get("base"), reader)) {
@@ -265,6 +274,10 @@ public final class XsdSyntaxParser {
     };
   }
 
+  private boolean hasSubstitutionAttributes(XsdSyntaxKind kind, Map<String, String> attributes) {
+    return kind == XsdSyntaxKind.ELEMENT && attributes.containsKey("substitutionGroup");
+  }
+
   private XsdSyntaxKind kindFor(String localName) {
     return switch (localName) {
       case "element" -> XsdSyntaxKind.ELEMENT;
@@ -299,6 +312,11 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
         addIfPresent(attributes, "type", reader.getAttributeValue(null, "type"));
+        addIfPresent(
+            attributes, "substitutionGroup", reader.getAttributeValue(null, "substitutionGroup"));
+        addIfPresent(attributes, "abstract", reader.getAttributeValue(null, "abstract"));
+        addIfPresent(attributes, "block", reader.getAttributeValue(null, "block"));
+        addIfPresent(attributes, "final", reader.getAttributeValue(null, "final"));
         addIfPresent(attributes, "nillable", reader.getAttributeValue(null, "nillable"));
         addIfPresent(attributes, "default", reader.getAttributeValue(null, "default"));
         addIfPresent(attributes, "fixed", reader.getAttributeValue(null, "fixed"));

@@ -65,7 +65,7 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
   checks fixed values for generated object and XML validation.
 - `TASK-0032` readers produce effective scalar attribute default/fixed values when attributes are
   absent and preserve absent optional elements as absent rather than defaulted.
-- Planned `TASK-0033` validates substitution group dispatch using the resolved element name and generated
+- `TASK-0033` validates substitution group dispatch using the resolved element name and generated
   sealed branch type.
 - `TASK-0034` consolidates semantic diagnostics for accepted `0.4.0` behavior with deterministic
   ordering and location-aware XML validation where the generated reader can preserve locations.

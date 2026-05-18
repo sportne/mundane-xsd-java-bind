@@ -540,6 +540,94 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void narrowProfilesRejectSubstitutionGroupsWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("substitution-order.xsd", substitutionOrderSchema(false));
+    for (GeneratorProfile profile :
+        List.of(
+            GeneratorProfile.XP_DATA_10,
+            GeneratorProfile.XP_DATA_10_CHOICE,
+            GeneratorProfile.XP_VALIDATION_10_BASIC,
+            GeneratorProfile.XP_XSD10_COMPOSED)) {
+      Path output = tempDirectory.resolve("substitution-" + profile.name());
+
+      GeneratorResult result =
+          new CoreGenerator()
+              .generate(
+                  new GeneratorRequest(
+                      List.of(schema),
+                      output,
+                      profile,
+                      "com.acme.generated",
+                      Map.of("urn:orders", "com.acme.orders"),
+                      List.of(),
+                      Map.of()));
+
+      assertFalse(result.successful());
+      assertTrue(
+          result.diagnostics().stream()
+              .anyMatch(
+                  diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+      assertFalse(Files.exists(output));
+    }
+  }
+
+  @Test
+  void semanticProfileGeneratesSubstitutionGroupSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("substitution-order.xsd", substitutionOrderSchema(false));
+    Path output = tempDirectory.resolve("substitution-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_SEMANTIC,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertTrue(
+        result.generatedSources().contains(Path.of("com/acme/orders/PaymentSubstitution.java")));
+    assertTrue(
+        result
+            .generatedSources()
+            .contains(Path.of("com/acme/orders/CardpaymentSubstitutionBranch.java")));
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String reader = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlReader.java"));
+    assertTrue(order.contains("Optional<PaymentSubstitution> payment"));
+    assertTrue(reader.contains("CardpaymentSubstitutionBranch"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void semanticProfileRejectsRepeatedSubstitutionGroupReferencesWithoutWritingSources()
+      throws IOException {
+    Path schema = writeSchema("bad-substitution-order.xsd", substitutionOrderSchema(true));
+    Path output = tempDirectory.resolve("bad-substitution-generated");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_SEMANTIC,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> diagnostic.message().contains("Repeated substitution group head")));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
   void deniesNetworkResolutionAndWritesNoSources() throws IOException {
     Path schema = writeSchema("order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path output = tempDirectory.resolve("network-denied");
@@ -912,6 +1000,42 @@ final class CoreGeneratorTest {
         """
         .replace("NILLABLE_CARDINALITY", nillableCardinality)
         .replace("STATUS_SEMANTICS", statusSemantics);
+  }
+
+  private String substitutionOrderSchema(boolean repeatedHeadRef) {
+    String paymentCardinality = repeatedHeadRef ? " maxOccurs=\"unbounded\"" : "";
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:element name="payment" type="tns:Payment"/>
+          <xs:element name="cardPayment" substitutionGroup="tns:payment" type="tns:CardPayment"/>
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Payment">
+            <xs:sequence>
+              <xs:element name="amount" type="xs:decimal"/>
+            </xs:sequence>
+          </xs:complexType>
+          <xs:complexType name="CardPayment">
+            <xs:complexContent>
+              <xs:extension base="tns:Payment">
+                <xs:sequence>
+                  <xs:element name="cardLast4" type="xs:string"/>
+                </xs:sequence>
+              </xs:extension>
+            </xs:complexContent>
+          </xs:complexType>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:element ref="tns:payment" minOccurs="0"PAYMENT_CARDINALITY/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """
+        .replace("PAYMENT_CARDINALITY", paymentCardinality);
   }
 
   private String lineSchema() {

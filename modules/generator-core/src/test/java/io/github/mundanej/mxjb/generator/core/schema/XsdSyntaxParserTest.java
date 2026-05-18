@@ -238,6 +238,52 @@ final class XsdSyntaxParserTest {
   }
 
   @Test
+  void reportsSubstitutionGroupAsUnsupportedProfileByDefault() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="xs:string"/>
+                """));
+
+    XsdSyntaxResult result = parseWithLocalResolver("main.xsd");
+
+    assertEquals(
+        List.of(DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE), diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | "
+            + "xs:element substitutionGroup requires profile XP-XSD10-SEMANTIC.",
+        result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
+  void parsesSubstitutionGroupWhenSemanticProfileIsSelected() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="xs:string"/>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains("element name=cardPayment type=xs:string substitutionGroup=tns:payment"));
+  }
+
+  @Test
   void parsesSimpleRestrictionWhenBasicValidationProfileIsSelected() throws IOException {
     write(
         "main.xsd",

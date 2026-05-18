@@ -20,7 +20,8 @@ Supported options:
   `XP-VALIDATION-10-BASIC` enables accepted named simple restriction facets;
   `XP-XSD10-COMPOSED` enables the accepted composed profile subset: named group and
   attribute-group flattening, named list/union simple types, and initial derivation flattening;
-  `XP-XSD10-SEMANTIC` enables accepted nillable/default/fixed semantics.
+  `XP-XSD10-SEMANTIC` enables accepted nillable/default/fixed and direct substitution-group
+  semantics.
 - `--default-package <package>`: package used when a namespace-specific mapping is absent.
 - `--namespace-package <namespace=package>`: explicit namespace-to-Java-package mapping.
 - `--local-root <dir>`: additional local schema resolution root.

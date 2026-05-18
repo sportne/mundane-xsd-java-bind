@@ -559,7 +559,9 @@ public final class GeneratedReaderEmitter {
         source.append("        if (").append(field.javaName()).append(" != null) {\n");
       }
       source
-          .append("          throw readException(input, \"MXJB-GR-005\", \"Repeated XML choice ")
+          .append("          throw readException(input, \"MXJB-GR-005\", \"Repeated XML ")
+          .append(escape(field.choice().modelKind()))
+          .append(" ")
           .append(escape(field.javaName()))
           .append(".\");\n");
       source.append("        }\n");

@@ -1,0 +1,7 @@
+<order xmlns="urn:semantic-substitution">
+  <id>A-1</id>
+  <cardPayment>
+    <amount>12.50</amount>
+    <cardLast4>4242</cardLast4>
+  </cardPayment>
+</order>

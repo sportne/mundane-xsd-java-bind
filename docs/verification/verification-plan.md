@@ -96,16 +96,17 @@ flattening, and `TASK-0030` records readiness evidence for the composed slice.
 ## `0.4.0` semantic verification evidence
 
 `TASK-0031` defines planned verification for `XP-XSD10-SEMANTIC`. `TASK-0032` adds implementation
-evidence for the accepted nillable/default/fixed subset; remaining semantic implementation evidence
-belongs to `TASK-0033` and `TASK-0034`, and readiness evidence belongs to `TASK-0035`.
+evidence for the accepted nillable/default/fixed subset; `TASK-0033` adds implementation evidence
+for the accepted direct substitution-group subset; remaining semantic implementation evidence
+belongs to `TASK-0034`, and readiness evidence belongs to `TASK-0035`.
 
 - Nillable/default/fixed support: `T-SEMANTIC-NIL-*`, `T-SEMANTIC-DEFAULT-*`, and
   `T-SEMANTIC-FIXED-*` frontend, IR, binding, generated source, reader/writer/validator,
   deterministic emission, generated compile, unsupported diagnostics, conformance, and interop
   comparisons are executable `TASK-0032` evidence.
 - Substitution group support: `T-SUBSTITUTION-*` frontend, IR, binding, generated source,
-  reader/writer/validator, graph diagnostics, unsupported diagnostics, conformance, and interop
-  comparisons.
+  reader/writer/validator, graph diagnostics, unsupported diagnostics, conformance, interop
+  comparisons, and generated-code smoke coverage are executable `TASK-0033` evidence.
 - Semantic validation: `T-SEMANTIC-VALIDATION-*` generated validation source, object/XML validation,
   diagnostic ordering, fixed-value checks, nil-content checks, substitution dispatch diagnostics,
   conformance, and interop comparisons.

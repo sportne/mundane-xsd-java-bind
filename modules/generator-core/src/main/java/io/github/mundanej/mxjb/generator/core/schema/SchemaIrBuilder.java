@@ -77,6 +77,7 @@ public final class SchemaIrBuilder {
     List<SchemaIrAttribute> attributes = new ArrayList<>();
     List<SchemaIrModelGroup> modelGroups = new ArrayList<>();
     List<SchemaIrAttributeGroup> attributeGroups = new ArrayList<>();
+    List<SchemaIrSubstitutionGroup> substitutionGroups;
 
     for (XsdSyntaxDocument document : model.documents()) {
       for (XsdSyntaxNode child : document.children()) {
@@ -94,7 +95,7 @@ public final class SchemaIrBuilder {
     for (XsdSyntaxDocument document : model.documents()) {
       for (XsdSyntaxNode child : document.children()) {
         switch (child.kind()) {
-          case ELEMENT -> addIfPresent(elements, normalizeElement(document, child, state));
+          case ELEMENT -> addIfPresent(elements, normalizeElement(document, child, state, true));
           case COMPLEX_TYPE ->
               addIfPresent(complexTypes, normalizeNamedComplexType(document, child, state));
           case SIMPLE_TYPE -> {
@@ -139,8 +140,15 @@ public final class SchemaIrBuilder {
         }
       }
     }
+    substitutionGroups = normalizeSubstitutionGroups(elements, state);
     return new SchemaIrModel(
-        elements, complexTypes, simpleTypes, attributes, modelGroups, attributeGroups);
+        elements,
+        complexTypes,
+        simpleTypes,
+        attributes,
+        modelGroups,
+        attributeGroups,
+        substitutionGroups);
   }
 
   private SchemaIrModelGroup normalizeModelGroup(
@@ -225,10 +233,105 @@ public final class SchemaIrBuilder {
     return group;
   }
 
+  private List<SchemaIrSubstitutionGroup> normalizeSubstitutionGroups(
+      List<SchemaIrElement> elements, BuildState state) {
+    Map<SchemaQName, SchemaIrElement> elementsByName = new LinkedHashMap<>();
+    for (SchemaIrElement element : elements) {
+      elementsByName.put(element.name(), element);
+    }
+    Map<SchemaQName, List<SchemaIrElement>> membersByHead = new LinkedHashMap<>();
+    for (SchemaIrElement element : elements) {
+      SchemaQName head = element.substitutionGroup();
+      if (head == null) {
+        continue;
+      }
+      if (element.cardinality().minOccurs() != 1
+          || !"1".equals(element.cardinality().maxOccurs())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            "schema-ir",
+            "Substitution group member " + element.name().toText() + " must be singleton.");
+        continue;
+      }
+      if (element.name().equals(head)) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            "schema-ir",
+            "Substitution group member " + element.name().toText() + " cannot substitute itself.");
+        continue;
+      }
+      membersByHead.computeIfAbsent(head, ignored -> new ArrayList<>()).add(element);
+    }
+    List<SchemaIrSubstitutionGroup> groups = new ArrayList<>();
+    for (Map.Entry<SchemaQName, List<SchemaIrElement>> entry : membersByHead.entrySet()) {
+      SchemaQName headName = entry.getKey();
+      SchemaIrElement head = elementsByName.get(headName);
+      if (head == null) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE,
+            "schema-ir",
+            "Substitution group head " + headName.toText() + " is not declared.");
+        continue;
+      }
+      if (head.substitutionGroup() != null) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            "schema-ir",
+            "Nested substitution group head " + headName.toText() + " is not supported.");
+        continue;
+      }
+      if (head.cardinality().minOccurs() != 1 || !"1".equals(head.cardinality().maxOccurs())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            "schema-ir",
+            "Substitution group head " + headName.toText() + " must be singleton.");
+        continue;
+      }
+      Set<SchemaQName> branchNames = new LinkedHashSet<>();
+      List<SchemaIrElement> branches = new ArrayList<>();
+      branches.add(head);
+      branchNames.add(head.name());
+      for (SchemaIrElement member : entry.getValue()) {
+        if (!branchNames.add(member.name())) {
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              "schema-ir",
+              "Duplicate substitution group branch " + member.name().toText() + ".");
+          continue;
+        }
+        branches.add(member);
+      }
+      groups.add(new SchemaIrSubstitutionGroup(headName, branches));
+    }
+    return groups;
+  }
+
   private SchemaIrElement normalizeElement(
-      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state, boolean global) {
     SchemaCardinality cardinality = cardinality(document, node, state);
     if (cardinality == null) {
+      return null;
+    }
+    if (node.attributes().containsKey("block") || node.attributes().containsKey("final")) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:element block/final substitution controls are not supported in profile XP-XSD10-SEMANTIC.");
+      return null;
+    }
+    if ("true".equals(node.attributes().get("abstract"))) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "abstract xs:element declarations are not supported in profile XP-XSD10-SEMANTIC.");
       return null;
     }
 
@@ -242,6 +345,15 @@ public final class SchemaIrBuilder {
             "xs:element ref uses cannot override nillable/default/fixed semantics.");
         return null;
       }
+      if (node.attributes().containsKey("substitutionGroup")
+          || node.attributes().containsKey("abstract")) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:element ref uses cannot declare substitution group metadata.");
+        return null;
+      }
       SchemaQName refName = resolveQName(document, ref, state);
       if (refName == null) {
         return null;
@@ -253,6 +365,14 @@ public final class SchemaIrBuilder {
       return new SchemaIrElement(
           refName, SchemaIrTypeReference.named(refName), cardinality, null, true);
     }
+    if (node.attributes().containsKey("substitutionGroup") && !global) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:element substitutionGroup is supported only on global element declarations.");
+      return null;
+    }
 
     String name = node.attributes().get("name");
     if (name == null || name.isBlank()) {
@@ -262,6 +382,14 @@ public final class SchemaIrBuilder {
           document.resourceId(),
           "element declaration is missing a name.");
       return null;
+    }
+    SchemaQName substitutionGroup = null;
+    String substitutionGroupText = node.attributes().get("substitutionGroup");
+    if (substitutionGroupText != null) {
+      substitutionGroup = resolveQName(document, substitutionGroupText, state);
+      if (substitutionGroup == null) {
+        return null;
+      }
     }
 
     SchemaIrComplexType inlineComplexType = inlineComplexType(document, node, state);
@@ -276,6 +404,7 @@ public final class SchemaIrBuilder {
         cardinality,
         inlineComplexType,
         semantics,
+        substitutionGroup,
         false);
   }
 
@@ -604,7 +733,7 @@ public final class SchemaIrBuilder {
     List<SchemaIrParticle> particles = new ArrayList<>();
     for (XsdSyntaxNode child : node.children()) {
       if (child.kind() == XsdSyntaxKind.ELEMENT) {
-        addIfPresent(particles, normalizeElement(document, child, state));
+        addIfPresent(particles, normalizeElement(document, child, state, false));
       } else if (child.kind() == XsdSyntaxKind.CHOICE) {
         addIfPresent(particles, normalizeChoice(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.GROUP && allowGroupReferences) {
@@ -801,7 +930,7 @@ public final class SchemaIrBuilder {
             "xs:choice branches do not support anonymous complexType declarations.");
         continue;
       }
-      addIfPresent(branches, normalizeElement(document, child, state));
+      addIfPresent(branches, normalizeElement(document, child, state, false));
     }
     if (branches.isEmpty()) {
       diagnostic(

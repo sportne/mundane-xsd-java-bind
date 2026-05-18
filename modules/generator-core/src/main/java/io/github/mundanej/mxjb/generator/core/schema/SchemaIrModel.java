@@ -10,7 +10,8 @@ public record SchemaIrModel(
     List<SchemaIrSimpleType> simpleTypes,
     List<SchemaIrAttribute> attributes,
     List<SchemaIrModelGroup> modelGroups,
-    List<SchemaIrAttributeGroup> attributeGroups) {
+    List<SchemaIrAttributeGroup> attributeGroups,
+    List<SchemaIrSubstitutionGroup> substitutionGroups) {
   public SchemaIrModel {
     elements = List.copyOf(elements);
     complexTypes = List.copyOf(complexTypes);
@@ -18,10 +19,12 @@ public record SchemaIrModel(
     attributes = List.copyOf(attributes);
     modelGroups = List.copyOf(modelGroups);
     attributeGroups = List.copyOf(attributeGroups);
+    substitutionGroups = List.copyOf(substitutionGroups);
   }
 
   public static SchemaIrModel empty() {
-    return new SchemaIrModel(List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+    return new SchemaIrModel(
+        List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
   }
 
   public String toText() {
@@ -47,6 +50,10 @@ public record SchemaIrModel(
         attributeGroups.stream()
             .map(attributeGroup -> attributeGroup.toText("  "))
             .collect(Collectors.joining("\n"));
+    String substitutionGroupText =
+        substitutionGroups.stream()
+            .map(substitutionGroup -> substitutionGroup.toText("  "))
+            .collect(Collectors.joining("\n"));
     String body =
         java.util.stream.Stream.of(
                 elementText,
@@ -54,7 +61,8 @@ public record SchemaIrModel(
                 simpleTypeText,
                 attributeText,
                 modelGroupText,
-                attributeGroupText)
+                attributeGroupText,
+                substitutionGroupText)
             .filter(value -> !value.isEmpty())
             .collect(Collectors.joining("\n"));
     return body.isEmpty() ? "" : "schema-ir\n" + body + "\n";

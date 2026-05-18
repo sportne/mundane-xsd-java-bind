@@ -11,6 +11,7 @@ public record SchemaIrElement(
     SchemaCardinality cardinality,
     SchemaIrComplexType inlineComplexType,
     SchemaIrValueSemantics semantics,
+    SchemaQName substitutionGroup,
     boolean reference)
     implements SchemaIrParticle {
   public SchemaIrElement(
@@ -19,7 +20,7 @@ public record SchemaIrElement(
       SchemaCardinality cardinality,
       SchemaIrComplexType inlineComplexType,
       boolean reference) {
-    this(name, type, cardinality, inlineComplexType, SchemaIrValueSemantics.NONE, reference);
+    this(name, type, cardinality, inlineComplexType, SchemaIrValueSemantics.NONE, null, reference);
   }
 
   public SchemaIrElement {
@@ -40,6 +41,7 @@ public record SchemaIrElement(
             + type.toText()
             + " cardinality="
             + cardinality.toText()
+            + (substitutionGroup == null ? "" : " substitutionGroup=" + substitutionGroup.toText())
             + semantics.toText();
     if (inlineComplexType == null) {
       return line;

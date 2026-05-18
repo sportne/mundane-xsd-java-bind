@@ -949,6 +949,170 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
+  void buildsIrForDirectSubstitutionGroup() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="xs:string"/>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element ref="tns:payment" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("substitutionGroup head={urn:orders}payment"), irText);
+    assertTrue(
+        irText.contains("element {urn:orders}payment type=xs:string cardinality=1..1"), irText);
+    assertTrue(
+        irText.contains(
+            "element {urn:orders}cardPayment type=xs:string cardinality=1..1 "
+                + "substitutionGroup={urn:orders}payment"),
+        irText);
+  }
+
+  @Test
+  void rejectsNestedSubstitutionGroupHead() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="xs:string"/>
+                <xs:element name="rewardCardPayment" substitutionGroup="tns:cardPayment" type="xs:string"/>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(
+        result
+            .diagnostics()
+            .getFirst()
+            .message()
+            .contains("Nested substitution group head {urn:orders}cardPayment"),
+        result.diagnostics().toString());
+  }
+
+  @Test
+  void rejectsMissingSubstitutionGroupHead() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="xs:string"/>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("is not declared"));
+  }
+
+  @Test
+  void rejectsAbstractSubstitutionElements() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string" abstract="true"/>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("abstract xs:element"));
+  }
+
+  @Test
+  void rejectsElementRefSubstitutionMetadata() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string"/>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element ref="tns:payment" substitutionGroup="tns:payment"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(
+        result.diagnostics().getFirst().message().contains("ref uses cannot declare substitution"));
+  }
+
+  @Test
+  void rejectsElementSubstitutionControls() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string" block="substitution"/>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("block/final"));
+  }
+
+  @Test
+  void rejectsLocalSubstitutionGroupMemberDeclarations() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="xs:string"/>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="cardPayment" substitutionGroup="tns:payment" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("only on global"));
+  }
+
+  @Test
+  void rejectsSelfSubstitution() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" substitutionGroup="tns:payment" type="xs:string"/>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("cannot substitute itself"));
+  }
+
+  @Test
   void propagatesFrontendDiagnosticsWithoutPartialIr() {
     XsdSyntaxResult syntaxResult =
         new XsdSyntaxResult(

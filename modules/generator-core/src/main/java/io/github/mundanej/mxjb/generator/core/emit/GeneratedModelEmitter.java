@@ -147,7 +147,9 @@ public final class GeneratedModelEmitter {
         "package "
             + javaName.packageName()
             + ";\n\n"
-            + "/** Generated sealed model for XML choice "
+            + "/** Generated sealed model for XML "
+            + choice.modelKind()
+            + " "
             + javaName.simpleName()
             + ". */\n"
             + "public sealed interface "
@@ -167,7 +169,9 @@ public final class GeneratedModelEmitter {
       source.append(imports).append('\n');
     }
     source
-        .append("/** Generated branch for XML choice ")
+        .append("/** Generated branch for XML ")
+        .append(choice.modelKind())
+        .append(' ')
         .append(choice.javaName().simpleName())
         .append(". */\n");
     source

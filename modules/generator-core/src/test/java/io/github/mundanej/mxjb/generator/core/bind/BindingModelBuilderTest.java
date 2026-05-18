@@ -508,6 +508,82 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsDirectSubstitutionGroupHeadReference() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="tns:Payment"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="tns:CardPayment"/>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Payment">
+                  <xs:sequence>
+                    <xs:element name="amount" type="xs:decimal"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="CardPayment">
+                  <xs:complexContent>
+                    <xs:extension base="tns:Payment">
+                      <xs:sequence>
+                        <xs:element name="cardLast4" type="xs:string"/>
+                      </xs:sequence>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element ref="tns:payment" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains(
+            "choice payment xml={urn:orders}payment "
+                + "type=choice:io.github.mundanej.mxjb.generated.orders.PaymentSubstitution "
+                + "cardinality=optional 0..1"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "substitutionType io.github.mundanej.mxjb.generated.orders.PaymentSubstitution"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "branch cardpayment xml={urn:orders}cardPayment "
+                + "type=model:io.github.mundanej.mxjb.generated.orders.Cardpayment"),
+        bindingText);
+  }
+
+  @Test
+  void rejectsRepeatedSubstitutionGroupHeadReference() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="tns:Payment"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="tns:Payment"/>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Payment"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element ref="tns:payment" minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL), diagnosticCodes(result));
+    assertTrue(result.model().toText().isEmpty());
+  }
+
+  @Test
   void reportsInvalidBindingConfigurationWithoutPartialModel() throws IOException {
     write("main.xsd", schema("urn:orders", "<xs:element name=\"title\" type=\"xs:string\"/>"));
 

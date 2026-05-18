@@ -74,17 +74,68 @@ final class XpXsd10SemanticConformanceTest {
     }
   }
 
+  @Test
+  void substitutionFixturesMatchJdkSchemaValidationAndGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-semantic/substitution-order.xsd");
+    String validXml = resource("/xp-xsd10-semantic/substitution-valid.xml");
+    String invalidXml = resource("/xp-xsd10-semantic/substitution-invalid.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidXml))));
+
+    try (CompiledGeneratedSemanticBindings bindings =
+        generateAndCompileSemanticBindings(
+            "/xp-xsd10-semantic/substitution-order.xsd",
+            Map.of("urn:semantic-substitution", "com.example.substitution"))) {
+      Class<?> orderClass = bindings.load("com.example.substitution.Order");
+      Class<?> readerClass = bindings.load("com.example.substitution.xml.OrderXmlReader");
+      Class<?> validatorClass = bindings.load("com.example.substitution.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      Object payment = orderClass.getMethod("payment").invoke(order);
+      assertTrue(payment instanceof java.util.Optional<?>);
+      assertTrue(((java.util.Optional<?>) payment).isPresent());
+      assertTrue(
+          ((java.util.Optional<?>) payment)
+              .orElseThrow()
+              .getClass()
+              .getName()
+              .endsWith("CardpaymentSubstitutionBranch"));
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult invalidResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(invalidXml));
+
+      assertTrue(validResult.isValid());
+      assertFalse(invalidResult.isValid());
+      assertFalse(invalidResult.errors().isEmpty());
+    }
+  }
+
   private CompiledGeneratedSemanticBindings generateAndCompileSemanticBindings()
       throws IOException {
+    return generateAndCompileSemanticBindings(
+        "/xp-xsd10-semantic/order.xsd", Map.of("urn:semantic", "com.example.semantic"));
+  }
+
+  private CompiledGeneratedSemanticBindings generateAndCompileSemanticBindings(
+      String schemaResource, Map<String, String> namespacePackages) throws IOException {
     Path output = tempDirectory.resolve("generated");
-    Path schema = resourcePath("/xp-xsd10-semantic/order.xsd");
+    Path schema = resourcePath(schemaResource);
     GeneratorRequest request =
         new GeneratorRequest(
             List.of(schema),
             output,
             GeneratorProfile.XP_XSD10_SEMANTIC,
             "com.example.generated",
-            Map.of("urn:semantic", "com.example.semantic"),
+            namespacePackages,
             List.of(),
             Map.of());
     GeneratorResult result = new CoreGenerator().generate(request);
@@ -124,8 +175,12 @@ final class XpXsd10SemanticConformanceTest {
   }
 
   private Schema jdkSchema() throws SAXException {
+    return jdkSchema("/xp-xsd10-semantic/order.xsd");
+  }
+
+  private Schema jdkSchema(String schemaResource) throws SAXException {
     return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-        .newSchema(resourcePath("/xp-xsd10-semantic/order.xsd").toFile());
+        .newSchema(resourcePath(schemaResource).toFile());
   }
 
   private XmlEventReader readerFor(String xml) throws XMLStreamException {

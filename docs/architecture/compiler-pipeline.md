@@ -40,7 +40,7 @@ The `XP-XSD10-SEMANTIC` profile keeps semantic expansion inside the same compile
 
 - `TASK-0032` carries accepted `nillable`, `default`, and `fixed` metadata through IR and binding so
   generated readers, writers, and validators can emit explicit code.
-- Planned `TASK-0033` resolves direct substitution group heads and members in the component graph before
-  binding, then emits an explicit sealed branch model instead of runtime polymorphic lookup.
+- `TASK-0033` resolves direct substitution group heads and members in normalized IR before binding,
+  then emits an explicit sealed branch model instead of runtime polymorphic lookup.
 - Substitution cycles, unsupported blocking/final semantics, repeated substitution groups, and
   unsupported semantic combinations must fail with deterministic diagnostics before source emission.

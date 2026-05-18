@@ -1,6 +1,6 @@
 # TASK-0033: substitution-groups
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0033`
 Gate: `0.4.0` XSD 1.0 Semantic Expansion; starts only after `TASK-0032` is accepted.
@@ -38,3 +38,20 @@ Rollback notes: revert substitution group implementation, tests, fixtures, golde
   deterministic diagnostics.
 - Keep identity constraints, full derivation semantics, and document-oriented open content out of
   scope.
+
+## Acceptance Evidence
+
+- Added frontend profile gating and syntax capture for `xs:element substitutionGroup`.
+- Added normalized IR direct substitution groups with deterministic head-first branch ordering and
+  diagnostics for missing heads, abstract elements, local members, ref metadata, nested groups,
+  self-substitution, and blocking/final controls.
+- Added binding and generated source support for sealed substitution branch models, reader dispatch,
+  writer dispatch, validator traversal, generated-source compilation, and generated-code smoke.
+- Added `xp-xsd10-semantic` conformance fixtures comparing valid and invalid direct substitution
+  XML with JDK XML Schema validation and generated bindings.
+- Verification:
+  `./gradlew :modules:generator-core:check :modules:conformance-tests:check --console=plain`
+  passed; `./gradlew validateDesignControlPack qualityGate --console=plain` passed.
+- Native Image: `./gradlew :modules:generator-core:generatedCodeNativeSmoke --console=plain`
+  was attempted and blocked before native compilation because `native-image` was not found on
+  `PATH` and `JAVA_HOME` does not point to a GraalVM installation with `native-image`.

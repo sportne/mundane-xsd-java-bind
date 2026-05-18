@@ -81,6 +81,7 @@ public final class GeneratedCodeSmokeMain {
     runFacetSmoke();
     runComposedSmoke();
     runSemanticSmoke();
+    runSubstitutionSmoke();
   }
 
   private static void runChoiceSmoke() throws XmlReadException, XmlWriteException {
@@ -244,6 +245,57 @@ public final class GeneratedCodeSmokeMain {
     }
   }
 
+  private static void runSubstitutionSmoke() throws XmlReadException, XmlWriteException {
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    com.example.substitution.Order order =
+        new com.example.substitution.Order(
+            "S-1",
+            Optional.of(
+                new com.example.substitution.CardpaymentSubstitutionBranch(
+                    new com.example.substitution.Cardpayment(
+                        new java.math.BigDecimal("12.50"), "4242"))));
+
+    com.example.substitution.xml.OrderXmlWriter.write(output, order);
+
+    List<String> expected =
+        List.of(
+            "start:{urn:substitution}order",
+            "start:{urn:substitution}id",
+            "text:S-1",
+            "end:{urn:substitution}id",
+            "start:{urn:substitution}cardPayment",
+            "start:{urn:substitution}amount",
+            "text:12.50",
+            "end:{urn:substitution}amount",
+            "start:{urn:substitution}cardLast4",
+            "text:4242",
+            "end:{urn:substitution}cardLast4",
+            "end:{urn:substitution}cardPayment",
+            "end:{urn:substitution}order");
+    if (!expected.equals(output.events)) {
+      throw new AssertionError(
+          "Generated-code substitution smoke output mismatch: " + output.events);
+    }
+
+    com.example.substitution.Order parsed =
+        com.example.substitution.xml.OrderXmlReader.read(substitutionInput());
+    if (!order.equals(parsed)) {
+      throw new AssertionError("Generated-code substitution smoke reader mismatch: " + parsed);
+    }
+
+    ValidationResult objectValidation =
+        com.example.substitution.xml.OrderXmlValidator.validate(order);
+    ValidationResult xmlValidation =
+        com.example.substitution.xml.OrderXmlValidator.validate(substitutionInput());
+    if (!objectValidation.isValid() || !xmlValidation.isValid()) {
+      throw new AssertionError(
+          "Generated-code substitution smoke validator mismatch: "
+              + objectValidation.errors()
+              + " / "
+              + xmlValidation.errors());
+    }
+  }
+
   private static EventXmlReader orderInput() {
     return new EventXmlReader(
         List.of(
@@ -331,6 +383,26 @@ public final class GeneratedCodeSmokeMain {
                 Map.of(new XmlName("http://www.w3.org/2001/XMLSchema-instance", "nil"), "true")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:semantic", "code")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:semantic", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
+  private static EventXmlReader substitutionInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "order")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "id")),
+            text("S-1"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "id")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "cardPayment")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "amount")),
+            text("12.50"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "amount")),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:substitution", "cardLast4")),
+            text("4242"),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "cardLast4")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "cardPayment")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:substitution", "order")),
             event(XmlEventKind.END_DOCUMENT, null)));
   }
 

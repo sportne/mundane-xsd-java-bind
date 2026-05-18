@@ -13,8 +13,9 @@ coverage are implemented for the accepted `XP-DATA-10` slice and the accepted op
 
 The composed profile covers the accepted named model group and attribute-group flattening,
 named list/union simple types, and initial derivation flattening slices only. Full XSD 1.0
-composition remains future profile work. The semantic profile covers accepted nillable/default/fixed
-behavior only; substitution groups and broader semantic validation remain future slices.
+composition remains future profile work. The semantic profile covers accepted
+nillable/default/fixed behavior and direct substitution groups only; broader semantic validation
+remains a future slice.
 
 ## Contributor notes
 
