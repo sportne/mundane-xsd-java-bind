@@ -98,7 +98,7 @@ flattening, and `TASK-0030` records readiness evidence for the composed slice.
 `TASK-0031` defines planned verification for `XP-XSD10-SEMANTIC`. `TASK-0032` adds implementation
 evidence for the accepted nillable/default/fixed subset; `TASK-0033` adds implementation evidence
 for the accepted direct substitution-group subset; `TASK-0034` adds expanded semantic validation
-evidence for the accepted `0.4.0` behavior; readiness evidence belongs to `TASK-0035`.
+evidence for the accepted `0.4.0` behavior; `TASK-0035` records readiness evidence.
 
 - Nillable/default/fixed support: `T-SEMANTIC-NIL-*`, `T-SEMANTIC-DEFAULT-*`, and
   `T-SEMANTIC-FIXED-*` frontend, IR, binding, generated source, reader/writer/validator,
@@ -112,8 +112,6 @@ evidence for the accepted `0.4.0` behavior; readiness evidence belongs to `TASK-
   unsupported validation-category diagnostics, conformance, and interop comparisons are executable
   `TASK-0034` evidence.
 - Semantic conformance/interop: `T-CONF-XP-XSD10-SEMANTIC-*` and `T-INTEROP-SEMANTIC-*` fixtures
-  should include positive and negative cases compared against JDK XML Schema validation where
-  practical.
-- Native Image: representative semantic generated-code paths should join the generated-code smoke
-  lane in implementation tasks; broader Native Image conformance remains a later `TASK-0044`
-  concern.
+  include positive and negative cases compared against JDK XML Schema validation where practical.
+- Native Image: representative semantic generated-code paths join the generated-code smoke lane;
+  broader Native Image conformance remains a later `TASK-0044` concern.

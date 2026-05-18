@@ -8,7 +8,7 @@
 | `XP-DATA-10-CHOICE` | Data subset with choices | Opt-in `0.2.0` extension for local singleton `xs:choice` particles with local or referenced supported element branches, generated sealed choice model types, reader/writer support, and explicit diagnostics for out-of-scope model-group shapes. | 2 |
 | `XP-VALIDATION-10-BASIC` | Basic generated validation | Opt-in `0.2.0` extension for named simple-type restrictions using accepted enumeration, string length, numeric inclusive range, and string pattern facets over already supported scalar bases. | 2 |
 | `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening, `TASK-0028` adds accepted named list/union simple types, and `TASK-0029` adds accepted initial derivation flattening. | 3 |
-| `XP-XSD10-SEMANTIC` | XSD 1.0 semantic expansion | Opt-in `0.4.0` profile composing `XP-XSD10-COMPOSED` with accepted `nillable`, scalar `default`, scalar `fixed`, and direct substitution-group behavior from `TASK-0032` and `TASK-0033`; broader semantic validation remains planned follow-on work. | 4 |
+| `XP-XSD10-SEMANTIC` | XSD 1.0 semantic expansion | Opt-in `0.4.0` profile composing `XP-XSD10-COMPOSED` with accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution-group behavior, and expanded generated validation for those accepted semantic paths from `TASK-0032` through `TASK-0034`. | 4 |
 | `XP-XSD10-FULL` | Full XSD 1.0 | Substitution groups, full derivation semantics, wildcards, identity constraints, nillable, default/fixed, mixed content. | Future |
 | `XP-XSD11-ASSERT` | XSD 1.1 assertions | XSD 1.1 features including assertions and conditional alternatives. | Future |
 | `XP-XML11` | XML 1.1 | XML 1.1 parsing/serialization compatibility. | Future |
@@ -87,9 +87,10 @@ remain out of scope with explicit diagnostics.
 
 ## `0.4.0` Semantic Baseline
 
-`TASK-0031` accepted planned opt-in profile `XP-XSD10-SEMANTIC`, and `TASK-0032` added the public
-API token plus the first semantic behavior across API, CLI, Gradle plugin, CoreGenerator, frontend
-gates, binding, generated source, conformance fixtures, and interop comparison.
+`TASK-0031` accepted planned opt-in profile `XP-XSD10-SEMANTIC`; `TASK-0032` added the public
+API token plus accepted nillable/default/fixed behavior; `TASK-0033` added accepted direct
+substitution-group behavior; and `TASK-0034` verified expanded generated validation for the
+accepted semantic paths.
 
 `XP-XSD10-SEMANTIC` composes `XP-XSD10-COMPOSED` with these `0.4.0` additions:
 
@@ -103,9 +104,10 @@ gates, binding, generated source, conformance fixtures, and interop comparison.
   singleton head references only. Generated models use an explicit sealed branch type with one
   record branch per accepted concrete head or member element and preserve the actual element name
   for reader/writer dispatch.
-- planned for `TASK-0034`: generated validation for accepted semantic behavior, including nil
-  content rules, fixed-value checks, default/fixed reader behavior, substitution dispatch
-  diagnostics, deterministic diagnostic ordering, and interop comparison.
+- accepted in `TASK-0034`: generated validation hardening for accepted semantic behavior,
+  including nil content rules, fixed-value checks, default/fixed reader behavior, substitution
+  dispatch diagnostics, deterministic diagnostic ordering, unsupported validation-category
+  diagnostics, and interop comparison.
 
 Optional or repeated nillable fields, nillable attributes, complex/list/union defaults,
 ambiguous nil/default/fixed combinations, abstract substitution heads, repeated substitution

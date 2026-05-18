@@ -40,8 +40,8 @@ Supported properties and methods:
   opt-in `XP-DATA-10-CHOICE`, opt-in `XP-VALIDATION-10-BASIC`, or opt-in
   `XP-XSD10-COMPOSED`, or opt-in `XP-XSD10-SEMANTIC`. The composed profile covers
   the accepted named group and attribute-group, list/union simple type, and initial
-  derivation subsets only; the semantic profile adds accepted nillable/default/fixed
-  and direct substitution-group behavior.
+  derivation subsets only; the semantic profile adds accepted nillable/default/fixed,
+  direct substitution-group, and generated semantic validation behavior.
 - `defaultPackage`: fallback package for namespaces without an explicit mapping.
 - `namespacePackage(String, String)`: namespace-to-Java-package mapping.
 - `localRoot(Object)`: local schema root used by the resolver and declared as a task input.

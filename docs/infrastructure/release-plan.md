@@ -30,6 +30,12 @@ attribute-group flattening, named list/union simple types, initial derivation fl
 conformance/interop fixtures, and representative Native Image smoke paths; it still does not
 authorize artifact publication or a `v0.1.0`/`v0.2.0`/`v0.3.0` release tag.
 
+`TASK-0035` accepts additional `0.4.0` XSD 1.0 semantic expansion readiness evidence for the
+opt-in `XP-XSD10-SEMANTIC` profile. That evidence documents accepted nillable/default/fixed
+behavior, direct substitution-group behavior, generated semantic validation hardening,
+conformance/interop fixtures, and representative Native Image smoke paths; it still does not
+authorize artifact publication or a `v0.1.0`/`v0.2.0`/`v0.3.0`/`v0.4.0` release tag.
+
 Public alpha/beta releases must state supported compatibility profiles and conformance status.
 
 ## Release gate

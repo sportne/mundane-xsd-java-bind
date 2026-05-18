@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -46,7 +46,9 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 33. `TASK-0032`: Implement `nillable`, `default`, and `fixed` semantics. Completed and accepted.
 34. `TASK-0033`: Implement accepted substitution group support. Completed and accepted.
 35. `TASK-0034`: Expand validation semantics for the accepted `0.4.0` feature set. Completed and accepted.
-36. `TASK-0035` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
+36. `TASK-0035`: XSD 1.0 semantic expansion readiness review. Completed and accepted.
+37. `TASK-0036`: Plan document-oriented and open-content support. Next draft planning gate.
+38. `TASK-0037` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -59,8 +61,9 @@ release tags, or publication claims. `TASK-0032` has accepted `XP-XSD10-SEMANTIC
 nillable/default/fixed behavior without adding dependency metadata, release tags, or publication
 claims. `TASK-0033` has accepted direct substitution group behavior without adding dependency metadata,
 release tags, or publication claims. `TASK-0034` has accepted expanded semantic validation
-hardening without adding dependency metadata, release tags, or publication claims. The next gate is
-`TASK-0035`.
+hardening without adding dependency metadata, release tags, or publication claims. `TASK-0035` has
+accepted the `0.4.0` XSD 1.0 semantic expansion readiness review without adding product behavior,
+dependency metadata, release tags, or publication claims. The next gate is `TASK-0036`.
 
 ## Draft completion backlog
 
@@ -105,7 +108,7 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0032` | 0.4.0 | accepted | Implement `nillable`, `default`, and `fixed` semantics. |
 | `TASK-0033` | 0.4.0 | accepted | Implement accepted substitution group support. |
 | `TASK-0034` | 0.4.0 | accepted | Expand validation semantics for the accepted feature set. |
-| `TASK-0035` | 0.4.0 | draft | XSD 1.0 semantic expansion readiness review. |
+| `TASK-0035` | 0.4.0 | accepted | XSD 1.0 semantic expansion readiness review. |
 | `TASK-0036` | 0.5.0 | draft | Plan document-oriented and open-content support. |
 | `TASK-0037` | 0.5.0 | draft | Implement accepted wildcard/open-content support. |
 | `TASK-0038` | 0.5.0 | draft | Implement accepted mixed-content support. |
@@ -120,9 +123,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0035` is the current gate. It is a readiness review for accepted `0.4.0`
-`XP-XSD10-SEMANTIC` semantic expansion after accepted `TASK-0032`, `TASK-0033`, and `TASK-0034`
-implementation evidence.
+`TASK-0036` is the next draft planning gate. It plans the `0.5.0` document-oriented and
+open-content support slice after accepted `0.4.0` `XP-XSD10-SEMANTIC` readiness evidence.
 The remaining work must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
@@ -179,8 +181,9 @@ The remaining work must preserve:
   traversal, unsupported diagnostics, conformance, interop, and generated-code smoke evidence.
   `TASK-0034` accepted expanded semantic validation hardening for deterministic object diagnostics,
   nil/fixed XML diagnostics, substitution branch validation, unsupported validation-category
-  diagnostics, conformance, interop, and generated-code smoke evidence. `TASK-0035` performs
-  readiness review.
+  diagnostics, conformance, interop, and generated-code smoke evidence. `TASK-0035` accepted the
+  semantic expansion readiness review and confirmed support claims, conformance/interop evidence,
+  Native Image evidence, and release posture.
   Identity constraints, wildcards, mixed content, full datatype semantics, full derivation
   semantics, XSD 1.1, release tags, and publication claims remain out of scope.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
