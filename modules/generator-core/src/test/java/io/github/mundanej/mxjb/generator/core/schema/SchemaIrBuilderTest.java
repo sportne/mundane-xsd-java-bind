@@ -1131,6 +1131,119 @@ final class SchemaIrBuilderTest {
     assertEquals("", result.model().toText());
   }
 
+  @Test
+  void normalizesAcceptedWildcardParticlesForDocumentProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains("wildcard namespace=other:urn:orders cardinality=0..unbounded"));
+  }
+
+  @Test
+  void rejectsWildcardWithoutExplicitSkipProcessContents() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:any namespace="##any"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+    XsdSyntaxResult syntaxResult =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    SchemaIrResult result = new SchemaIrBuilder().build(syntaxResult);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_IR_INVALID_COMPONENT | main.xsd | xs:any supports only explicit "
+            + "processContents=\"skip\" in profile XP-XSD10-DOCUMENT.",
+        result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
+  void rejectsWildcardOverlappingLaterNamedElement() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:any namespace="##any" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                    <xs:element name="tail" type="xs:string" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(2, result.diagnostics().size());
+    assertTrue(
+        diagnosticCodes(result).stream()
+            .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
+    assertEquals(
+        "SCHEMA_IR_INVALID_COMPONENT | main.xsd | xs:any namespace constraint overlaps XML "
+            + "element {urn:orders}id in the same sequence.",
+        result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
+  void rejectsExplicitWildcardOverlappingChoiceBranch() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:any namespace="urn:orders" processContents="skip" minOccurs="0"/>
+                    <xs:choice minOccurs="0">
+                      <xs:element name="card" type="xs:string"/>
+                      <xs:element name="cash" type="xs:string"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(2, result.diagnostics().size());
+    assertTrue(
+        diagnosticCodes(result).stream()
+            .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
+    assertTrue(
+        result
+            .diagnostics()
+            .getFirst()
+            .message()
+            .contains("xs:any namespace constraint overlaps XML element {urn:orders}card"));
+  }
+
   private SchemaIrResult build(String primarySchema) {
     return build(primarySchema, GeneratorProfile.XP_DATA_10);
   }

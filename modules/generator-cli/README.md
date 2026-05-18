@@ -15,13 +15,14 @@ Supported options:
 
 - `--schema <path>`: primary schema path. Repeat for multiple primary schemas.
 - `--output <dir>`: required generated-source output directory.
-- `--profile <XP-DATA-10|XP-DATA-10-CHOICE|XP-VALIDATION-10-BASIC|XP-XSD10-COMPOSED|XP-XSD10-SEMANTIC>`: optional profile selection.
+- `--profile <XP-DATA-10|XP-DATA-10-CHOICE|XP-VALIDATION-10-BASIC|XP-XSD10-COMPOSED|XP-XSD10-SEMANTIC|XP-XSD10-DOCUMENT>`: optional profile selection.
   `XP-DATA-10-CHOICE` enables the accepted opt-in `xs:choice` subset;
   `XP-VALIDATION-10-BASIC` enables accepted named simple restriction facets;
   `XP-XSD10-COMPOSED` enables the accepted composed profile subset: named group and
   attribute-group flattening, named list/union simple types, and initial derivation flattening;
   `XP-XSD10-SEMANTIC` enables accepted nillable/default/fixed, direct substitution-group, and
-  generated semantic validation behavior.
+  generated semantic validation behavior;
+  `XP-XSD10-DOCUMENT` enables accepted direct `xs:any` wildcard/open-content retention.
 - `--default-package <package>`: package used when a namespace-specific mapping is absent.
 - `--namespace-package <namespace=package>`: explicit namespace-to-Java-package mapping.
 - `--local-root <dir>`: additional local schema resolution root.

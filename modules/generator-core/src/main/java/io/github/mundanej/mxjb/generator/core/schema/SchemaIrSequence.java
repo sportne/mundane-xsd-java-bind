@@ -24,6 +24,13 @@ public record SchemaIrSequence(SchemaCardinality cardinality, List<SchemaIrParti
         .toList();
   }
 
+  public List<SchemaIrWildcard> wildcards() {
+    return particles.stream()
+        .filter(SchemaIrWildcard.class::isInstance)
+        .map(SchemaIrWildcard.class::cast)
+        .toList();
+  }
+
   public String toText(String indent) {
     String line = indent + "sequence cardinality=" + cardinality.toText();
     if (particles.isEmpty()) {

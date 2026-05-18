@@ -165,6 +165,15 @@ public final class XsdSyntaxParser {
       skipSubtree(reader);
       return null;
     }
+    if ("any".equals(localName) && !supportsDocumentSchema(profile)) {
+      diagnostics.add(
+          new SchemaDiagnostic(
+              DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+              resourceId,
+              "xs:any requires profile XP-XSD10-DOCUMENT."));
+      skipSubtree(reader);
+      return null;
+    }
 
     XsdSyntaxKind kind = kindFor(localName);
     if (kind == null) {
@@ -245,22 +254,30 @@ public final class XsdSyntaxParser {
   private boolean supportsChoice(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_DATA_10_CHOICE
         || profile == GeneratorProfile.XP_XSD10_COMPOSED
-        || profile == GeneratorProfile.XP_XSD10_SEMANTIC;
+        || profile == GeneratorProfile.XP_XSD10_SEMANTIC
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
   }
 
   private boolean supportsSimpleRestrictions(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_VALIDATION_10_BASIC
         || profile == GeneratorProfile.XP_XSD10_COMPOSED
-        || profile == GeneratorProfile.XP_XSD10_SEMANTIC;
+        || profile == GeneratorProfile.XP_XSD10_SEMANTIC
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
   }
 
   private boolean supportsComposedSchema(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_XSD10_COMPOSED
-        || profile == GeneratorProfile.XP_XSD10_SEMANTIC;
+        || profile == GeneratorProfile.XP_XSD10_SEMANTIC
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
   }
 
   private boolean supportsSemanticSchema(GeneratorProfile profile) {
-    return profile == GeneratorProfile.XP_XSD10_SEMANTIC;
+    return profile == GeneratorProfile.XP_XSD10_SEMANTIC
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
+  }
+
+  private boolean supportsDocumentSchema(GeneratorProfile profile) {
+    return profile == GeneratorProfile.XP_XSD10_DOCUMENT;
   }
 
   private boolean hasSemanticAttributes(XsdSyntaxKind kind, Map<String, String> attributes) {
@@ -301,6 +318,7 @@ public final class XsdSyntaxParser {
       case "attributeGroup" -> XsdSyntaxKind.ATTRIBUTE_GROUP;
       case "sequence" -> XsdSyntaxKind.SEQUENCE;
       case "choice" -> XsdSyntaxKind.CHOICE;
+      case "any" -> XsdSyntaxKind.ANY;
       default -> null;
     };
   }
@@ -355,6 +373,12 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
       }
       case SEQUENCE, CHOICE -> addCardinality(attributes, reader);
+      case ANY -> {
+        addIfPresent(attributes, "namespace", reader.getAttributeValue(null, "namespace"));
+        addIfPresent(
+            attributes, "processContents", reader.getAttributeValue(null, "processContents"));
+        addCardinality(attributes, reader);
+      }
       case LIST, UNION -> {
         addIfPresent(attributes, "itemType", reader.getAttributeValue(null, "itemType"));
         addIfPresent(attributes, "memberTypes", reader.getAttributeValue(null, "memberTypes"));

@@ -22,7 +22,8 @@ public enum XsdSyntaxKind {
   GROUP("group"),
   ATTRIBUTE_GROUP("attributeGroup"),
   SEQUENCE("sequence"),
-  CHOICE("choice");
+  CHOICE("choice"),
+  ANY("any");
 
   private final String manifestName;
 

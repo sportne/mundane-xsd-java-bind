@@ -110,12 +110,18 @@ public final class GeneratedWriterEmitter {
           && reference.unionMembers().stream()
               .allMatch(member -> isSupportedTypeReference(member, index));
     }
+    if ("fragment".equals(reference.kind())) {
+      return "io.github.mundanej.mxjb.runtime.XmlFragment".equals(reference.name());
+    }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
 
   private boolean isSupportedFieldKind(String kind) {
-    return "element".equals(kind) || "attribute".equals(kind) || "choice".equals(kind);
+    return "element".equals(kind)
+        || "attribute".equals(kind)
+        || "choice".equals(kind)
+        || "wildcard".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -181,6 +187,9 @@ public final class GeneratedWriterEmitter {
       source.append("  private ").append(writerName.simpleName()).append("() {}\n\n");
       appendPublicWrite(source);
       appendHelper(source, rootType);
+      if (hasWildcard(rootType, new LinkedHashSet<>())) {
+        appendFragmentHelpers(source);
+      }
       source.append("}\n");
       return source.toString();
     }
@@ -313,6 +322,14 @@ public final class GeneratedWriterEmitter {
         appendChoiceValueWrite(source, field, valueExpression, indent);
         return;
       }
+      if ("wildcard".equals(field.kind())) {
+        source
+            .append(indent)
+            .append("writeFragment(output, ")
+            .append(valueExpression)
+            .append(");\n");
+        return;
+      }
       String name = nameConstant(field.xmlName());
       if ("attribute".equals(field.kind())) {
         source
@@ -365,6 +382,32 @@ public final class GeneratedWriterEmitter {
       return "String.valueOf(" + valueExpression + ")";
     }
 
+    private void appendFragmentHelpers(StringBuilder source) {
+      source
+          .append("  private static void writeFragment(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlOutput output,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlFragment fragment)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlWriteException {\n")
+          .append("    java.util.Objects.requireNonNull(fragment, \"fragment\");\n")
+          .append("    output.startElement(fragment.name());\n")
+          .append(
+              "    for (io.github.mundanej.mxjb.runtime.XmlAttribute attribute : fragment.attributes()) {\n")
+          .append("      output.attribute(attribute.name(), attribute.value());\n")
+          .append("    }\n")
+          .append(
+              "    for (io.github.mundanej.mxjb.runtime.XmlFragmentContent content : fragment.content()) {\n")
+          .append(
+              "      if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentText text) {\n")
+          .append("        output.text(text.text());\n")
+          .append(
+              "      } else if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentElement element) {\n")
+          .append("        writeFragment(output, element.fragment());\n")
+          .append("      }\n")
+          .append("    }\n")
+          .append("    output.endElement(fragment.name());\n")
+          .append("  }\n\n");
+    }
+
     private String localType(BindingField field) {
       if ("choice".equals(field.type().kind())) {
         return field.type().name();
@@ -378,6 +421,9 @@ public final class GeneratedWriterEmitter {
       }
       if ("union".equals(field.type().kind())) {
         return "String";
+      }
+      if ("fragment".equals(field.type().kind())) {
+        return "io.github.mundanej.mxjb.runtime.XmlFragment";
       }
       return scalarType(field.type());
     }
@@ -409,7 +455,11 @@ public final class GeneratedWriterEmitter {
 
     private List<BindingField> contentFields(BindingType type) {
       return type.fields().stream()
-          .filter(field -> "element".equals(field.kind()) || "choice".equals(field.kind()))
+          .filter(
+              field ->
+                  "element".equals(field.kind())
+                      || "choice".equals(field.kind())
+                      || "wildcard".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
     }
@@ -450,6 +500,31 @@ public final class GeneratedWriterEmitter {
           }
         }
       }
+    }
+
+    private boolean hasWildcard(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      if (type.fields().stream().anyMatch(field -> "wildcard".equals(field.kind()))) {
+        return true;
+      }
+      for (BindingField field : elements(type)) {
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && hasWildcard(nestedType, visited)) {
+          return true;
+        }
+      }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
+        for (BindingChoiceBranch branch : field.choice().branches()) {
+          BindingType nestedType = modelType(branch.type());
+          if (nestedType != null && hasWildcard(nestedType, visited)) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     private boolean needsNillableSupport(BindingType type, Set<String> visited) {

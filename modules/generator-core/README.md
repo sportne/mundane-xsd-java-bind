@@ -9,13 +9,15 @@ IR, binding, generated model/writer/reader/validator emission, public generator-
 behavior, generated-source verification harness behavior, and generated-code Native Image smoke
 coverage are implemented for the accepted `XP-DATA-10` slice and the accepted opt-in
 `XP-DATA-10-CHOICE`, `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`, and
-`XP-XSD10-SEMANTIC` subsets.
+`XP-XSD10-SEMANTIC` subsets, plus accepted direct wildcard/open-content support for
+`XP-XSD10-DOCUMENT`.
 
 The composed profile covers the accepted named model group and attribute-group flattening,
 named list/union simple types, and initial derivation flattening slices only. Full XSD 1.0
 composition remains future profile work. The semantic profile covers accepted
 nillable/default/fixed behavior, direct substitution groups, and expanded generated validation for
-those accepted semantic paths only.
+those accepted semantic paths only. The document profile currently covers accepted direct
+`xs:any` particles in sequences with retained `XmlFragment` wildcard fields only.
 
 ## Contributor notes
 

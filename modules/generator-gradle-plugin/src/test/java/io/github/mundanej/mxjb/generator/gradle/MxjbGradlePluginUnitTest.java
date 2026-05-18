@@ -113,6 +113,25 @@ final class MxjbGradlePluginUnitTest {
   }
 
   @Test
+  void taskAcceptsDocumentProfileToken() throws IOException {
+    Project project = configuredProject();
+    Path schema =
+        writeSchema("src/main/resources/schema/document-order.xsd", documentOrderSchema());
+
+    MxjbExtension extension = extension(project);
+    extension.schema(schema.toFile());
+    extension.localRoot(requireParent(schema).toFile());
+    extension.namespacePackage("urn:orders", "com.example.orders");
+    extension.getProfile().set("XP-XSD10-DOCUMENT");
+    task(project).generate();
+
+    assertTrue(Files.exists(generatedPath("com/example/orders/Order.java")));
+    assertTrue(
+        Files.readString(generatedPath("com/example/orders/Order.java"))
+            .contains("List<XmlFragment> wildcardContent"));
+  }
+
+  @Test
   void taskResolvesCatalogMappings() throws IOException {
     Project project = configuredProject();
     Path order =
@@ -289,6 +308,23 @@ final class MxjbGradlePluginUnitTest {
               <xs:group ref="o:OrderFields"/>
             </xs:sequence>
             <xs:attributeGroup ref="o:OrderAttributes"/>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String documentOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:orders"
+            xmlns:o="urn:orders"
+            elementFormDefault="qualified">
+          <xs:element name="order" type="o:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
           </xs:complexType>
         </xs:schema>
         """;

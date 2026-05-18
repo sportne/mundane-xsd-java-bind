@@ -1,0 +1,4 @@
+<order xmlns="urn:document">
+  <id>A-1</id>
+  <unexpected>same namespace is not accepted by ##other</unexpected>
+</order>

@@ -131,7 +131,8 @@ public final class SchemaIrBuilder {
               MAX_INCLUSIVE,
               PATTERN,
               LIST,
-              UNION ->
+              UNION,
+              ANY ->
               diagnostic(
                   state,
                   DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
@@ -736,6 +737,8 @@ public final class SchemaIrBuilder {
         addIfPresent(particles, normalizeElement(document, child, state, false));
       } else if (child.kind() == XsdSyntaxKind.CHOICE) {
         addIfPresent(particles, normalizeChoice(document, child, state));
+      } else if (child.kind() == XsdSyntaxKind.ANY) {
+        addIfPresent(particles, normalizeWildcard(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.GROUP && allowGroupReferences) {
         SchemaIrSequence groupSequence = normalizeGroupReferenceAsSequence(document, child, state);
         if (groupSequence != null) {
@@ -746,11 +749,131 @@ public final class SchemaIrBuilder {
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "Only xs:element, accepted xs:choice, and accepted xs:group refs are supported "
-                + "inside xs:sequence for normalized IR.");
+            "Only xs:element, accepted xs:choice, accepted xs:any, and accepted xs:group refs "
+                + "are supported inside xs:sequence for normalized IR.");
       }
     }
+    validateWildcardElementAmbiguity(document, particles, state);
     return new SchemaIrSequence(cardinality, particles);
+  }
+
+  private void validateWildcardElementAmbiguity(
+      XsdSyntaxDocument document, List<SchemaIrParticle> particles, BuildState state) {
+    List<SchemaQName> elementNames = new ArrayList<>();
+    for (SchemaIrParticle particle : particles) {
+      if (particle instanceof SchemaIrElement element) {
+        elementNames.add(element.name());
+      } else if (particle instanceof SchemaIrChoice choice) {
+        for (SchemaIrElement branch : choice.branches()) {
+          elementNames.add(branch.name());
+        }
+      }
+    }
+    for (SchemaIrParticle particle : particles) {
+      if (particle instanceof SchemaIrWildcard wildcard) {
+        for (SchemaQName elementName : elementNames) {
+          if (wildcardMatches(elementName, wildcard.namespaceConstraint())) {
+            diagnostic(
+                state,
+                DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+                document.resourceId(),
+                "xs:any namespace constraint overlaps XML element "
+                    + elementName.toText()
+                    + " in the same sequence.");
+          }
+        }
+      }
+    }
+  }
+
+  private boolean wildcardMatches(SchemaQName elementName, SchemaIrWildcardNamespace namespace) {
+    return switch (namespace.kind()) {
+      case "any" -> true;
+      case "other" -> !namespace.namespaces().contains(elementName.namespace());
+      default -> namespace.namespaces().contains(elementName.namespace());
+    };
+  }
+
+  private SchemaIrWildcard normalizeWildcard(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    SchemaCardinality cardinality = cardinality(document, node, state);
+    if (cardinality == null) {
+      return null;
+    }
+    String processContents = node.attributes().get("processContents");
+    if (!"skip".equals(processContents)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:any supports only explicit processContents=\"skip\" in profile XP-XSD10-DOCUMENT.");
+      return null;
+    }
+    SchemaIrWildcardNamespace namespace =
+        wildcardNamespace(document, node.attributes().getOrDefault("namespace", "##any"), state);
+    if (namespace == null) {
+      return null;
+    }
+    return new SchemaIrWildcard(cardinality, namespace);
+  }
+
+  private SchemaIrWildcardNamespace wildcardNamespace(
+      XsdSyntaxDocument document, String value, BuildState state) {
+    String normalized = value == null || value.isBlank() ? "##any" : value.trim();
+    List<String> tokens = List.of(normalized.split("\\s+"));
+    Set<String> unique = new LinkedHashSet<>(tokens);
+    if (unique.size() != tokens.size()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:any namespace constraint contains duplicate tokens.");
+      return null;
+    }
+    if (tokens.contains("##any")) {
+      if (tokens.size() == 1) {
+        return new SchemaIrWildcardNamespace("any", List.of());
+      }
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:any namespace ##any cannot be combined with other namespace tokens.");
+      return null;
+    }
+    if (tokens.size() == 1) {
+      String token = tokens.get(0);
+      if ("##other".equals(token)) {
+        return new SchemaIrWildcardNamespace("other", List.of(document.targetNamespace()));
+      }
+      if ("##local".equals(token)) {
+        return new SchemaIrWildcardNamespace("explicit", List.of(""));
+      }
+      if ("##targetNamespace".equals(token)) {
+        return new SchemaIrWildcardNamespace("explicit", List.of(document.targetNamespace()));
+      }
+    }
+    List<String> explicitNamespaces = new ArrayList<>();
+    for (String token : tokens) {
+      if ("##other".equals(token) || "##local".equals(token) || "##targetNamespace".equals(token)) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:any namespace special tokens cannot be combined with explicit namespace tokens.");
+        return null;
+      }
+      if (token.startsWith("##")) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Unsupported xs:any namespace token " + token + ".");
+        return null;
+      }
+      explicitNamespaces.add(token);
+    }
+    return new SchemaIrWildcardNamespace("explicit", explicitNamespaces);
   }
 
   private SchemaIrSequence normalizeGroupReferenceAsSequence(
@@ -1786,7 +1909,8 @@ public final class SchemaIrBuilder {
           LIST,
           UNION,
           SEQUENCE,
-          CHOICE ->
+          CHOICE,
+          ANY ->
           null;
     };
   }

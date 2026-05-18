@@ -71,4 +71,21 @@ final class SchemaIrValueTest {
     assertEquals("element {urn:test}id @ main.xsd", component.toText());
     assertEquals("1..1", defaulted.toText());
   }
+
+  @Test
+  void sequencesExposeWildcardParticles() {
+    SchemaIrWildcard wildcard =
+        new SchemaIrWildcard(
+            new SchemaCardinality(0, "unbounded"),
+            new SchemaIrWildcardNamespace("other", List.of("urn:test")));
+    SchemaIrSequence sequence = new SchemaIrSequence(SchemaCardinality.ONE, List.of(wildcard));
+
+    assertEquals(List.of(wildcard), sequence.wildcards());
+    assertEquals(List.of(), sequence.elements());
+    assertEquals(List.of(), sequence.choices());
+    assertTrue(
+        sequence
+            .toText("  ")
+            .contains("wildcard namespace=other:urn:test cardinality=0..unbounded"));
+  }
 }

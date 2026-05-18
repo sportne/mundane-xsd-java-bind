@@ -623,6 +623,35 @@ final class BindingModelBuilderTest {
     assertEquals(first.diagnostics(), second.diagnostics());
   }
 
+  @Test
+  void bindsWildcardParticlesAsXmlFragmentLists() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains(
+                "wildcard wildcardContent xml=* type=fragment:"
+                    + "io.github.mundanej.mxjb.runtime.XmlFragment cardinality=list 0..unbounded"));
+    assertTrue(result.model().toText().contains("wildcard namespace=other:urn:orders"));
+  }
+
   private BindingResult bind(String primarySchema) {
     return bind(primarySchema, BindingConfiguration.defaults());
   }

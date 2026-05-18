@@ -116,12 +116,18 @@ public final class GeneratedValidatorEmitter {
           && reference.unionMembers().stream()
               .allMatch(member -> isSupportedTypeReference(member, index));
     }
+    if ("fragment".equals(reference.kind())) {
+      return "io.github.mundanej.mxjb.runtime.XmlFragment".equals(reference.name());
+    }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
 
   private boolean isSupportedFieldKind(String kind) {
-    return "element".equals(kind) || "attribute".equals(kind) || "choice".equals(kind);
+    return "element".equals(kind)
+        || "attribute".equals(kind)
+        || "choice".equals(kind)
+        || "wildcard".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -255,7 +261,11 @@ public final class GeneratedValidatorEmitter {
       }
       String shape = field.cardinality().shape();
       if ("list".equals(shape)) {
-        appendListValidation(source, field, accessor);
+        if ("wildcard".equals(field.kind())) {
+          appendWildcardValidation(source, field, accessor);
+        } else {
+          appendListValidation(source, field, accessor);
+        }
       } else if (field.semantics().nillable()) {
         appendNillableValidation(source, field, accessor);
       } else if ("optional".equals(shape)) {
@@ -449,6 +459,48 @@ public final class GeneratedValidatorEmitter {
         source.append("      }\n");
       }
       source.append("    }\n");
+    }
+
+    private void appendWildcardValidation(
+        StringBuilder source, BindingField field, String accessor) {
+      source.append("    if (").append(accessor).append(" == null) {\n");
+      source
+          .append("      addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("    } else {\n");
+      if (field.cardinality().minOccurs() > 0) {
+        source.append("      if (").append(accessor).append(".size() < ");
+        source.append(field.cardinality().minOccurs()).append(") {\n");
+        source
+            .append("        addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+            .append(escape(field.javaName()))
+            .append(".\", location);\n");
+        source.append("      }\n");
+      }
+      if (!"unbounded".equals(field.cardinality().maxOccurs())) {
+        source.append("      if (").append(accessor).append(".size() > ");
+        source.append(Integer.parseInt(field.cardinality().maxOccurs())).append(") {\n");
+        source
+            .append("        addError(errors, \"MXJB-GV-003\", \"Too many values for ")
+            .append(escape(field.javaName()))
+            .append(".\", location);\n");
+        source.append("      }\n");
+      }
+      source
+          .append("      for (io.github.mundanej.mxjb.runtime.XmlFragment item : ")
+          .append(accessor)
+          .append(") {\n")
+          .append("        validateFragment(item, \"")
+          .append(escape(field.wildcard().namespaceConstraint().kind()))
+          .append("\", java.util.Set.of(")
+          .append(
+              field.wildcard().namespaceConstraint().namespaces().stream()
+                  .map(value -> "\"" + escape(value) + "\"")
+                  .collect(java.util.stream.Collectors.joining(", ")))
+          .append("), location, errors);\n")
+          .append("      }\n")
+          .append("    }\n");
     }
 
     private boolean hasFacetRules(BindingTypeReference reference) {
@@ -849,6 +901,52 @@ public final class GeneratedValidatorEmitter {
           .append(
               "    errors.add(new io.github.mundanej.mxjb.runtime.ValidationError(code, message, location));\n")
           .append("  }\n");
+      if (needsWildcardSupport(rootType, new LinkedHashSet<>())) {
+        source
+            .append('\n')
+            .append("  private static void validateFragment(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlFragment fragment,\n")
+            .append("      String wildcardKind,\n")
+            .append("      java.util.Set<String> namespaces,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
+            .append(
+                "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+            .append("    if (fragment == null) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-001\", \"Missing required wildcard fragment.\", location);\n")
+            .append("      return;\n")
+            .append("    }\n")
+            .append("    if (!wildcardMatches(fragment.name(), wildcardKind, namespaces)) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-009\", "
+                    + "\"Wildcard fragment namespace is not accepted.\", location);\n")
+            .append("    }\n")
+            .append(
+                "    for (io.github.mundanej.mxjb.runtime.XmlFragmentContent content : fragment.content()) {\n")
+            .append(
+                "      if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentElement element) {\n")
+            .append(
+                "        validateFragment(element.fragment(), \"any\", java.util.Set.of(), location, errors);\n")
+            .append("      } else if (content == null) {\n")
+            .append(
+                "        addError(errors, \"MXJB-GV-001\", \"Missing required wildcard content.\", location);\n")
+            .append("      }\n")
+            .append("    }\n")
+            .append("  }\n\n")
+            .append("  private static boolean wildcardMatches(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
+            .append("      String kind,\n")
+            .append("      java.util.Set<String> namespaces) {\n")
+            .append("    if (name == null) {\n")
+            .append("      return false;\n")
+            .append("    }\n")
+            .append("    return switch (kind) {\n")
+            .append("      case \"any\" -> true;\n")
+            .append("      case \"other\" -> !namespaces.contains(name.namespaceUri());\n")
+            .append("      default -> namespaces.contains(name.namespaceUri());\n")
+            .append("    };\n")
+            .append("  }\n");
+      }
       if (!needsUnionSupport()) {
         return;
       }
@@ -893,6 +991,31 @@ public final class GeneratedValidatorEmitter {
 
     private boolean needsUnionSupport() {
       return needsUnionSupport(rootType, new LinkedHashSet<>());
+    }
+
+    private boolean needsWildcardSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      if (type.fields().stream().anyMatch(field -> "wildcard".equals(field.kind()))) {
+        return true;
+      }
+      for (BindingField field : elements(type)) {
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsWildcardSupport(nestedType, visited)) {
+          return true;
+        }
+      }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
+        for (BindingChoiceBranch branch : field.choice().branches()) {
+          BindingType nestedType = modelType(branch.type());
+          if (nestedType != null && needsWildcardSupport(nestedType, visited)) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     private boolean needsUnionSupport(BindingType type, Set<String> visited) {

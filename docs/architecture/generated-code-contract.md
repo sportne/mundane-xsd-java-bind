@@ -111,17 +111,19 @@ The `XP-XSD10-SEMANTIC` profile continues the explicit generated-code contract.
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, and external
   resource access.
 
-## `TASK-0036` planned document model shape
+## `TASK-0037` document wildcard model shape
 
-The planned `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and generated.
+The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and generated.
 
-- `TASK-0037` will add the public profile token and support accepted direct `xs:any` particles as
-  immutable `List<XmlFragment>` fields. `XmlFragment` is a planned dependency-free `runtime-core`
-  value, not a DOM node or parser-specific object.
-- `TASK-0037` retained fragments preserve expanded element names, attributes, namespace
-  declarations needed for deterministic reserialization, text children, and nested retained
-  elements. Comments, processing instructions, entity references, DTDs, and external resources stay
-  out of scope.
+- `TASK-0037` adds the public profile token and supports accepted direct `xs:any` particles as
+  immutable `List<XmlFragment>` fields. `XmlFragment` is a dependency-free `runtime-core` value,
+  not a DOM node or parser-specific object.
+- `TASK-0037` retained fragments preserve expanded element names, attributes, text children, and
+  nested retained elements. Exact lexical prefixes, comments, processing instructions, entity
+  references, DTDs, and external resources stay out of scope.
+- Generated readers capture accepted wildcard element subtrees into `XmlFragment` values; generated
+  writers emit retained fragments through `XmlOutput`; generated validators check wildcard
+  cardinality, null-free fragment structure, and namespace constraints.
 - `TASK-0038` mixed content uses a generated sealed interface named
   `<ContainingTypeSimpleName>Content`. Branch records represent text, accepted known elements, and
   accepted wildcard fragments in source order; generated records expose an immutable

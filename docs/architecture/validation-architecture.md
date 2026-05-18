@@ -73,9 +73,9 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
 - Identity constraints, wildcards, mixed content, XSD 1.1 assertions, and full XSD 1.0 validation
   semantics remain future-profile work with explicit diagnostics.
 
-## `TASK-0036` planned document validation
+## `TASK-0037` document wildcard validation
 
-The planned `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
+The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
 
 - `TASK-0037` validates accepted wildcard cardinality, namespace constraints, and retained-fragment
   well-formed event structure after reader capture. `processContents="skip"` means generated

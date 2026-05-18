@@ -513,10 +513,40 @@ final class XsdSyntaxParserTest {
     XsdSyntaxResult result = parseWithLocalResolver("main.xsd");
 
     assertEquals(
-        List.of(DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT), diagnosticCodes(result));
+        List.of(DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE), diagnosticCodes(result));
     assertEquals(
-        "SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT | main.xsd | Unsupported XSD construct xs:any for profile XP-DATA-10.",
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:any requires profile XP-XSD10-DOCUMENT.",
         result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
+  void parsesWildcardSyntaxForDocumentProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains(
+                "any namespace=##other processContents=skip minOccurs=0 maxOccurs=unbounded"));
   }
 
   @Test

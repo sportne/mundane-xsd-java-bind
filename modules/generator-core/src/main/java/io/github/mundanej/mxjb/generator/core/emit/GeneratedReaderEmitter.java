@@ -113,12 +113,18 @@ public final class GeneratedReaderEmitter {
           && reference.unionMembers().stream()
               .allMatch(member -> isSupportedTypeReference(member, index));
     }
+    if ("fragment".equals(reference.kind())) {
+      return "io.github.mundanej.mxjb.runtime.XmlFragment".equals(reference.name());
+    }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
 
   private boolean isSupportedFieldKind(String kind) {
-    return "element".equals(kind) || "attribute".equals(kind) || "choice".equals(kind);
+    return "element".equals(kind)
+        || "attribute".equals(kind)
+        || "choice".equals(kind)
+        || "wildcard".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -449,6 +455,11 @@ public final class GeneratedReaderEmitter {
             appendChoiceBranchRead(source, field, branch);
             firstBranch = false;
           }
+        } else if ("wildcard".equals(field.kind())) {
+          appendDispatchPrefix(source, firstBranch);
+          source.append(wildcardMatchExpression(field)).append(") {\n");
+          appendWildcardRead(source, field);
+          firstBranch = false;
         } else {
           appendDispatchPrefix(source, firstBranch);
           source.append(nameConstant(field.xmlName())).append(".equals(input.name())) {\n");
@@ -469,6 +480,22 @@ public final class GeneratedReaderEmitter {
 
     private void appendDispatchPrefix(StringBuilder source, boolean firstBranch) {
       source.append(firstBranch ? "      if (" : "      } else if (");
+    }
+
+    private void appendWildcardRead(StringBuilder source, BindingField field) {
+      source.append("        if (").append(field.order()).append(" < lastElementOrder) {\n");
+      source.append(
+          "          throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML wildcard content.\");\n");
+      source.append("        }\n");
+      source
+          .append("        lastElementOrder = Math.max(lastElementOrder, ")
+          .append(field.order())
+          .append(");\n");
+      appendMaxOccursCheck(source, field);
+      source
+          .append("        ")
+          .append(field.javaName())
+          .append("Values.add(readFragment(input));\n");
     }
 
     private void appendSingleElementRead(StringBuilder source, BindingField field) {
@@ -595,8 +622,9 @@ public final class GeneratedReaderEmitter {
       source.append(Integer.parseInt(field.cardinality().maxOccurs()));
       source.append(") {\n");
       source
-          .append("          throw readException(input, \"MXJB-GR-005\", \"Too many XML elements ")
-          .append(escape(field.xmlName().toText()))
+          .append("          throw readException(input, \"MXJB-GR-005\", \"Too many XML ")
+          .append("wildcard".equals(field.kind()) ? "wildcard content" : "elements ")
+          .append("wildcard".equals(field.kind()) ? "" : escape(field.xmlName().toText()))
           .append(".\");\n");
       source.append("        }\n");
     }
@@ -673,9 +701,9 @@ public final class GeneratedReaderEmitter {
           .append("Values.size() < ")
           .append(field.cardinality().minOccurs())
           .append(") {\n")
-          .append(
-              "      throw readException(input, \"MXJB-GR-004\", \"Missing required XML element ")
-          .append(escape(field.xmlName().toText()))
+          .append("      throw readException(input, \"MXJB-GR-004\", \"Missing required XML ")
+          .append("wildcard".equals(field.kind()) ? "wildcard content" : "element ")
+          .append("wildcard".equals(field.kind()) ? "" : escape(field.xmlName().toText()))
           .append(".\");\n")
           .append("    }\n");
     }
@@ -765,7 +793,74 @@ public final class GeneratedReaderEmitter {
           .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input) {\n")
           .append("    return input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT\n")
           .append("        && input.text().isBlank();\n")
-          .append("  }\n\n")
+          .append("  }\n\n");
+      if (needsWildcardSupport(rootType, new LinkedHashSet<>())) {
+        source
+            .append("  private static boolean wildcardMatches(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
+            .append("      String kind,\n")
+            .append("      java.util.Set<String> namespaces) {\n")
+            .append("    return switch (kind) {\n")
+            .append("      case \"any\" -> true;\n")
+            .append("      case \"other\" -> !namespaces.contains(name.namespaceUri());\n")
+            .append("      default -> namespaces.contains(name.namespaceUri());\n")
+            .append("    };\n")
+            .append("  }\n\n")
+            .append("  private static io.github.mundanej.mxjb.runtime.XmlFragment readFragment(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input)\n")
+            .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+            .append(
+                "    if (input.kind() != io.github.mundanej.mxjb.runtime.XmlEventKind.START_ELEMENT) {\n")
+            .append(
+                "      throw readException(input, \"MXJB-GR-007\", \"Expected wildcard XML element.\");\n")
+            .append("    }\n")
+            .append("    io.github.mundanej.mxjb.runtime.XmlName name = input.name();\n")
+            .append(
+                "    java.util.ArrayList<io.github.mundanej.mxjb.runtime.XmlAttribute> attributes =\n")
+            .append("        new java.util.ArrayList<>();\n")
+            .append("    for (int index = 0; index < input.attributeCount(); index++) {\n")
+            .append("      attributes.add(new io.github.mundanej.mxjb.runtime.XmlAttribute(\n")
+            .append("          input.attributeName(index), input.attributeValue(index)));\n")
+            .append("    }\n")
+            .append(
+                "    java.util.ArrayList<io.github.mundanej.mxjb.runtime.XmlFragmentContent> content =\n")
+            .append("        new java.util.ArrayList<>();\n")
+            .append("    if (!input.next()) {\n")
+            .append(
+                "      throw readException(input, \"MXJB-GR-007\", \"Unclosed wildcard XML fragment.\");\n")
+            .append("    }\n")
+            .append("    while (true) {\n")
+            .append(
+                "      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT) {\n")
+            .append(
+                "        content.add(new io.github.mundanej.mxjb.runtime.XmlFragmentText(input.text()));\n")
+            .append("        if (!input.next()) {\n")
+            .append(
+                "          throw readException(input, \"MXJB-GR-007\", \"Unclosed wildcard XML fragment.\");\n")
+            .append("        }\n")
+            .append(
+                "      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.START_ELEMENT) {\n")
+            .append(
+                "        content.add(new io.github.mundanej.mxjb.runtime.XmlFragmentElement(readFragment(input)));\n")
+            .append(
+                "      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {\n")
+            .append("        if (!name.equals(input.name())) {\n")
+            .append(
+                "          throw readException(input, \"MXJB-GR-007\", \"Mismatched wildcard fragment end.\");\n")
+            .append("        }\n")
+            .append("        input.next();\n")
+            .append(
+                "        return new io.github.mundanej.mxjb.runtime.XmlFragment(name, attributes, content);\n")
+            .append("      } else {\n")
+            .append("        if (!input.next()) {\n")
+            .append(
+                "          throw readException(input, \"MXJB-GR-007\", \"Unclosed wildcard XML fragment.\");\n")
+            .append("        }\n")
+            .append("      }\n")
+            .append("    }\n")
+            .append("  }\n\n");
+      }
+      source
           .append("  private static void expectStart(\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
@@ -1168,6 +1263,22 @@ public final class GeneratedReaderEmitter {
       return false;
     }
 
+    private boolean needsWildcardSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if ("wildcard".equals(field.kind())) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsWildcardSupport(nestedType, visited)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     private boolean containsListType(BindingTypeReference reference) {
       if ("list".equals(reference.kind())) {
         return true;
@@ -1212,6 +1323,9 @@ public final class GeneratedReaderEmitter {
       }
       if ("union".equals(field.type().kind())) {
         return "String";
+      }
+      if ("fragment".equals(field.type().kind())) {
+        return "io.github.mundanej.mxjb.runtime.XmlFragment";
       }
       return scalarType(field.type());
     }
@@ -1259,9 +1373,23 @@ public final class GeneratedReaderEmitter {
 
     private List<BindingField> contentFields(BindingType type) {
       return type.fields().stream()
-          .filter(field -> "element".equals(field.kind()) || "choice".equals(field.kind()))
+          .filter(
+              field ->
+                  "element".equals(field.kind())
+                      || "choice".equals(field.kind())
+                      || "wildcard".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
+    }
+
+    private String wildcardMatchExpression(BindingField field) {
+      return "wildcardMatches(input.name(), \""
+          + escape(field.wildcard().namespaceConstraint().kind())
+          + "\", java.util.Set.of("
+          + field.wildcard().namespaceConstraint().namespaces().stream()
+              .map(value -> "\"" + escape(value) + "\"")
+              .collect(java.util.stream.Collectors.joining(", "))
+          + "))";
     }
 
     private BindingType modelType(BindingField field) {

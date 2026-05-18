@@ -1,0 +1,4 @@
+<order xmlns="urn:document" xmlns:ext="urn:extension">
+  <id>A-1</id>
+  <ext:note code="N-1">retained<ext:child>value</ext:child></ext:note>
+</order>

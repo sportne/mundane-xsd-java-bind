@@ -53,10 +53,10 @@ not claim W3C XML Canonicalization or cryptographic canonical XML compatibility.
 ## Planned Public Interfaces
 
 `TASK-0037` is expected to add the public profile token `XP-XSD10-DOCUMENT`. It is also expected to
-add small dependency-free `runtime-core` values named `XmlFragment`, `XmlFragmentContent`,
-`XmlAttribute`, and `XmlNamespaceDeclaration`. These values must be immutable, parser-neutral, safe
-for Native Image, and must not wrap DOM, StAX, SAX, XPath, parser handles, mutable maps, or external
-resources.
+add small dependency-free `runtime-core` values named `XmlFragment`, `XmlFragmentContent`, and
+`XmlAttribute`. These values must be immutable, parser-neutral, safe for Native Image, and must not
+wrap DOM, StAX, SAX, XPath, parser handles, mutable maps, or external resources. Exact lexical
+prefix preservation remains a later serialization-policy concern.
 
 ## Planned Verification
 
@@ -80,8 +80,8 @@ and representative generated-code Native Image smoke.
   open-content binding/model shape, mixed-content ordering, retained-fragment reader/writer
   behavior, serialization policy, and validation/security behavior.
 - Documented the planned runtime/model shape using dependency-free `runtime-core` values:
-  `XmlFragment`, `XmlFragmentContent`, `XmlAttribute`, and `XmlNamespaceDeclaration`; DOM-backed
-  binding and parser-handle retention remain out of scope.
+  `XmlFragment`, `XmlFragmentContent`, and `XmlAttribute`; DOM-backed binding, exact lexical prefix
+  preservation, and parser-handle retention remain out of scope.
 - Updated follow-on task cards `TASK-0037` through `TASK-0040` with accepted scope, planned test
   identifiers, unsupported diagnostics, conformance/interop expectations, Native Image
   expectations, and readiness criteria.

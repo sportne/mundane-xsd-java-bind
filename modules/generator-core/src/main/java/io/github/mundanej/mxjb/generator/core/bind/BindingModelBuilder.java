@@ -16,6 +16,7 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleType;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSubstitutionGroup;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrTypeReference;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrValueSemantics;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcard;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -193,6 +194,11 @@ public final class BindingModelBuilder {
                 bindChoiceField(complexType, javaName, choice, usedFieldNames, order);
             fields.add(field);
             validationRules.add("choice " + field.javaName() + " " + field.cardinality().toText());
+          } else if (particle instanceof SchemaIrWildcard wildcard) {
+            BindingField field = bindWildcardField(wildcard, usedFieldNames, order);
+            fields.add(field);
+            validationRules.add(
+                "wildcard " + field.javaName() + " " + field.cardinality().toText());
           } else {
             diagnostic(
                 DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
@@ -261,6 +267,23 @@ public final class BindingModelBuilder {
           order,
           required,
           semantics);
+    }
+
+    private BindingField bindWildcardField(
+        SchemaIrWildcard wildcard, Set<String> usedFieldNames, int order) {
+      String fieldName = JavaNames.unique("wildcardContent", usedFieldNames);
+      BindingCardinality cardinality =
+          new BindingCardinality(
+              "list", wildcard.cardinality().minOccurs(), wildcard.cardinality().maxOccurs());
+      return new BindingField(
+          "wildcard",
+          new SchemaQName("", "*"),
+          fieldName,
+          BindingTypeReference.fragment(),
+          cardinality,
+          order,
+          wildcard.cardinality().minOccurs() > 0,
+          new BindingWildcard(wildcard.namespaceConstraint()));
     }
 
     private BindingField bindSubstitutionField(

@@ -9,7 +9,7 @@
 | `XP-VALIDATION-10-BASIC` | Basic generated validation | Opt-in `0.2.0` extension for named simple-type restrictions using accepted enumeration, string length, numeric inclusive range, and string pattern facets over already supported scalar bases. | 2 |
 | `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening, `TASK-0028` adds accepted named list/union simple types, and `TASK-0029` adds accepted initial derivation flattening. | 3 |
 | `XP-XSD10-SEMANTIC` | XSD 1.0 semantic expansion | Opt-in `0.4.0` profile composing `XP-XSD10-COMPOSED` with accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution-group behavior, and expanded generated validation for those accepted semantic paths from `TASK-0032` through `TASK-0034`. | 4 |
-| `XP-XSD10-DOCUMENT` | Document-oriented and open content | Planned opt-in `0.5.0` profile composing `XP-XSD10-SEMANTIC` with accepted direct `xs:any` wildcard retention, mixed-content ordering, and stable project serialization policy from `TASK-0037` through `TASK-0039`. | 5 |
+| `XP-XSD10-DOCUMENT` | Document-oriented and open content | Opt-in `0.5.0` profile composing `XP-XSD10-SEMANTIC`; `TASK-0037` adds accepted direct `xs:any` wildcard retention. Mixed-content ordering and stable serialization policy remain planned for `TASK-0038` and `TASK-0039`. | 5 |
 | `XP-XSD10-FULL` | Full XSD 1.0 | Substitution groups, full derivation semantics, wildcards, identity constraints, nillable, default/fixed, mixed content. | Future |
 | `XP-XSD11-ASSERT` | XSD 1.1 assertions | XSD 1.1 features including assertions and conditional alternatives. | Future |
 | `XP-XML11` | XML 1.1 | XML 1.1 parsing/serialization compatibility. | Future |
@@ -117,18 +117,21 @@ polymorphism, abstract complex types, wildcards, mixed content, identity constra
 semantics, full derivation semantics, XSD 1.1, artifact publication, and full XSD 1.0 conformance
 remain out of scope with explicit diagnostics.
 
-## `0.5.0` Document-Oriented Planning Baseline
+## `0.5.0` Document-Oriented Baseline
 
-`TASK-0036` accepts planned opt-in profile `XP-XSD10-DOCUMENT` for document-oriented and open-content
-support. `TASK-0036` does not add the public API token or generator behavior; `TASK-0037` is the
-first approved implementation gate for that token if this planning gate is accepted.
+`TASK-0036` accepted planned opt-in profile `XP-XSD10-DOCUMENT` for document-oriented and
+open-content support. `TASK-0037` adds the public API token and accepted direct wildcard behavior.
+This does not add dependency metadata, a release tag, or a publication claim.
 
-`XP-XSD10-DOCUMENT` composes `XP-XSD10-SEMANTIC` with these planned `0.5.0` additions:
+`XP-XSD10-DOCUMENT` composes `XP-XSD10-SEMANTIC` with these `0.5.0` additions:
 
-- planned for `TASK-0037`: direct `xs:any` particles inside accepted sequences only, with
+- accepted in `TASK-0037`: direct `xs:any` particles inside accepted sequences only, with
   `processContents="skip"` and deterministic namespace constraints `##any`, `##other`, `##local`,
   `##targetNamespace`, or explicit namespace URI tokens. Accepted wildcard fields bind as immutable
   `List<XmlFragment>` values using dependency-free runtime-core fragment values rather than DOM.
+  Retained fragments preserve expanded names, attributes, text, and nested element fragments; exact
+  lexical prefixes, comments, processing instructions, and entity-reference identity remain out of
+  scope.
 - planned for `TASK-0038`: `mixed="true"` only for complex types with accepted sequence content.
   Generated models preserve text and known element order through an explicit generated content-list
   sealed type with text, known-element, and accepted wildcard-fragment branches.

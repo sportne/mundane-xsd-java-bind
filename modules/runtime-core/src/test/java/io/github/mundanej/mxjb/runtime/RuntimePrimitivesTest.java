@@ -90,6 +90,36 @@ final class RuntimePrimitivesTest {
   }
 
   @Test
+  void xmlFragmentsRetainExpandedNamesAttributesAndContentImmutably() {
+    XmlName extensionName = new XmlName("urn:extension", "note");
+    XmlName attributeName = new XmlName("", "code");
+    XmlAttribute attribute = new XmlAttribute(attributeName, "A-1");
+    XmlFragment child = new XmlFragment(new XmlName("", "child"), List.of(), List.of());
+    List<XmlAttribute> attributes = new ArrayList<>();
+    attributes.add(attribute);
+    List<XmlFragmentContent> content = new ArrayList<>();
+    content.add(new XmlFragmentText("before"));
+    content.add(new XmlFragmentElement(child));
+
+    XmlFragment fragment = new XmlFragment(extensionName, attributes, content);
+    attributes.clear();
+    content.clear();
+
+    assertEquals(extensionName, fragment.name());
+    assertEquals(List.of(attribute), fragment.attributes());
+    assertEquals(2, fragment.content().size());
+    assertThrows(UnsupportedOperationException.class, () -> fragment.attributes().add(attribute));
+    assertThrows(UnsupportedOperationException.class, () -> fragment.content().clear());
+    assertThrows(NullPointerException.class, () -> new XmlAttribute(null, "value"));
+    assertThrows(NullPointerException.class, () -> new XmlAttribute(attributeName, null));
+    assertThrows(NullPointerException.class, () -> new XmlFragmentText(null));
+    assertThrows(NullPointerException.class, () -> new XmlFragmentElement(null));
+    assertThrows(NullPointerException.class, () -> new XmlFragment(null, List.of(), List.of()));
+    assertThrows(NullPointerException.class, () -> new XmlFragment(extensionName, null, List.of()));
+    assertThrows(NullPointerException.class, () -> new XmlFragment(extensionName, List.of(), null));
+  }
+
+  @Test
   void noCauseExceptionConstructorsRetainDiagnostics() {
     XmlDiagnostic diagnostic =
         new XmlDiagnostic(

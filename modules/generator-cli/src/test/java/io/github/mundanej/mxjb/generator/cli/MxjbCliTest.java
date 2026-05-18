@@ -23,6 +23,7 @@ final class MxjbCliTest {
     assertEquals(0, result.exitCode());
     assertTrue(result.out().contains("mxjb generate --schema <path> --output <dir>"));
     assertTrue(result.out().contains("XP-XSD10-SEMANTIC"));
+    assertTrue(result.out().contains("XP-XSD10-DOCUMENT"));
     assertEquals("", result.err());
   }
 

@@ -48,6 +48,10 @@ public record BindingTypeReference(
     return new BindingTypeReference("union", "string", null, null, members);
   }
 
+  static BindingTypeReference fragment() {
+    return new BindingTypeReference("fragment", "io.github.mundanej.mxjb.runtime.XmlFragment");
+  }
+
   public String toText() {
     if ("list".equals(kind)) {
       return "list:" + itemType.toText();

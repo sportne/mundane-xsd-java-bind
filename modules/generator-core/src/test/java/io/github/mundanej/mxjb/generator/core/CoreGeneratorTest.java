@@ -628,6 +628,92 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void narrowProfilesRejectWildcardsWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("document-order.xsd", documentOrderSchema(false));
+    for (GeneratorProfile profile :
+        List.of(
+            GeneratorProfile.XP_DATA_10,
+            GeneratorProfile.XP_DATA_10_CHOICE,
+            GeneratorProfile.XP_VALIDATION_10_BASIC,
+            GeneratorProfile.XP_XSD10_COMPOSED,
+            GeneratorProfile.XP_XSD10_SEMANTIC)) {
+      Path output = tempDirectory.resolve("wildcard-" + profile.name());
+
+      GeneratorResult result =
+          new CoreGenerator()
+              .generate(
+                  new GeneratorRequest(
+                      List.of(schema),
+                      output,
+                      profile,
+                      "com.acme.generated",
+                      Map.of("urn:orders", "com.acme.orders"),
+                      List.of(),
+                      Map.of()));
+
+      assertFalse(result.successful());
+      assertTrue(
+          result.diagnostics().stream()
+              .anyMatch(
+                  diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+      assertFalse(Files.exists(output));
+    }
+  }
+
+  @Test
+  void documentProfileGeneratesWildcardSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("document-order.xsd", documentOrderSchema(false));
+    Path output = tempDirectory.resolve("document-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_DOCUMENT,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String reader = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlReader.java"));
+    String writer = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlWriter.java"));
+    String validator =
+        Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
+    assertTrue(order.contains("List<XmlFragment> wildcardContent"));
+    assertTrue(reader.contains("readFragment(input)"));
+    assertTrue(writer.contains("writeFragment(output"));
+    assertTrue(validator.contains("validateFragment(item"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void documentProfileRejectsUnsupportedWildcardWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("bad-document-order.xsd", documentOrderSchema(true));
+    Path output = tempDirectory.resolve("bad-document-generated");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_DOCUMENT,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(diagnostic -> diagnostic.message().contains("processContents=\"skip\"")));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
   void semanticProfileRejectsUnsupportedValidationCategoriesWithoutWritingSources()
       throws IOException {
     List<String> schemas =
@@ -1157,6 +1243,26 @@ final class CoreGeneratorTest {
         </xs:schema>
         """
         .replace("PAYMENT_CARDINALITY", paymentCardinality);
+  }
+
+  private String documentOrderSchema(boolean unsupportedProcessContents) {
+    String processContents = unsupportedProcessContents ? "strict" : "skip";
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:any namespace="##other" processContents="PROCESS_CONTENTS" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """
+        .replace("PROCESS_CONTENTS", processContents);
   }
 
   private String lineSchema() {
