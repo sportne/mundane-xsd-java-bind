@@ -56,3 +56,18 @@ The `XP-XSD10-COMPOSED` validation behavior remains generated and explicit.
   binding order; accepted simple restriction derivation chains validate merged facet metadata.
 - Unsupported composition, list/union, and derivation cases remain schema diagnostics rather than
   partial generated validation behavior.
+
+## `TASK-0031` planned semantic validation
+
+The planned `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
+
+- `TASK-0032` validates nil content rules, rejects unsupported nil/default/fixed combinations, and
+  checks fixed values for generated object and XML validation.
+- `TASK-0032` readers produce effective scalar attribute default/fixed values when attributes are
+  absent and preserve absent optional elements as absent rather than defaulted.
+- `TASK-0033` validates substitution group dispatch using the resolved element name and generated
+  sealed branch type.
+- `TASK-0034` consolidates semantic diagnostics for accepted `0.4.0` behavior with deterministic
+  ordering and location-aware XML validation where the generated reader can preserve locations.
+- Identity constraints, wildcards, mixed content, XSD 1.1 assertions, and full XSD 1.0 validation
+  semantics remain future-profile work with explicit diagnostics.
