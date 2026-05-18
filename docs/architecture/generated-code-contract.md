@@ -92,16 +92,19 @@ runtime binding mechanisms.
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, and external
   resource access.
 
-## `TASK-0031` planned semantic model shape
+## `TASK-0032` semantic model shape
 
-The planned `XP-XSD10-SEMANTIC` profile must continue the explicit generated-code contract.
+The `XP-XSD10-SEMANTIC` profile continues the explicit generated-code contract.
 
 - `TASK-0032` required singleton nillable elements use `Optional<T>` record components, where
   `Optional.empty()` represents explicit `xsi:nil` rather than an absent optional element.
 - `TASK-0032` defaulted and fixed scalar attributes appear as effective scalar field values after
   generated reader construction; present empty simple elements may use element defaults, and
   generated validators check fixed values explicitly.
-- `TASK-0033` substitution group uses a generated sealed interface plus one record branch per
+- `TASK-0032` generated writers emit explicit `xsi:nil="true"` for nillable empty values and
+  serialize effective scalar attribute values without tracking whether they came from XML input or
+  schema defaults.
+- Planned `TASK-0033` substitution group support uses a generated sealed interface plus one record branch per
   accepted head or member element, preserving the actual XML element name for generated reader and
   writer dispatch.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,

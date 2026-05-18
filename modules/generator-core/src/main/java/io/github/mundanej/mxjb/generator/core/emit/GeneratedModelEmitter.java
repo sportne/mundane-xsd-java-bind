@@ -242,7 +242,7 @@ public final class GeneratedModelEmitter {
       if ("list".equals(cardinality) || "list".equals(field.type().kind())) {
         imports.add("java.util.List");
       }
-      if ("optional".equals(cardinality)) {
+      if ("optional".equals(cardinality) || field.semantics().nillable()) {
         imports.add("java.util.Optional");
       }
       addScalarImports(imports, field.type());
@@ -265,6 +265,9 @@ public final class GeneratedModelEmitter {
   private String fieldType(String currentPackage, BindingField field) {
     String base = baseType(currentPackage, field.type());
     String cardinality = field.cardinality().shape();
+    if (field.semantics().nillable()) {
+      return "Optional<" + base + ">";
+    }
     return switch (cardinality) {
       case "optional" -> "Optional<" + base + ">";
       case "list" -> "List<" + base + ">";

@@ -147,6 +147,8 @@ public final class GeneratedReaderEmitter {
   }
 
   private static final class SourceState {
+    private static final SchemaQName XSI_NIL =
+        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "nil");
     private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName readerName;
@@ -167,6 +169,9 @@ public final class GeneratedReaderEmitter {
 
     private String sourceText() {
       collectNames(root.xmlName(), rootType, new LinkedHashSet<>());
+      if (needsNillableSupport(rootType, new LinkedHashSet<>())) {
+        nameConstant(XSI_NIL);
+      }
       StringBuilder source = new StringBuilder();
       source.append("package ").append(readerName.packageName()).append(";\n\n");
       source
@@ -339,7 +344,26 @@ public final class GeneratedReaderEmitter {
           .append(" = attribute(input, ")
           .append(constant)
           .append(");\n");
-      if ("optional".equals(field.cardinality().shape())) {
+      if (field.semantics().hasDefault() || field.semantics().hasFixed()) {
+        String fallback =
+            field.semantics().hasDefault()
+                ? field.semantics().defaultValue()
+                : field.semantics().fixedValue();
+        source
+            .append("    ")
+            .append(localType(field))
+            .append(' ')
+            .append(field.javaName())
+            .append(" = ")
+            .append(
+                parseExpression(
+                    field.type(),
+                    textName + " == null ? \"" + escape(fallback) + "\" : " + textName))
+            .append(";\n");
+        if (field.semantics().hasFixed()) {
+          appendFixedReadCheck(source, field, "    ");
+        }
+      } else if ("optional".equals(field.cardinality().shape())) {
         source
             .append("    ")
             .append(localType(field))
@@ -390,6 +414,13 @@ public final class GeneratedReaderEmitter {
             .append("> ")
             .append(field.javaName())
             .append("Values = new java.util.ArrayList<>();\n");
+      } else if (field.semantics().nillable()) {
+        source
+            .append("    java.util.Optional<")
+            .append(localType(field))
+            .append("> ")
+            .append(field.javaName())
+            .append(" = null;\n");
       } else if ("optional".equals(shape)) {
         source
             .append("    java.util.Optional<")
@@ -453,7 +484,20 @@ public final class GeneratedReaderEmitter {
           .append("        lastElementOrder = Math.max(lastElementOrder, ")
           .append(field.order())
           .append(");\n");
-      if ("list".equals(shape)) {
+      if (field.semantics().nillable()) {
+        source.append("        if (").append(field.javaName()).append(" != null) {\n");
+        source
+            .append("          throw readException(input, \"MXJB-GR-005\", \"Repeated XML element ")
+            .append(escape(field.xmlName().toText()))
+            .append(".\");\n");
+        source.append("        }\n");
+        source
+            .append("        ")
+            .append(field.javaName())
+            .append(" = ")
+            .append(readNillableValueExpression(field))
+            .append(";\n");
+      } else if ("list".equals(shape)) {
         appendMaxOccursCheck(source, field);
         source
             .append("        ")
@@ -474,6 +518,9 @@ public final class GeneratedReaderEmitter {
             .append(" = java.util.Optional.of(")
             .append(readValueExpression(field))
             .append(");\n");
+        if (field.semantics().hasFixed()) {
+          appendFixedOptionalReadCheck(source, field, "        ");
+        }
       } else {
         source.append("        if (").append(field.javaName()).append(" != null) {\n");
         source
@@ -487,6 +534,9 @@ public final class GeneratedReaderEmitter {
             .append(" = ")
             .append(readValueExpression(field))
             .append(";\n");
+        if (field.semantics().hasFixed()) {
+          appendFixedReadCheck(source, field, "        ");
+        }
       }
     }
 
@@ -554,10 +604,37 @@ public final class GeneratedReaderEmitter {
       if (nestedType != null) {
         return helperName(nestedType) + "(input, " + nameConstant(field.xmlName()) + ")";
       }
+      if (field.semantics().hasDefault()) {
+        return parseExpression(
+            field.type(),
+            "defaultedText(readTextElement(input, "
+                + nameConstant(field.xmlName())
+                + "), \""
+                + escape(field.semantics().defaultValue())
+                + "\")");
+      }
       return "read"
           + readMethodSuffix(field.type())
           + "Element(input, "
           + nameConstant(field.xmlName())
+          + ")";
+    }
+
+    private String readNillableValueExpression(BindingField field) {
+      BindingType nestedType = modelType(field);
+      if (nestedType != null) {
+        return "readNilElement(input, "
+            + nameConstant(field.xmlName())
+            + ") ? java.util.Optional.empty() : java.util.Optional.of("
+            + helperName(nestedType)
+            + "(input, "
+            + nameConstant(field.xmlName())
+            + "))";
+      }
+      return "readNilElement(input, "
+          + nameConstant(field.xmlName())
+          + ") ? java.util.Optional.empty() : java.util.Optional.of("
+          + readValueExpression(field)
           + ")";
     }
 
@@ -599,6 +676,45 @@ public final class GeneratedReaderEmitter {
           .append(escape(field.xmlName().toText()))
           .append(".\");\n")
           .append("    }\n");
+    }
+
+    private void appendFixedReadCheck(StringBuilder source, BindingField field, String indent) {
+      String fixedExpression =
+          parseExpression(field.type(), "\"" + escape(field.semantics().fixedValue()) + "\"");
+      source
+          .append(indent)
+          .append("if (!java.util.Objects.equals(")
+          .append(field.javaName())
+          .append(", ")
+          .append(fixedExpression)
+          .append(")) {\n")
+          .append(indent)
+          .append(
+              "  throw readException(input, \"MXJB-GR-008\", \"XML value does not match fixed value ")
+          .append(escape(field.xmlName().toText()))
+          .append(".\");\n")
+          .append(indent)
+          .append("}\n");
+    }
+
+    private void appendFixedOptionalReadCheck(
+        StringBuilder source, BindingField field, String indent) {
+      String fixedExpression =
+          parseExpression(field.type(), "\"" + escape(field.semantics().fixedValue()) + "\"");
+      source
+          .append(indent)
+          .append("if (!java.util.Objects.equals(")
+          .append(field.javaName())
+          .append(".orElseThrow(), ")
+          .append(fixedExpression)
+          .append(")) {\n")
+          .append(indent)
+          .append(
+              "  throw readException(input, \"MXJB-GR-008\", \"XML value does not match fixed value ")
+          .append(escape(field.xmlName().toText()))
+          .append(".\");\n")
+          .append(indent)
+          .append("}\n");
     }
 
     private String constructorArguments(BindingType type) {
@@ -667,7 +783,14 @@ public final class GeneratedReaderEmitter {
           .append("      }\n")
           .append("    }\n")
           .append("    return null;\n")
-          .append("  }\n\n")
+          .append("  }\n\n");
+      if (needsDefaultedElementSupport(rootType, new LinkedHashSet<>())) {
+        source
+            .append("  private static String defaultedText(String value, String defaultValue) {\n")
+            .append("    return value.isEmpty() ? defaultValue : value;\n")
+            .append("  }\n\n");
+      }
+      source
           .append("  private static String readTextElement(\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
@@ -694,6 +817,34 @@ public final class GeneratedReaderEmitter {
           .append(
               "    throw readException(input, \"MXJB-GR-007\", \"Unclosed XML text element.\");\n")
           .append("  }\n\n");
+      if (needsNillableSupport(rootType, new LinkedHashSet<>())) {
+        source
+            .append("  private static boolean readNilElement(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
+            .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+            .append("    expectStart(input, name);\n")
+            .append("    String nil = attribute(input, ")
+            .append(nameConstant(XSI_NIL))
+            .append(");\n")
+            .append("    if (!\"true\".equals(nil) && !\"1\".equals(nil)) {\n")
+            .append("      return false;\n")
+            .append("    }\n")
+            .append("    if (!input.next()) {\n")
+            .append(
+                "      throw readException(input, \"MXJB-GR-007\", \"Unexpected end of XML input.\");\n")
+            .append("    }\n")
+            .append("    movePastWhitespace(input);\n")
+            .append(
+                "    if (input.kind() != io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT\n")
+            .append("        || !name.equals(input.name())) {\n")
+            .append(
+                "      throw readException(input, \"MXJB-GR-009\", \"xsi:nil element must be empty.\");\n")
+            .append("    }\n")
+            .append("    input.next();\n")
+            .append("    return true;\n")
+            .append("  }\n\n");
+      }
     }
 
     private void appendScalarElementHelpers(StringBuilder source) {
@@ -978,6 +1129,38 @@ public final class GeneratedReaderEmitter {
               return true;
             }
           }
+        }
+      }
+      return false;
+    }
+
+    private boolean needsNillableSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if (field.semantics().nillable()) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsNillableSupport(nestedType, visited)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private boolean needsDefaultedElementSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if ("element".equals(field.kind()) && field.semantics().hasDefault()) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsDefaultedElementSupport(nestedType, visited)) {
+          return true;
         }
       }
       return false;

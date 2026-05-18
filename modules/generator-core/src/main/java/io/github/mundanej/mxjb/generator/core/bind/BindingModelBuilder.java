@@ -14,6 +14,7 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSequence;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleRestriction;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleType;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrTypeReference;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrValueSemantics;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -199,14 +200,25 @@ public final class BindingModelBuilder {
         SchemaIrAttribute declaration =
             attribute.reference() ? globalAttributes.get(attribute.name()) : attribute;
         SchemaIrTypeReference type = declaration == null ? attribute.type() : declaration.type();
+        BindingValueSemantics semantics =
+            bindingSemantics(declaration == null ? attribute.semantics() : declaration.semantics());
         BindingTypeReference bindingType = bindTypeReference(type, null, attribute.name());
         BindingCardinality cardinality = attributeCardinality(attribute);
+        cardinality = effectiveAttributeCardinality(cardinality, semantics);
         validateListSimpleTypeCardinality(bindingType, cardinality, attribute.name());
+        validateValueSemantics("attribute", attribute.name(), bindingType, cardinality, semantics);
         String fieldName = JavaNames.uniqueFieldName(attribute.name(), usedFieldNames);
         boolean required = "required".equals(attribute.use());
         fields.add(
             new BindingField(
-                "attribute", attribute.name(), fieldName, bindingType, cardinality, 0, required));
+                "attribute",
+                attribute.name(),
+                fieldName,
+                bindingType,
+                cardinality,
+                0,
+                required,
+                semantics));
         validationRules.add("attribute " + fieldName + " use=" + attribute.use());
       }
       return new BindingType(
@@ -222,13 +234,23 @@ public final class BindingModelBuilder {
       SchemaIrElement declaration =
           element.reference() ? globalElements.get(element.name()) : element;
       SchemaIrTypeReference type = declaration == null ? element.type() : declaration.type();
+      BindingValueSemantics semantics =
+          bindingSemantics(declaration == null ? element.semantics() : declaration.semantics());
       BindingTypeReference bindingType = bindTypeReference(type, declaration, element.name());
       BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
       validateListSimpleTypeCardinality(bindingType, cardinality, element.name());
+      validateValueSemantics("element", element.name(), bindingType, cardinality, semantics);
       String fieldName = JavaNames.uniqueFieldName(element.name(), usedFieldNames);
       boolean required = cardinality.minOccurs() > 0;
       return new BindingField(
-          "element", element.name(), fieldName, bindingType, cardinality, order, required);
+          "element",
+          element.name(),
+          fieldName,
+          bindingType,
+          cardinality,
+          order,
+          required,
+          semantics);
     }
 
     private BindingField bindChoiceField(
@@ -399,6 +421,169 @@ public final class BindingModelBuilder {
             "xs:list-valued field "
                 + name.toText()
                 + " supports only required singleton XML values in profile XP-XSD10-COMPOSED.");
+      }
+    }
+
+    private BindingValueSemantics bindingSemantics(SchemaIrValueSemantics semantics) {
+      if (semantics == null) {
+        return BindingValueSemantics.NONE;
+      }
+      return new BindingValueSemantics(
+          semantics.nillable(), semantics.defaultValue(), semantics.fixedValue());
+    }
+
+    private BindingCardinality effectiveAttributeCardinality(
+        BindingCardinality cardinality, BindingValueSemantics semantics) {
+      if (semantics.hasDefault() || semantics.hasFixed()) {
+        return BindingCardinality.from(SchemaCardinality.ONE);
+      }
+      return cardinality;
+    }
+
+    private void validateValueSemantics(
+        String kind,
+        SchemaQName name,
+        BindingTypeReference bindingType,
+        BindingCardinality cardinality,
+        BindingValueSemantics semantics) {
+      if (!semantics.hasAny()) {
+        return;
+      }
+      if (semantics.hasDefault() && semantics.hasFixed()) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            "binding",
+            "Field " + name.toText() + " cannot declare both default and fixed values.");
+      }
+      if ("attribute".equals(kind) && semantics.nillable()) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            "binding",
+            "Attribute " + name.toText() + " cannot be nillable.");
+      }
+      if (semantics.nillable()) {
+        if (!"element".equals(kind)
+            || !"required".equals(cardinality.shape())
+            || cardinality.minOccurs() != 1
+            || !"1".equals(cardinality.maxOccurs())
+            || "list".equals(bindingType.kind())) {
+          diagnostic(
+              DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+              "binding",
+              "nillable element "
+                  + name.toText()
+                  + " supports only required singleton non-list values in profile XP-XSD10-SEMANTIC.");
+        }
+        if (semantics.hasDefault() || semantics.hasFixed()) {
+          diagnostic(
+              DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+              "binding",
+              "nillable element "
+                  + name.toText()
+                  + " cannot combine nil semantics with default or fixed values.");
+        }
+      }
+      validateDefaultOrFixed(kind, name, bindingType, "default", semantics.defaultValue());
+      validateDefaultOrFixed(kind, name, bindingType, "fixed", semantics.fixedValue());
+    }
+
+    private void validateDefaultOrFixed(
+        String kind,
+        SchemaQName name,
+        BindingTypeReference bindingType,
+        String label,
+        String value) {
+      if (value == null) {
+        return;
+      }
+      if (!"scalar".equals(bindingType.kind())) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+            "binding",
+            kind
+                + " "
+                + name.toText()
+                + " "
+                + label
+                + " values support only scalar built-ins or restricted scalar aliases.");
+        return;
+      }
+      if (!isValidScalarLexical(bindingType.name(), value)
+          || !matchesRestriction(bindingType, value)) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            "binding",
+            kind
+                + " "
+                + name.toText()
+                + " has unsupported lexical "
+                + label
+                + " value "
+                + value
+                + ".");
+      }
+    }
+
+    private boolean matchesRestriction(BindingTypeReference type, String value) {
+      BindingSimpleRestriction restriction = type.restriction();
+      if (restriction == null || !restriction.hasRules()) {
+        return true;
+      }
+      if (!restriction.enumerations().isEmpty() && !restriction.enumerations().contains(value)) {
+        return false;
+      }
+      if (restriction.length() != null && value.length() != restriction.length()) {
+        return false;
+      }
+      if (restriction.minLength() != null && value.length() < restriction.minLength()) {
+        return false;
+      }
+      if (restriction.maxLength() != null && value.length() > restriction.maxLength()) {
+        return false;
+      }
+      if (restriction.minInclusive() != null
+          && new java.math.BigDecimal(value)
+                  .compareTo(new java.math.BigDecimal(restriction.minInclusive()))
+              < 0) {
+        return false;
+      }
+      if (restriction.maxInclusive() != null
+          && new java.math.BigDecimal(value)
+                  .compareTo(new java.math.BigDecimal(restriction.maxInclusive()))
+              > 0) {
+        return false;
+      }
+      for (String pattern : restriction.patterns()) {
+        if (!java.util.regex.Pattern.matches(pattern, value)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private boolean isValidScalarLexical(String scalar, String value) {
+      try {
+        switch (scalar) {
+          case "string" -> {
+            return true;
+          }
+          case "boolean" -> {
+            return "true".equals(value)
+                || "false".equals(value)
+                || "0".equals(value)
+                || "1".equals(value);
+          }
+          case "int" -> Integer.parseInt(value);
+          case "integer" -> new java.math.BigInteger(value);
+          case "long" -> Long.parseLong(value);
+          case "decimal" -> new java.math.BigDecimal(value);
+          default -> {
+            return false;
+          }
+        }
+        return true;
+      } catch (NumberFormatException exception) {
+        return false;
       }
     }
 

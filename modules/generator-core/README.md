@@ -8,11 +8,13 @@ Initial schema resource resolution, raw XSD syntax frontend behavior, component 
 IR, binding, generated model/writer/reader/validator emission, public generator-core adapter
 behavior, generated-source verification harness behavior, and generated-code Native Image smoke
 coverage are implemented for the accepted `XP-DATA-10` slice and the accepted opt-in
-`XP-DATA-10-CHOICE`, `XP-VALIDATION-10-BASIC`, and `XP-XSD10-COMPOSED` subsets.
+`XP-DATA-10-CHOICE`, `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`, and
+`XP-XSD10-SEMANTIC` subsets.
 
 The composed profile covers the accepted named model group and attribute-group flattening,
 named list/union simple types, and initial derivation flattening slices only. Full XSD 1.0
-composition and semantic expansion remain future profile work.
+composition remains future profile work. The semantic profile covers accepted nillable/default/fixed
+behavior only; substitution groups and broader semantic validation remain future slices.
 
 ## Contributor notes
 

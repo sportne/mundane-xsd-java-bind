@@ -234,6 +234,14 @@ public final class SchemaIrBuilder {
 
     String ref = node.attributes().get("ref");
     if (ref != null) {
+      if (semanticAttributes(node).hasAny()) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:element ref uses cannot override nillable/default/fixed semantics.");
+        return null;
+      }
       SchemaQName refName = resolveQName(document, ref, state);
       if (refName == null) {
         return null;
@@ -261,11 +269,13 @@ public final class SchemaIrBuilder {
     if (type == null) {
       return null;
     }
+    SchemaIrValueSemantics semantics = semanticAttributes(node);
     return new SchemaIrElement(
         new SchemaQName(document.targetNamespace(), name),
         type,
         cardinality,
         inlineComplexType,
+        semantics,
         false);
   }
 
@@ -1457,6 +1467,14 @@ public final class SchemaIrBuilder {
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
     String ref = node.attributes().get("ref");
     if (ref != null) {
+      if (semanticAttributes(node).hasAny()) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:attribute ref uses cannot override default/fixed semantics.");
+        return null;
+      }
       SchemaQName refName = resolveQName(document, ref, state);
       if (refName == null) {
         return null;
@@ -1491,11 +1509,20 @@ public final class SchemaIrBuilder {
     if (typeReference == null) {
       return null;
     }
+    SchemaIrValueSemantics semantics = semanticAttributes(node);
     return new SchemaIrAttribute(
         new SchemaQName(document.targetNamespace(), localName),
         typeReference,
         node.attributes().get("use"),
+        semantics,
         false);
+  }
+
+  private SchemaIrValueSemantics semanticAttributes(XsdSyntaxNode node) {
+    return new SchemaIrValueSemantics(
+        "true".equals(node.attributes().get("nillable")),
+        node.attributes().get("default"),
+        node.attributes().get("fixed"));
   }
 
   private SchemaIrTypeReference resolveTypeReference(

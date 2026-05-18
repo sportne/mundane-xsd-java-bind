@@ -93,15 +93,16 @@ flattening, and `TASK-0030` records readiness evidence for the composed slice.
   list/union, and derivation behavior join the smoke lane as implementation evidence; broader
   Native Image conformance remains a later `TASK-0044` concern.
 
-## `0.4.0` planned verification evidence
+## `0.4.0` semantic verification evidence
 
-`TASK-0031` defines planned verification for `XP-XSD10-SEMANTIC`. Implementation evidence belongs to
-`TASK-0032` through `TASK-0034`; readiness evidence belongs to `TASK-0035`.
+`TASK-0031` defines planned verification for `XP-XSD10-SEMANTIC`. `TASK-0032` adds implementation
+evidence for the accepted nillable/default/fixed subset; remaining semantic implementation evidence
+belongs to `TASK-0033` and `TASK-0034`, and readiness evidence belongs to `TASK-0035`.
 
 - Nillable/default/fixed support: `T-SEMANTIC-NIL-*`, `T-SEMANTIC-DEFAULT-*`, and
   `T-SEMANTIC-FIXED-*` frontend, IR, binding, generated source, reader/writer/validator,
   deterministic emission, generated compile, unsupported diagnostics, conformance, and interop
-  comparisons.
+  comparisons are executable `TASK-0032` evidence.
 - Substitution group support: `T-SUBSTITUTION-*` frontend, IR, binding, generated source,
   reader/writer/validator, graph diagnostics, unsupported diagnostics, conformance, and interop
   comparisons.

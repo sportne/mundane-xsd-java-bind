@@ -144,6 +144,8 @@ public final class GeneratedWriterEmitter {
   }
 
   private static final class SourceState {
+    private static final SchemaQName XSI_NIL =
+        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "nil");
     private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName writerName;
@@ -164,6 +166,9 @@ public final class GeneratedWriterEmitter {
 
     private String sourceText() {
       collectNames(root.xmlName(), rootType, new LinkedHashSet<>());
+      if (needsNillableSupport(rootType, new LinkedHashSet<>())) {
+        nameConstant(XSI_NIL);
+      }
       StringBuilder source = new StringBuilder();
       source.append("package ").append(writerName.packageName()).append(";\n\n");
       source
@@ -257,7 +262,13 @@ public final class GeneratedWriterEmitter {
     private void appendFieldWrite(StringBuilder source, BindingField field) {
       String valueExpression = "value." + field.javaName() + "()";
       String shape = field.cardinality().shape();
-      if ("optional".equals(shape)) {
+      if (field.semantics().nillable()) {
+        source.append("    if (").append(valueExpression).append(".isPresent()) {\n");
+        appendSingleValueWrite(source, field, valueExpression + ".orElseThrow()", "      ");
+        source.append("    } else {\n");
+        appendNilElementWrite(source, field, "      ");
+        source.append("    }\n");
+      } else if ("optional".equals(shape)) {
         source.append("    if (").append(valueExpression).append(".isPresent()) {\n");
         source
             .append("      ")
@@ -283,6 +294,17 @@ public final class GeneratedWriterEmitter {
       } else {
         appendSingleValueWrite(source, field, valueExpression, "    ");
       }
+    }
+
+    private void appendNilElementWrite(StringBuilder source, BindingField field, String indent) {
+      String name = nameConstant(field.xmlName());
+      source.append(indent).append("output.startElement(").append(name).append(");\n");
+      source
+          .append(indent)
+          .append("output.attribute(")
+          .append(nameConstant(XSI_NIL))
+          .append(", \"true\");\n");
+      source.append(indent).append("output.endElement(").append(name).append(");\n");
     }
 
     private void appendSingleValueWrite(
@@ -428,6 +450,22 @@ public final class GeneratedWriterEmitter {
           }
         }
       }
+    }
+
+    private boolean needsNillableSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if (field.semantics().nillable()) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsNillableSupport(nestedType, visited)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     private void appendChoiceValueWrite(

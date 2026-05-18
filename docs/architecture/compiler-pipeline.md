@@ -34,13 +34,13 @@ writer, and validator architecture.
 - Recursive groups or derivation chains, unsupported composition depth, and out-of-scope constructs
   must fail with deterministic diagnostics before source emission.
 
-## `TASK-0031` planned semantic normalization
+## `TASK-0032` semantic normalization
 
-The planned `XP-XSD10-SEMANTIC` profile keeps semantic expansion inside the same compiler stages.
+The `XP-XSD10-SEMANTIC` profile keeps semantic expansion inside the same compiler stages.
 
 - `TASK-0032` carries accepted `nillable`, `default`, and `fixed` metadata through IR and binding so
   generated readers, writers, and validators can emit explicit code.
-- `TASK-0033` resolves direct substitution group heads and members in the component graph before
+- Planned `TASK-0033` resolves direct substitution group heads and members in the component graph before
   binding, then emits an explicit sealed branch model instead of runtime polymorphic lookup.
 - Substitution cycles, unsupported blocking/final semantics, repeated substitution groups, and
   unsupported semantic combinations must fail with deterministic diagnostics before source emission.

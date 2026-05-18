@@ -24,7 +24,7 @@ public final class MxjbCli {
       Options:
         --schema <path>                    XSD schema input. May be repeated.
         --output <dir>                     Generated Java source output directory.
-        --profile <XP-DATA-10|XP-DATA-10-CHOICE|XP-VALIDATION-10-BASIC|XP-XSD10-COMPOSED>
+        --profile <XP-DATA-10|XP-DATA-10-CHOICE|XP-VALIDATION-10-BASIC|XP-XSD10-COMPOSED|XP-XSD10-SEMANTIC>
                                            Generator compatibility profile.
         --default-package <package>        Package for schemas without a namespace.
         --namespace-package <ns=package>   Namespace to Java package mapping. May be repeated.

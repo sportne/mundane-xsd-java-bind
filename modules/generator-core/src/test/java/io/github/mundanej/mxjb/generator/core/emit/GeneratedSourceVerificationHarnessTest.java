@@ -11,6 +11,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingRootElement;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
 import io.github.mundanej.mxjb.generator.core.bind.BindingValidationPlan;
+import io.github.mundanej.mxjb.generator.core.bind.BindingValueSemantics;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import io.github.mundanej.mxjb.runtime.ValidationResult;
 import io.github.mundanej.mxjb.runtime.XmlEventKind;
@@ -104,6 +105,59 @@ final class GeneratedSourceVerificationHarnessTest {
         output.events);
   }
 
+  @Test
+  void verifiesGeneratedSemanticNilDefaultAndFixedBehavior()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = semanticOrderModel();
+    GeneratedSourceVerifier verifier = new GeneratedSourceVerifier(tempDirectory);
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        verifier.compile(generatedSources(model))) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
+      Object order =
+          orderClass
+              .getConstructor(String.class, String.class, Optional.class)
+              .newInstance("NEW", "1", Optional.empty());
+
+      writerClass.getMethod("write", XmlOutput.class, orderClass).invoke(null, output, order);
+      Object parsed =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, semanticNilInput());
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      Object invalid =
+          orderClass
+              .getConstructor(String.class, String.class, Optional.class)
+              .newInstance("NEW", "2", Optional.of("A-1"));
+      ValidationResult invalidResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, invalid);
+
+      assertEquals("NEW", orderClass.getMethod("status").invoke(parsed));
+      assertEquals("1", orderClass.getMethod("version").invoke(parsed));
+      assertEquals(Optional.empty(), orderClass.getMethod("code").invoke(parsed));
+      assertEquals(true, validResult.isValid());
+      assertEquals(false, invalidResult.isValid());
+    }
+
+    assertEquals(
+        List.of(
+            "start:{urn:orders}order",
+            "attr:{urn:orders}status=NEW",
+            "attr:{urn:orders}version=1",
+            "start:{urn:orders}code",
+            "attr:{http://www.w3.org/2001/XMLSchema-instance}nil=true",
+            "end:{urn:orders}code",
+            "end:{urn:orders}order"),
+        output.events);
+  }
+
   private List<GeneratedJavaSource> generatedSources(BindingModel model) {
     GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
     GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
@@ -139,6 +193,37 @@ final class GeneratedSourceVerificationHarnessTest {
                 List.of(field("element", "sku", scalar("string"), required(), 1)))));
   }
 
+  private BindingModel semanticOrderModel() {
+    return new BindingModel(
+        List.of(root("order", model("com.example.orders.Order"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "Order",
+                List.of(
+                    field(
+                        "attribute",
+                        "status",
+                        scalar("string"),
+                        required(),
+                        0,
+                        new BindingValueSemantics(false, "NEW", null)),
+                    field(
+                        "attribute",
+                        "version",
+                        scalar("string"),
+                        required(),
+                        0,
+                        new BindingValueSemantics(false, null, "1")),
+                    field(
+                        "element",
+                        "code",
+                        scalar("string"),
+                        required(),
+                        1,
+                        new BindingValueSemantics(true, null, null))))));
+  }
+
   private BindingRootElement root(String localName, BindingTypeReference type) {
     return new BindingRootElement(schemaName(localName), type, required());
   }
@@ -158,6 +243,16 @@ final class GeneratedSourceVerificationHarnessTest {
       BindingTypeReference type,
       BindingCardinality cardinality,
       int order) {
+    return field(kind, localName, type, cardinality, order, BindingValueSemantics.NONE);
+  }
+
+  private BindingField field(
+      String kind,
+      String localName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      BindingValueSemantics semantics) {
     return new BindingField(
         kind,
         schemaName(localName),
@@ -165,7 +260,8 @@ final class GeneratedSourceVerificationHarnessTest {
         type,
         cardinality,
         order,
-        cardinality.minOccurs() > 0);
+        cardinality.minOccurs() > 0,
+        semantics);
   }
 
   private BindingTypeReference scalar(String name) {
@@ -215,6 +311,19 @@ final class GeneratedSourceVerificationHarnessTest {
         text("SKU-2"),
         event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "sku")),
         event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader semanticNilInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        event(
+            XmlEventKind.START_ELEMENT,
+            new XmlName("urn:orders", "code"),
+            Map.of(new XmlName("http://www.w3.org/2001/XMLSchema-instance", "nil"), "true")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "code")),
         event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
         event(XmlEventKind.END_DOCUMENT, null));
   }

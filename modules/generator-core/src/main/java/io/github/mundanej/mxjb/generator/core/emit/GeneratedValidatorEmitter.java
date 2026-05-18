@@ -256,6 +256,8 @@ public final class GeneratedValidatorEmitter {
       String shape = field.cardinality().shape();
       if ("list".equals(shape)) {
         appendListValidation(source, field, accessor);
+      } else if (field.semantics().nillable()) {
+        appendNillableValidation(source, field, accessor);
       } else if ("optional".equals(shape)) {
         appendOptionalValidation(source, field, accessor);
       } else {
@@ -276,6 +278,11 @@ public final class GeneratedValidatorEmitter {
         if (hasValidationRules(field.type())) {
           source.append(" else {\n");
           appendTypeValidation(source, field.type(), accessor, "      ");
+          appendFixedValidation(source, field, accessor, "      ");
+          source.append("    }\n");
+        } else if (field.semantics().hasFixed()) {
+          source.append(" else {\n");
+          appendFixedValidation(source, field, accessor, "      ");
           source.append("    }\n");
         } else {
           source.append("\n");
@@ -295,11 +302,36 @@ public final class GeneratedValidatorEmitter {
     private void appendOptionalValidation(
         StringBuilder source, BindingField field, String accessor) {
       BindingType nestedType = modelType(field);
-      if (nestedType == null && !hasValidationRules(field.type())) {
+      if (nestedType == null
+          && !hasValidationRules(field.type())
+          && !field.semantics().hasFixed()) {
         return;
       }
       source.append("    if (").append(accessor).append(" != null && ").append(accessor);
       source.append(".isPresent()) {\n");
+      if (nestedType == null) {
+        appendTypeValidation(source, field.type(), accessor + ".get()", "      ");
+        appendFixedValidation(source, field, accessor + ".get()", "      ");
+      } else {
+        source
+            .append("      ")
+            .append(helperName(nestedType))
+            .append("(")
+            .append(accessor)
+            .append(".get(), location, errors);\n");
+      }
+      source.append("    }\n");
+    }
+
+    private void appendNillableValidation(
+        StringBuilder source, BindingField field, String accessor) {
+      source.append("    if (").append(accessor).append(" == null) {\n");
+      source
+          .append("      addError(errors, \"MXJB-GV-001\", \"Missing required value ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("    } else if (").append(accessor).append(".isPresent()) {\n");
+      BindingType nestedType = modelType(field);
       if (nestedType == null) {
         appendTypeValidation(source, field.type(), accessor + ".get()", "      ");
       } else {
@@ -590,6 +622,42 @@ public final class GeneratedValidatorEmitter {
       appendLengthValidation(source, restriction, accessor, indent);
       appendRangeValidation(source, restriction, accessor, indent);
       appendPatternValidation(source, restriction, accessor, indent);
+    }
+
+    private void appendFixedValidation(
+        StringBuilder source, BindingField field, String accessor, String indent) {
+      if (!field.semantics().hasFixed()) {
+        return;
+      }
+      source
+          .append(indent)
+          .append("if (!(")
+          .append(fixedComparison(field.type(), accessor, field.semantics().fixedValue()))
+          .append(")) {\n");
+      source
+          .append(indent)
+          .append(
+              "  addError(errors, \"MXJB-GV-009\", \"Value does not match the fixed value.\", location);\n");
+      source.append(indent).append("}\n");
+    }
+
+    private String fixedComparison(
+        BindingTypeReference reference, String accessor, String fixedValue) {
+      return switch (reference.name()) {
+        case "string" ->
+            "java.util.Objects.equals(" + accessor + ", \"" + escape(fixedValue) + "\")";
+        case "boolean" ->
+            "java.util.Objects.equals(" + accessor + ", " + booleanLiteral(fixedValue) + ")";
+        case "int" ->
+            "java.util.Objects.equals(" + accessor + ", Integer.valueOf(" + fixedValue + "))";
+        case "long" ->
+            "java.util.Objects.equals(" + accessor + ", Long.valueOf(" + fixedValue + "L))";
+        case "integer" ->
+            accessor + ".compareTo(new java.math.BigInteger(\"" + escape(fixedValue) + "\")) == 0";
+        case "decimal" ->
+            accessor + ".compareTo(new java.math.BigDecimal(\"" + escape(fixedValue) + "\")) == 0";
+        default -> "false";
+      };
     }
 
     private void appendEnumerationValidation(

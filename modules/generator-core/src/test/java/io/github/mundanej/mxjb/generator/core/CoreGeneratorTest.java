@@ -448,6 +448,98 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void narrowProfilesRejectSemanticAttributesWithoutWritingSources() throws IOException {
+    Path schema = writeSchema("semantic-order.xsd", semanticOrderSchema(false));
+    for (GeneratorProfile profile :
+        List.of(
+            GeneratorProfile.XP_DATA_10,
+            GeneratorProfile.XP_DATA_10_CHOICE,
+            GeneratorProfile.XP_VALIDATION_10_BASIC,
+            GeneratorProfile.XP_XSD10_COMPOSED)) {
+      Path output = tempDirectory.resolve("semantic-" + profile.name());
+
+      GeneratorResult result =
+          new CoreGenerator()
+              .generate(
+                  new GeneratorRequest(
+                      List.of(schema),
+                      output,
+                      profile,
+                      "com.acme.generated",
+                      Map.of("urn:orders", "com.acme.orders"),
+                      List.of(),
+                      Map.of()));
+
+      assertFalse(result.successful());
+      assertTrue(
+          result.diagnostics().stream()
+              .anyMatch(
+                  diagnostic -> "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE".equals(diagnostic.code())));
+      assertFalse(Files.exists(output));
+    }
+  }
+
+  @Test
+  void semanticProfileGeneratesNilDefaultAndFixedSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("semantic-order.xsd", semanticOrderSchema(false));
+    Path output = tempDirectory.resolve("semantic-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_SEMANTIC,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String writer = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlWriter.java"));
+    String reader = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlReader.java"));
+    String validator =
+        Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
+    assertTrue(order.contains("Optional<String> code"));
+    assertTrue(order.contains("String status"));
+    assertTrue(order.contains("String version"));
+    assertTrue(writer.contains("XMLSchema-instance"));
+    assertTrue(reader.contains("defaultedText"));
+    assertTrue(reader.contains("MXJB-GR-008"));
+    assertTrue(validator.contains("MXJB-GV-009"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void semanticProfileRejectsUnsupportedSemanticCombinationsWithoutWritingSources()
+      throws IOException {
+    Path schema = writeSchema("bad-semantic-order.xsd", semanticOrderSchema(true));
+    Path output = tempDirectory.resolve("bad-semantic-generated");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_SEMANTIC,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic ->
+                    diagnostic.message().contains("nillable element")
+                        || diagnostic.message().contains("cannot declare both default and fixed")));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
   void deniesNetworkResolutionAndWritesNoSources() throws IOException {
     Path schema = writeSchema("order.xsd", orderSchema("https://example.invalid/line.xsd"));
     Path output = tempDirectory.resolve("network-denied");
@@ -789,6 +881,37 @@ final class CoreGeneratorTest {
         </xs:schema>
         """
         .replace("DERIVED_ELEMENT", derivedElement);
+  }
+
+  private String semanticOrderSchema(boolean unsupported) {
+    String nillableCardinality = unsupported ? " minOccurs=\"0\"" : "";
+    String statusSemantics = unsupported ? " default=\"NEW\" fixed=\"CLOSED\"" : " default=\"NEW\"";
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:simpleType name="Status">
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="NEW"/>
+              <xs:enumeration value="CLOSED"/>
+            </xs:restriction>
+          </xs:simpleType>
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="code" type="xs:string" nillable="true"NILLABLE_CARDINALITY/>
+              <xs:element name="note" type="xs:string" minOccurs="0" default="none"/>
+              <xs:element name="kind" type="xs:string" fixed="STANDARD"/>
+            </xs:sequence>
+            <xs:attribute name="status" type="tns:Status"STATUS_SEMANTICS/>
+            <xs:attribute name="version" type="xs:string" fixed="1"/>
+          </xs:complexType>
+        </xs:schema>
+        """
+        .replace("NILLABLE_CARDINALITY", nillableCardinality)
+        .replace("STATUS_SEMANTICS", statusSemantics);
   }
 
   private String lineSchema() {

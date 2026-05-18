@@ -38,8 +38,10 @@ Supported properties and methods:
   `build/generated/sources/mxjb/java`.
 - `profile`: public generator profile token; currently `XP-DATA-10`,
   opt-in `XP-DATA-10-CHOICE`, opt-in `XP-VALIDATION-10-BASIC`, or opt-in
-  `XP-XSD10-COMPOSED`. The composed profile covers the accepted named group and
-  attribute-group, list/union simple type, and initial derivation subsets only.
+  `XP-XSD10-COMPOSED`, or opt-in `XP-XSD10-SEMANTIC`. The composed profile covers
+  the accepted named group and attribute-group, list/union simple type, and initial
+  derivation subsets only; the semantic profile adds accepted nillable/default/fixed
+  behavior.
 - `defaultPackage`: fallback package for namespaces without an explicit mapping.
 - `namespacePackage(String, String)`: namespace-to-Java-package mapping.
 - `localRoot(Object)`: local schema root used by the resolver and declared as a task input.

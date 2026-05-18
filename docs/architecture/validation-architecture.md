@@ -28,7 +28,7 @@ Generated readers now report deterministic `XmlReadException` diagnostics for ro
 
 ## `TASK-0016` generated validation baseline
 
-Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, nested model aggregation, and accepted `XP-VALIDATION-10-BASIC` simple restriction facets with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, then applies object validation, preserving reader diagnostics when lexical conversion fails. Defaults/fixed semantics, identity constraints, and expanded datatype validation remain future validation phases.
+Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, nested model aggregation, accepted `XP-VALIDATION-10-BASIC` simple restriction facets, and accepted `XP-XSD10-SEMANTIC` fixed-value checks with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, then applies object validation, preserving reader diagnostics when lexical conversion, nil-content, or fixed-value checks fail. Identity constraints and expanded datatype validation remain future validation phases.
 
 ## `TASK-0024` facet validation scope
 
@@ -57,15 +57,15 @@ The `XP-XSD10-COMPOSED` validation behavior remains generated and explicit.
 - Unsupported composition, list/union, and derivation cases remain schema diagnostics rather than
   partial generated validation behavior.
 
-## `TASK-0031` planned semantic validation
+## `TASK-0032` semantic validation
 
-The planned `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
+The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
 
 - `TASK-0032` validates nil content rules, rejects unsupported nil/default/fixed combinations, and
   checks fixed values for generated object and XML validation.
 - `TASK-0032` readers produce effective scalar attribute default/fixed values when attributes are
   absent and preserve absent optional elements as absent rather than defaulted.
-- `TASK-0033` validates substitution group dispatch using the resolved element name and generated
+- Planned `TASK-0033` validates substitution group dispatch using the resolved element name and generated
   sealed branch type.
 - `TASK-0034` consolidates semantic diagnostics for accepted `0.4.0` behavior with deterministic
   ordering and location-aware XML validation where the generated reader can preserve locations.

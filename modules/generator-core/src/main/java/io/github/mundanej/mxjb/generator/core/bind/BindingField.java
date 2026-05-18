@@ -12,6 +12,7 @@ public record BindingField(
     BindingCardinality cardinality,
     int order,
     boolean required,
+    BindingValueSemantics semantics,
     BindingChoice choice) {
   public BindingField(
       String kind,
@@ -21,7 +22,40 @@ public record BindingField(
       BindingCardinality cardinality,
       int order,
       boolean required) {
-    this(kind, xmlName, javaName, type, cardinality, order, required, null);
+    this(kind, xmlName, javaName, type, cardinality, order, required, BindingValueSemantics.NONE);
+  }
+
+  public BindingField(
+      String kind,
+      SchemaQName xmlName,
+      String javaName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      boolean required,
+      BindingValueSemantics semantics) {
+    this(kind, xmlName, javaName, type, cardinality, order, required, semantics, null);
+  }
+
+  public BindingField(
+      String kind,
+      SchemaQName xmlName,
+      String javaName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      boolean required,
+      BindingChoice choice) {
+    this(
+        kind,
+        xmlName,
+        javaName,
+        type,
+        cardinality,
+        order,
+        required,
+        BindingValueSemantics.NONE,
+        choice);
   }
 
   public BindingField {
@@ -30,6 +64,7 @@ public record BindingField(
     Objects.requireNonNull(javaName, "javaName");
     Objects.requireNonNull(type, "type");
     Objects.requireNonNull(cardinality, "cardinality");
+    semantics = semantics == null ? BindingValueSemantics.NONE : semantics;
   }
 
   public String toText(String indent) {
@@ -47,6 +82,7 @@ public record BindingField(
         + order
         + " required="
         + required
+        + semantics.toText()
         + (choice == null ? "" : "\n" + choice.toText(indent + "  "));
   }
 }

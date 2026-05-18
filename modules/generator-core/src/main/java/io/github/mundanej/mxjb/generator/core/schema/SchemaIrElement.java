@@ -10,12 +10,23 @@ public record SchemaIrElement(
     SchemaIrTypeReference type,
     SchemaCardinality cardinality,
     SchemaIrComplexType inlineComplexType,
+    SchemaIrValueSemantics semantics,
     boolean reference)
     implements SchemaIrParticle {
+  public SchemaIrElement(
+      SchemaQName name,
+      SchemaIrTypeReference type,
+      SchemaCardinality cardinality,
+      SchemaIrComplexType inlineComplexType,
+      boolean reference) {
+    this(name, type, cardinality, inlineComplexType, SchemaIrValueSemantics.NONE, reference);
+  }
+
   public SchemaIrElement {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(type, "type");
     Objects.requireNonNull(cardinality, "cardinality");
+    semantics = semantics == null ? SchemaIrValueSemantics.NONE : semantics;
   }
 
   @Override
@@ -28,7 +39,8 @@ public record SchemaIrElement(
             + " type="
             + type.toText()
             + " cardinality="
-            + cardinality.toText();
+            + cardinality.toText()
+            + semantics.toText();
     if (inlineComplexType == null) {
       return line;
     }

@@ -1,0 +1,22 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:semantic"
+    targetNamespace="urn:semantic"
+    elementFormDefault="qualified"
+    attributeFormDefault="qualified">
+  <xs:simpleType name="Status">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="NEW"/>
+      <xs:enumeration value="CLOSED"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="order" type="tns:Order"/>
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="code" type="xs:string" nillable="true"/>
+      <xs:element name="note" type="xs:string" minOccurs="0" default="none"/>
+      <xs:element name="kind" type="xs:string" fixed="STANDARD"/>
+    </xs:sequence>
+    <xs:attribute name="status" type="tns:Status" default="NEW"/>
+    <xs:attribute name="version" type="xs:string" fixed="1"/>
+  </xs:complexType>
+</xs:schema>

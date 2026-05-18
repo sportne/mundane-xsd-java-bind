@@ -182,6 +182,17 @@ public final class XsdSyntaxParser {
     }
 
     Map<String, String> attributes = attributes(kind, reader);
+    if (hasSemanticAttributes(kind, attributes) && !supportsSemanticSchema(profile)) {
+      diagnostics.add(
+          new SchemaDiagnostic(
+              DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+              resourceId,
+              "xs:"
+                  + localName
+                  + " nillable/default/fixed semantics require profile XP-XSD10-SEMANTIC."));
+      skipSubtree(reader);
+      return null;
+    }
     if (kind == XsdSyntaxKind.RESTRICTION
         && !supportsComposedSchema(profile)
         && !isXmlSchemaBuiltInBase(attributes.get("base"), reader)) {
@@ -224,16 +235,34 @@ public final class XsdSyntaxParser {
 
   private boolean supportsChoice(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_DATA_10_CHOICE
-        || profile == GeneratorProfile.XP_XSD10_COMPOSED;
+        || profile == GeneratorProfile.XP_XSD10_COMPOSED
+        || profile == GeneratorProfile.XP_XSD10_SEMANTIC;
   }
 
   private boolean supportsSimpleRestrictions(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_VALIDATION_10_BASIC
-        || profile == GeneratorProfile.XP_XSD10_COMPOSED;
+        || profile == GeneratorProfile.XP_XSD10_COMPOSED
+        || profile == GeneratorProfile.XP_XSD10_SEMANTIC;
   }
 
   private boolean supportsComposedSchema(GeneratorProfile profile) {
-    return profile == GeneratorProfile.XP_XSD10_COMPOSED;
+    return profile == GeneratorProfile.XP_XSD10_COMPOSED
+        || profile == GeneratorProfile.XP_XSD10_SEMANTIC;
+  }
+
+  private boolean supportsSemanticSchema(GeneratorProfile profile) {
+    return profile == GeneratorProfile.XP_XSD10_SEMANTIC;
+  }
+
+  private boolean hasSemanticAttributes(XsdSyntaxKind kind, Map<String, String> attributes) {
+    return switch (kind) {
+      case ELEMENT ->
+          attributes.containsKey("nillable")
+              || attributes.containsKey("default")
+              || attributes.containsKey("fixed");
+      case ATTRIBUTE -> attributes.containsKey("default") || attributes.containsKey("fixed");
+      default -> false;
+    };
   }
 
   private XsdSyntaxKind kindFor(String localName) {
@@ -270,6 +299,9 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
         addIfPresent(attributes, "type", reader.getAttributeValue(null, "type"));
+        addIfPresent(attributes, "nillable", reader.getAttributeValue(null, "nillable"));
+        addIfPresent(attributes, "default", reader.getAttributeValue(null, "default"));
+        addIfPresent(attributes, "fixed", reader.getAttributeValue(null, "fixed"));
         addCardinality(attributes, reader);
       }
       case COMPLEX_TYPE -> {
@@ -292,6 +324,8 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
         addIfPresent(attributes, "type", reader.getAttributeValue(null, "type"));
         addIfPresent(attributes, "use", reader.getAttributeValue(null, "use"));
+        addIfPresent(attributes, "default", reader.getAttributeValue(null, "default"));
+        addIfPresent(attributes, "fixed", reader.getAttributeValue(null, "fixed"));
       }
       case GROUP -> {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));

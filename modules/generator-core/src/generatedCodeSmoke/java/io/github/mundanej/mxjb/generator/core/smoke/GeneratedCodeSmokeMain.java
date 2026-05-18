@@ -80,6 +80,7 @@ public final class GeneratedCodeSmokeMain {
     runChoiceSmoke();
     runFacetSmoke();
     runComposedSmoke();
+    runSemanticSmoke();
   }
 
   private static void runChoiceSmoke() throws XmlReadException, XmlWriteException {
@@ -201,6 +202,48 @@ public final class GeneratedCodeSmokeMain {
     }
   }
 
+  private static void runSemanticSmoke() throws XmlReadException, XmlWriteException {
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    com.example.semantic.Order order = new com.example.semantic.Order("NEW", "1", Optional.empty());
+
+    com.example.semantic.xml.OrderXmlWriter.write(output, order);
+
+    List<String> expected =
+        List.of(
+            "start:{urn:semantic}order",
+            "attr:{urn:semantic}status=NEW",
+            "attr:{urn:semantic}version=1",
+            "start:{urn:semantic}code",
+            "attr:{http://www.w3.org/2001/XMLSchema-instance}nil=true",
+            "end:{urn:semantic}code",
+            "end:{urn:semantic}order");
+    if (!expected.equals(output.events)) {
+      throw new AssertionError("Generated-code semantic smoke output mismatch: " + output.events);
+    }
+
+    com.example.semantic.Order parsed =
+        com.example.semantic.xml.OrderXmlReader.read(semanticInput());
+    if (!order.equals(parsed)) {
+      throw new AssertionError("Generated-code semantic smoke reader mismatch: " + parsed);
+    }
+
+    ValidationResult objectValidation = com.example.semantic.xml.OrderXmlValidator.validate(order);
+    ValidationResult xmlValidation =
+        com.example.semantic.xml.OrderXmlValidator.validate(semanticInput());
+    ValidationResult invalidValidation =
+        com.example.semantic.xml.OrderXmlValidator.validate(
+            new com.example.semantic.Order("NEW", "2", Optional.of("A-1")));
+    if (!objectValidation.isValid() || !xmlValidation.isValid() || invalidValidation.isValid()) {
+      throw new AssertionError(
+          "Generated-code semantic smoke validator mismatch: "
+              + objectValidation.errors()
+              + " / "
+              + xmlValidation.errors()
+              + " / "
+              + invalidValidation.errors());
+    }
+  }
+
   private static EventXmlReader orderInput() {
     return new EventXmlReader(
         List.of(
@@ -274,6 +317,20 @@ public final class GeneratedCodeSmokeMain {
             text("42.50"),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:composed", "total")),
             event(XmlEventKind.END_ELEMENT, new XmlName("urn:composed", "order")),
+            event(XmlEventKind.END_DOCUMENT, null)));
+  }
+
+  private static EventXmlReader semanticInput() {
+    return new EventXmlReader(
+        List.of(
+            event(XmlEventKind.START_DOCUMENT, null),
+            event(XmlEventKind.START_ELEMENT, new XmlName("urn:semantic", "order")),
+            event(
+                XmlEventKind.START_ELEMENT,
+                new XmlName("urn:semantic", "code"),
+                Map.of(new XmlName("http://www.w3.org/2001/XMLSchema-instance", "nil"), "true")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:semantic", "code")),
+            event(XmlEventKind.END_ELEMENT, new XmlName("urn:semantic", "order")),
             event(XmlEventKind.END_DOCUMENT, null)));
   }
 

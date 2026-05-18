@@ -1,6 +1,6 @@
 # TASK-0032: nillable-default-fixed-semantics
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0032`
 Gate: `0.4.0` XSD 1.0 Semantic Expansion; starts only after `TASK-0031` is accepted.
@@ -42,3 +42,26 @@ Rollback notes: revert semantic implementation, tests, fixtures, golden outputs,
 - Preserve existing generated-code constraints: no binding annotations, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, or external
   resource access.
+
+## Acceptance Evidence
+
+- Added public `XP-XSD10-SEMANTIC` profile plumbing across generator API, CLI help/parsing,
+  Gradle task profile validation through `GeneratorProfile`, CoreGenerator, and frontend profile
+  gates.
+- Implemented semantic metadata through frontend syntax capture, normalized IR, binding fields,
+  generated model shape, generated readers, generated writers, and generated validators.
+- Added focused generator-core coverage for narrow-profile rejection, accepted generated-source
+  compilation, unsupported semantic combinations, generated nil/default/fixed reader/writer behavior,
+  and generated fixed-value validation.
+- Added `xp-xsd10-semantic` conformance fixtures comparing JDK XML Schema validation with generated
+  bindings for valid and invalid nillable/default/fixed XML.
+- Extended generated-code smoke fixtures with a representative semantic path. JVM smoke passed with
+  `./gradlew :modules:generator-core:generatedCodeSmoke --console=plain`.
+- Representative generated-code Native Image smoke was attempted with
+  `./gradlew :modules:generator-core:generatedCodeNativeSmoke --console=plain` and was blocked by
+  the local toolchain: `native-image was not found. Run this task with GraalVM native-image on PATH
+  or set JAVA_HOME to a GraalVM installation that includes native-image.`
+- Verification passed:
+  - `./gradlew :modules:generator-api:check :modules:generator-cli:check :modules:generator-gradle-plugin:check :modules:generator-core:check :modules:conformance-tests:check --console=plain`
+  - `./gradlew validateDesignControlPack qualityGate --console=plain`
+  - `git diff --check`
