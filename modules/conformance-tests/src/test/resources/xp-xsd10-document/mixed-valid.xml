@@ -1,0 +1,9 @@
+<order xmlns="urn:mixed-document" xmlns:ext="urn:extension">
+  before
+  <id>A-100</id>
+  between
+  <ext:note priority="high">retained <ext:marker>ok</ext:marker></ext:note>
+  before tail
+  <tail>done</tail>
+  after
+</order>

@@ -652,6 +652,43 @@ final class BindingModelBuilderTest {
     assertTrue(result.model().toText().contains("wildcard namespace=other:urn:orders"));
   }
 
+  @Test
+  void bindsMixedContentAsGeneratedContentList() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order" mixed="true">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains(
+                "content content xml={urn:orders}Order type=choice:"
+                    + "io.github.mundanej.mxjb.generated.orders.OrderContent "
+                    + "cardinality=list 0..unbounded"));
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains("contentType io.github.mundanej.mxjb.generated.orders.OrderContent"));
+    assertTrue(result.model().toText().contains("branch text text xml=#text type=scalar:string"));
+    assertTrue(
+        result.model().toText().contains("branch wildcard wildcardContent xml=* type=fragment:"));
+  }
+
   private BindingResult bind(String primarySchema) {
     return bind(primarySchema, BindingConfiguration.defaults());
   }

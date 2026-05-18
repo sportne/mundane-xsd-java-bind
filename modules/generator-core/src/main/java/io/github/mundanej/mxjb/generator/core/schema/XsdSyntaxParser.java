@@ -211,6 +211,15 @@ public final class XsdSyntaxParser {
       skipSubtree(reader);
       return null;
     }
+    if (hasMixedAttribute(kind, attributes) && !supportsDocumentSchema(profile)) {
+      diagnostics.add(
+          new SchemaDiagnostic(
+              DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE,
+              resourceId,
+              "xs:" + localName + " mixed content requires profile XP-XSD10-DOCUMENT."));
+      skipSubtree(reader);
+      return null;
+    }
     if (kind == XsdSyntaxKind.RESTRICTION
         && !supportsComposedSchema(profile)
         && !isXmlSchemaBuiltInBase(attributes.get("base"), reader)) {
@@ -278,6 +287,11 @@ public final class XsdSyntaxParser {
 
   private boolean supportsDocumentSchema(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_XSD10_DOCUMENT;
+  }
+
+  private boolean hasMixedAttribute(XsdSyntaxKind kind, Map<String, String> attributes) {
+    return (kind == XsdSyntaxKind.COMPLEX_TYPE || kind == XsdSyntaxKind.COMPLEX_CONTENT)
+        && "true".equals(attributes.get("mixed"));
   }
 
   private boolean hasSemanticAttributes(XsdSyntaxKind kind, Map<String, String> attributes) {

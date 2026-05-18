@@ -1,6 +1,7 @@
 package io.github.mundanej.mxjb.generator.core.emit;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -76,6 +77,12 @@ public final class GeneratedWriterEmitter {
         if (!isSupportedFieldKind(field.kind())) {
           diagnostics.add(invalidModel("Unsupported writer field kind " + field.kind() + "."));
         }
+        if ("content".equals(field.kind()) && field.content() == null) {
+          diagnostics.add(invalidModel("Writer content field is missing content metadata."));
+        }
+        if ("content".equals(field.kind()) && !"list".equals(field.cardinality().shape())) {
+          diagnostics.add(invalidModel("Writer content fields require list cardinality."));
+        }
         if ("attribute".equals(field.kind())
             && !Set.of("scalar", "list", "union").contains(field.type().kind())) {
           diagnostics.add(
@@ -121,7 +128,8 @@ public final class GeneratedWriterEmitter {
     return "element".equals(kind)
         || "attribute".equals(kind)
         || "choice".equals(kind)
-        || "wildcard".equals(kind);
+        || "wildcard".equals(kind)
+        || "content".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -265,6 +273,16 @@ public final class GeneratedWriterEmitter {
             }
           }
         }
+        if ("content".equals(field.kind())) {
+          for (BindingContentBranch branch : field.content().branches()) {
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null
+                && !helperNames.contains(branchType.javaName().qualifiedName())) {
+              source.append('\n');
+              appendHelper(source, branchType);
+            }
+          }
+        }
       }
     }
 
@@ -322,6 +340,10 @@ public final class GeneratedWriterEmitter {
         appendChoiceValueWrite(source, field, valueExpression, indent);
         return;
       }
+      if ("content".equals(field.kind())) {
+        appendContentValueWrite(source, field, valueExpression, indent);
+        return;
+      }
       if ("wildcard".equals(field.kind())) {
         source
             .append(indent)
@@ -358,6 +380,54 @@ public final class GeneratedWriterEmitter {
           .append(indent)
           .append("output.text(")
           .append(scalarText(field, valueExpression))
+          .append(");\n");
+      source.append(indent).append("output.endElement(").append(name).append(");\n");
+    }
+
+    private void appendContentValueWrite(
+        StringBuilder source, BindingField field, String valueExpression, String indent) {
+      boolean first = true;
+      for (BindingContentBranch branch : field.content().branches()) {
+        source
+            .append(indent)
+            .append(first ? "if" : "} else if")
+            .append(" (")
+            .append(valueExpression)
+            .append(" instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch) {\n");
+        if ("text".equals(branch.kind())) {
+          source.append(indent).append("  output.text(branch.value());\n");
+        } else if ("wildcard".equals(branch.kind())) {
+          source.append(indent).append("  writeFragment(output, branch.value());\n");
+        } else {
+          appendContentElementWrite(source, branch, "branch.value()", indent + "  ");
+        }
+        first = false;
+      }
+      source.append(indent).append("}\n");
+    }
+
+    private void appendContentElementWrite(
+        StringBuilder source, BindingContentBranch branch, String valueExpression, String indent) {
+      String name = nameConstant(branch.xmlName());
+      BindingType nestedType = modelType(branch.type());
+      if (nestedType != null) {
+        source
+            .append(indent)
+            .append(helperName(nestedType))
+            .append("(output, ")
+            .append(name)
+            .append(", ")
+            .append(valueExpression)
+            .append(");\n");
+        return;
+      }
+      source.append(indent).append("output.startElement(").append(name).append(");\n");
+      source
+          .append(indent)
+          .append("output.text(")
+          .append(scalarText(branch.type(), valueExpression))
           .append(");\n");
       source.append(indent).append("output.endElement(").append(name).append(");\n");
     }
@@ -459,7 +529,8 @@ public final class GeneratedWriterEmitter {
               field ->
                   "element".equals(field.kind())
                       || "choice".equals(field.kind())
-                      || "wildcard".equals(field.kind()))
+                      || "wildcard".equals(field.kind())
+                      || "content".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
     }
@@ -500,6 +571,21 @@ public final class GeneratedWriterEmitter {
           }
         }
       }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
+        for (BindingContentBranch branch : field.content().branches()) {
+          if ("text".equals(branch.kind())) {
+            continue;
+          }
+          if (!"wildcard".equals(branch.kind())) {
+            nameConstant(branch.xmlName());
+          }
+          BindingType nestedType = modelType(branch.type());
+          if (nestedType != null) {
+            collectNames(branch.xmlName(), nestedType, visited);
+          }
+        }
+      }
     }
 
     private boolean hasWildcard(BindingType type, Set<String> visited) {
@@ -508,6 +594,18 @@ public final class GeneratedWriterEmitter {
       }
       if (type.fields().stream().anyMatch(field -> "wildcard".equals(field.kind()))) {
         return true;
+      }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
+        for (BindingContentBranch branch : field.content().branches()) {
+          if ("wildcard".equals(branch.kind())) {
+            return true;
+          }
+          BindingType nestedType = modelType(branch.type());
+          if (nestedType != null && hasWildcard(nestedType, visited)) {
+            return true;
+          }
+        }
       }
       for (BindingField field : elements(type)) {
         BindingType nestedType = modelType(field);

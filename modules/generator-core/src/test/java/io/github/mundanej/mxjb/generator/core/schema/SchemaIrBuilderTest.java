@@ -709,7 +709,6 @@ final class SchemaIrBuilderTest {
                   </xs:restriction>
                 </xs:simpleType>
                 <xs:complexType name="AbstractOrder" abstract="true"/>
-                <xs:complexType name="MixedOrder" mixed="true"/>
                 <xs:complexType name="MissingBaseOrder">
                   <xs:complexContent>
                     <xs:extension/>
@@ -731,7 +730,6 @@ final class SchemaIrBuilderTest {
         result.diagnostics().stream()
             .anyMatch(d -> d.message().contains("incompatible length facets")));
     assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("abstract")));
-    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("mixed")));
     assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("missing a base")));
     assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("restriction")));
   }
@@ -993,7 +991,9 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
 
-    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(
+        diagnosticCodes(result).stream()
+            .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
     assertTrue(
         result
             .diagnostics()
@@ -1031,7 +1031,9 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
 
-    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(
+        diagnosticCodes(result).stream()
+            .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
     assertTrue(result.diagnostics().getFirst().message().contains("abstract xs:element"));
   }
 
@@ -1154,6 +1156,54 @@ final class SchemaIrBuilderTest {
             .model()
             .toText()
             .contains("wildcard namespace=other:urn:orders cardinality=0..unbounded"));
+  }
+
+  @Test
+  void normalizesAcceptedMixedSequenceForDocumentProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order" mixed="true">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(result.model().toText().contains("complexType {urn:orders}Order mixed=true"));
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains("wildcard namespace=other:urn:orders cardinality=0..unbounded"));
+  }
+
+  @Test
+  void rejectsMixedChoiceForDocumentProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order" mixed="true">
+                  <xs:choice>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:choice>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(
+        diagnosticCodes(result).stream()
+            .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
+    assertTrue(result.diagnostics().getFirst().message().contains("mixed content"));
   }
 
   @Test

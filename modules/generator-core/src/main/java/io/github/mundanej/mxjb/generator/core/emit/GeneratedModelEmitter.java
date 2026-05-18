@@ -2,6 +2,8 @@ package io.github.mundanej.mxjb.generator.core.emit;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContent;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -53,6 +55,9 @@ public final class GeneratedModelEmitter {
         if ("choice".equals(field.kind()) && field.choice() != null) {
           sources.addAll(emitChoice(field.choice()));
         }
+        if ("content".equals(field.kind()) && field.content() != null) {
+          sources.addAll(emitContent(field.content()));
+        }
       }
     }
     return new GeneratedModelEmissionResult(sources, List.of());
@@ -76,12 +81,27 @@ public final class GeneratedModelEmitter {
         if ("choice".equals(field.kind()) && "list".equals(field.cardinality().shape())) {
           diagnostics.add(invalidModel("Choice fields do not support list cardinality."));
         }
+        if ("content".equals(field.kind()) && field.content() == null) {
+          diagnostics.add(invalidModel("Content field is missing generated content metadata."));
+        }
+        if ("content".equals(field.kind()) && !"list".equals(field.cardinality().shape())) {
+          diagnostics.add(invalidModel("Content fields require list cardinality."));
+        }
         if (field.choice() != null) {
           for (BindingChoiceBranch branch : field.choice().branches()) {
             if (!isSupportedTypeReference(branch.type())) {
               diagnostics.add(
                   invalidModel(
                       "Unsupported generated choice branch type " + branch.type().toText() + "."));
+            }
+          }
+        }
+        if (field.content() != null) {
+          for (BindingContentBranch branch : field.content().branches()) {
+            if (!isSupportedTypeReference(branch.type())) {
+              diagnostics.add(
+                  invalidModel(
+                      "Unsupported generated content branch type " + branch.type().toText() + "."));
             }
           }
         }
@@ -140,6 +160,15 @@ public final class GeneratedModelEmitter {
     return sources;
   }
 
+  private List<GeneratedJavaSource> emitContent(BindingContent content) {
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.add(emitContentInterface(content));
+    for (BindingContentBranch branch : content.branches()) {
+      sources.add(emitContentBranch(content, branch));
+    }
+    return sources;
+  }
+
   private GeneratedJavaSource emitChoiceInterface(BindingChoice choice) {
     BindingJavaName javaName = choice.javaName();
     String permits =
@@ -194,12 +223,82 @@ public final class GeneratedModelEmitter {
     return new GeneratedJavaSource(javaName, relativePath(javaName), source.toString());
   }
 
+  private GeneratedJavaSource emitContentInterface(BindingContent content) {
+    BindingJavaName javaName = content.javaName();
+    String permits =
+        content.branches().stream()
+            .map(branch -> branch.branchJavaName().simpleName())
+            .collect(Collectors.joining(", "));
+    String sourceText =
+        "package "
+            + javaName.packageName()
+            + ";\n\n"
+            + "/** Generated sealed model for XML mixed content "
+            + javaName.simpleName()
+            + ". */\n"
+            + "public sealed interface "
+            + javaName.simpleName()
+            + " permits "
+            + permits
+            + " {}\n";
+    return new GeneratedJavaSource(javaName, relativePath(javaName), sourceText);
+  }
+
+  private GeneratedJavaSource emitContentBranch(
+      BindingContent content, BindingContentBranch branch) {
+    BindingJavaName javaName = branch.branchJavaName();
+    StringBuilder source = new StringBuilder();
+    source.append("package ").append(javaName.packageName()).append(";\n\n");
+    String imports = contentBranchImports(branch);
+    if (!imports.isEmpty()) {
+      source.append(imports).append('\n');
+    }
+    source
+        .append("/** Generated branch for XML mixed content ")
+        .append(content.javaName().simpleName())
+        .append(". */\n");
+    source
+        .append("public record ")
+        .append(javaName.simpleName())
+        .append('(')
+        .append(baseType(javaName.packageName(), branch.type()))
+        .append(" value) implements ")
+        .append(content.javaName().simpleName())
+        .append(" {\n")
+        .append("  public ")
+        .append(javaName.simpleName())
+        .append(" {\n")
+        .append(contentBranchConstructorLine(branch))
+        .append("  }\n")
+        .append("}\n");
+    return new GeneratedJavaSource(javaName, relativePath(javaName), source.toString());
+  }
+
   private String choiceBranchImports(BindingChoiceBranch branch) {
     Set<String> imports = new LinkedHashSet<>();
     if ("list".equals(branch.type().kind())) {
       imports.add("java.util.List");
     }
     addScalarImports(imports, branch.type());
+    if ("fragment".equals(branch.type().kind())) {
+      imports.add("io.github.mundanej.mxjb.runtime.XmlFragment");
+    }
+    imports.add("java.util.Objects");
+    return imports.stream()
+        .sorted()
+        .map(value -> "import " + value + ";\n")
+        .collect(Collectors.joining());
+  }
+
+  private String contentBranchImports(BindingContentBranch branch) {
+    Set<String> imports = new LinkedHashSet<>();
+    if ("list".equals(branch.type().kind())) {
+      imports.add("java.util.List");
+    }
+    addScalarImports(imports, branch.type());
+    if ("fragment".equals(branch.type().kind())) {
+      imports.add("io.github.mundanej.mxjb.runtime.XmlFragment");
+    }
     imports.add("java.util.Objects");
     return imports.stream()
         .sorted()
@@ -339,6 +438,13 @@ public final class GeneratedModelEmitter {
   }
 
   private String choiceBranchConstructorLine(BindingChoiceBranch branch) {
+    if ("list".equals(branch.type().kind())) {
+      return "    value = List.copyOf(Objects.requireNonNull(value, \"value\"));\n";
+    }
+    return "    Objects.requireNonNull(value, \"value\");\n";
+  }
+
+  private String contentBranchConstructorLine(BindingContentBranch branch) {
     if ("list".equals(branch.type().kind())) {
       return "    value = List.copyOf(Objects.requireNonNull(value, \"value\"));\n";
     }

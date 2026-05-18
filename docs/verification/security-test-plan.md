@@ -23,7 +23,7 @@ future hardening work unless a task card accepts them.
 ## `0.5.0` planned unknown-content security
 
 `TASK-0036` plans security coverage for accepted `XP-XSD10-DOCUMENT` open content. `TASK-0037`
-must prove retained unknown XML does not weaken resolver or parser policy, does not retain parser
+proves retained unknown XML does not weaken resolver or parser policy, does not retain parser
 handles or external resources, and preserves deterministic diagnostics for unsupported unknown
-content shapes. `TASK-0038` must include mixed-content text and nesting cases, and `TASK-0039` must
-verify serialization output does not leak local diagnostic or resolver paths.
+content shapes. `TASK-0038` adds mixed-content text and retained-fragment nesting coverage, and
+`TASK-0039` must verify serialization output does not leak local diagnostic or resolver paths.

@@ -1,0 +1,14 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:mixed-document"
+    targetNamespace="urn:mixed-document"
+    elementFormDefault="qualified"
+    attributeFormDefault="qualified">
+  <xs:element name="order" type="tns:Order"/>
+  <xs:complexType name="Order" mixed="true">
+    <xs:sequence>
+      <xs:element name="id" type="xs:string"/>
+      <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="tail" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

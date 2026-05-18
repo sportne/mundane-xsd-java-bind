@@ -1,6 +1,7 @@
 package io.github.mundanej.mxjb.generator.core.emit;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -78,6 +79,12 @@ public final class GeneratedValidatorEmitter {
         if (!isSupportedFieldKind(field.kind())) {
           diagnostics.add(invalidModel("Unsupported validator field kind " + field.kind() + "."));
         }
+        if ("content".equals(field.kind()) && field.content() == null) {
+          diagnostics.add(invalidModel("Validator content field is missing content metadata."));
+        }
+        if ("content".equals(field.kind()) && !"list".equals(field.cardinality().shape())) {
+          diagnostics.add(invalidModel("Validator content fields require list cardinality."));
+        }
         if ("attribute".equals(field.kind()) && "model".equals(field.type().kind())) {
           diagnostics.add(
               invalidModel(
@@ -127,7 +134,8 @@ public final class GeneratedValidatorEmitter {
     return "element".equals(kind)
         || "attribute".equals(kind)
         || "choice".equals(kind)
-        || "wildcard".equals(kind);
+        || "wildcard".equals(kind)
+        || "content".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -251,12 +259,25 @@ public final class GeneratedValidatorEmitter {
           }
         }
       }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
+        for (BindingContentBranch branch : field.content().branches()) {
+          BindingType branchType = modelType(branch.type());
+          if (branchType != null && !helperNames.contains(branchType.javaName().qualifiedName())) {
+            appendHelper(source, branchType);
+          }
+        }
+      }
     }
 
     private void appendFieldValidation(StringBuilder source, BindingField field) {
       String accessor = "value." + field.javaName() + "()";
       if ("choice".equals(field.kind())) {
         appendChoiceValidation(source, field, accessor);
+        return;
+      }
+      if ("content".equals(field.kind())) {
+        appendContentValidation(source, field, accessor);
         return;
       }
       String shape = field.cardinality().shape();
@@ -394,6 +415,119 @@ public final class GeneratedValidatorEmitter {
         }
       }
       source.append("    }\n");
+    }
+
+    private void appendContentValidation(
+        StringBuilder source, BindingField field, String accessor) {
+      source.append("    if (").append(accessor).append(" == null) {\n");
+      source
+          .append("      addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("    } else {\n");
+      source.append("      int lastContentOrder = -1;\n");
+      for (BindingContentBranch branch : field.content().branches()) {
+        if ("text".equals(branch.kind())) {
+          continue;
+        }
+        source.append("      int ").append(branch.javaName()).append("Count = 0;\n");
+      }
+      source
+          .append("      for (")
+          .append(field.type().name())
+          .append(" item : ")
+          .append(accessor)
+          .append(") {\n");
+      source.append("        if (item == null) {\n");
+      source
+          .append("          addError(errors, \"MXJB-GV-001\", \"Missing required value ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("        }");
+      for (BindingContentBranch branch : field.content().branches()) {
+        source
+            .append(" else if (item instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch) {\n");
+        appendContentBranchValidation(source, branch);
+        source.append("        }");
+      }
+      source.append(" else {\n");
+      source.append(
+          "          addError(errors, \"MXJB-GV-009\", \"Unsupported mixed content branch.\", location);\n");
+      source.append("        }\n");
+      source.append("      }\n");
+      for (BindingContentBranch branch : field.content().branches()) {
+        if ("text".equals(branch.kind())) {
+          continue;
+        }
+        if (branch.cardinality().minOccurs() > 0) {
+          source.append("      if (").append(branch.javaName()).append("Count < ");
+          source.append(branch.cardinality().minOccurs()).append(") {\n");
+          source
+              .append("        addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+              .append(escape(branch.javaName()))
+              .append(".\", location);\n");
+          source.append("      }\n");
+        }
+        if (!"unbounded".equals(branch.cardinality().maxOccurs())) {
+          source.append("      if (").append(branch.javaName()).append("Count > ");
+          source.append(Integer.parseInt(branch.cardinality().maxOccurs())).append(") {\n");
+          source
+              .append("        addError(errors, \"MXJB-GV-003\", \"Too many values for ")
+              .append(escape(branch.javaName()))
+              .append(".\", location);\n");
+          source.append("      }\n");
+        }
+      }
+      source.append("    }\n");
+    }
+
+    private void appendContentBranchValidation(StringBuilder source, BindingContentBranch branch) {
+      if ("text".equals(branch.kind())) {
+        source.append("          if (branch.value() == null) {\n");
+        source.append(
+            "            addError(errors, \"MXJB-GV-001\", \"Missing required value text.\", location);\n");
+        source.append("          }\n");
+        return;
+      }
+      source.append("          if (").append(branch.order()).append(" < lastContentOrder) {\n");
+      source.append(
+          "            addError(errors, \"MXJB-GV-009\", \"Out-of-order mixed content.\", location);\n");
+      source.append("          }\n");
+      source
+          .append("          lastContentOrder = Math.max(lastContentOrder, ")
+          .append(branch.order())
+          .append(");\n");
+      source.append("          ").append(branch.javaName()).append("Count++;\n");
+      source.append("          if (branch.value() == null) {\n");
+      source
+          .append("            addError(errors, \"MXJB-GV-001\", \"Missing required value ")
+          .append(escape(branch.javaName()))
+          .append(".\", location);\n");
+      source.append("          } else {\n");
+      if ("wildcard".equals(branch.kind())) {
+        source
+            .append("            validateFragment(branch.value(), \"")
+            .append(escape(branch.wildcard().namespaceConstraint().kind()))
+            .append("\", java.util.Set.of(")
+            .append(
+                branch.wildcard().namespaceConstraint().namespaces().stream()
+                    .map(value -> "\"" + escape(value) + "\"")
+                    .collect(java.util.stream.Collectors.joining(", ")))
+            .append("), location, errors);\n");
+      } else {
+        BindingType nestedType = modelType(branch.type());
+        if (nestedType != null) {
+          source
+              .append("            ")
+              .append(helperName(nestedType))
+              .append("(branch.value(), location, errors);\n");
+        } else if (hasValidationRules(branch.type())) {
+          appendTypeValidation(source, branch.type(), "branch.value()", "            ");
+        }
+      }
+      source.append("          }\n");
     }
 
     private void appendListValidation(StringBuilder source, BindingField field, String accessor) {
@@ -1000,6 +1134,18 @@ public final class GeneratedValidatorEmitter {
       if (type.fields().stream().anyMatch(field -> "wildcard".equals(field.kind()))) {
         return true;
       }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
+        for (BindingContentBranch branch : field.content().branches()) {
+          if ("wildcard".equals(branch.kind())) {
+            return true;
+          }
+          BindingType nestedType = modelType(branch.type());
+          if (nestedType != null && needsWildcardSupport(nestedType, visited)) {
+            return true;
+          }
+        }
+      }
       for (BindingField field : elements(type)) {
         BindingType nestedType = modelType(field);
         if (nestedType != null && needsWildcardSupport(nestedType, visited)) {
@@ -1032,6 +1178,17 @@ public final class GeneratedValidatorEmitter {
         }
         if ("choice".equals(field.kind())) {
           for (BindingChoiceBranch branch : field.choice().branches()) {
+            if (containsUnionType(branch.type())) {
+              return true;
+            }
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null && needsUnionSupport(branchType, visited)) {
+              return true;
+            }
+          }
+        }
+        if ("content".equals(field.kind())) {
+          for (BindingContentBranch branch : field.content().branches()) {
             if (containsUnionType(branch.type())) {
               return true;
             }

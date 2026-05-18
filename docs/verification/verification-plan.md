@@ -129,15 +129,16 @@ evidence, and `TASK-0040` records readiness evidence.
   retained-fragment model shape, generated reader/writer/validator behavior, deterministic
   emission, generated-source compilation, unsupported diagnostics, and security cases for unknown
   content.
-- Mixed-content support: `T-MIXED-CONTENT-*` evidence must cover frontend/profile gating, generated
-  sealed content-list shape, reader/writer source-order preservation, validation diagnostics,
-  unsupported mixed constructs, conformance, interop, and generated-source compilation.
+- Mixed-content support: `T-MIXED-CONTENT-*` evidence covers frontend/profile gating, generated
+  sealed content-list shape, reader/writer source-order preservation, whitespace-only text
+  dropping, validation diagnostics, unsupported mixed constructs, conformance, interop, and
+  generated-source compilation.
 - Serialization policy: `T-SERIALIZATION-POLICY-*` evidence must cover generated XML output,
   retained fragment output, namespace prefix assignment, controlled attribute ordering, text
   escaping, negative tests for unsupported canonical XML claims, and interop serialization
   comparisons where practical.
 - Document conformance/interop: `T-CONF-XP-XSD10-DOCUMENT-*` and `T-INTEROP-DOCUMENT-*` fixtures
-  include positive and negative wildcard cases compared against JDK XML Schema validation. Mixed
-  content and stable serialization expectations remain planned for `TASK-0038` and `TASK-0039`.
+  include positive and negative wildcard and mixed-content cases compared against JDK XML Schema
+  validation. Stable serialization expectations remain planned for `TASK-0039`.
 - Native Image: representative document/open-content generated-code paths must join the
   generated-code smoke lane; broader Native Image conformance remains a later `TASK-0044` concern.

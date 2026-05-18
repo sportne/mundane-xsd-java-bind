@@ -1,6 +1,6 @@
 # TASK-0038: mixed-content-support
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0038`
 Gate: `0.5.0` Document-Oriented and Open Content; starts only after `TASK-0037` is accepted.
@@ -23,6 +23,24 @@ Rollback notes: revert mixed-content implementation, tests, fixtures, golden out
 - Native Image: mixed-content representation remains reflection-free.
 - Security: text size and nesting limits remain testable.
 - Documentation: describe generated mixed-content model shape explicitly.
+
+## Acceptance Evidence
+
+- Implemented accepted `mixed="true"` complex types with direct accepted sequence content behind
+  `XP-XSD10-DOCUMENT`; narrower profiles reject mixed content with deterministic frontend
+  diagnostics.
+- Added mixed-content IR and binding metadata, binding each mixed type as an immutable generated
+  `List<<ContainingTypeSimpleName>Content>` rather than separate unordered element fields.
+- Generated sealed content-list models with text, known-element, and accepted wildcard-fragment
+  branches. Readers preserve non-whitespace text, known element, and wildcard order while dropping
+  whitespace-only text deterministically. Writers serialize content-list items in list order.
+- Generated validators check mixed-content list structure, element order/cardinality, nested known
+  element values, and wildcard fragment constraints.
+- Added focused frontend, IR, binding, generated-source compile, and document conformance coverage.
+  Mixed conformance fixtures compare JDK XML Schema validation with generated bindings for valid
+  and invalid mixed-content XML.
+- Verification completed:
+  - `./gradlew :modules:generator-core:check :modules:conformance-tests:check --console=plain`
 
 ## Accepted Scope
 

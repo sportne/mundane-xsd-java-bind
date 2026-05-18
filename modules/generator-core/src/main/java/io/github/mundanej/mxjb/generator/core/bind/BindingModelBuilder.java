@@ -180,32 +180,39 @@ public final class BindingModelBuilder {
       List<String> validationRules = new ArrayList<>();
       Set<String> usedFieldNames = new HashSet<>();
       int order = 1;
-      for (SchemaIrSequence sequence : complexType.sequences()) {
-        for (SchemaIrParticle particle : sequence.particles()) {
-          if (particle instanceof SchemaIrElement element) {
-            fields.add(bindElementField(element, usedFieldNames, order));
-            validationRules.add(
-                "element "
-                    + fields.get(fields.size() - 1).javaName()
-                    + " "
-                    + fields.get(fields.size() - 1).cardinality().toText());
-          } else if (particle instanceof SchemaIrChoice choice) {
-            BindingField field =
-                bindChoiceField(complexType, javaName, choice, usedFieldNames, order);
-            fields.add(field);
-            validationRules.add("choice " + field.javaName() + " " + field.cardinality().toText());
-          } else if (particle instanceof SchemaIrWildcard wildcard) {
-            BindingField field = bindWildcardField(wildcard, usedFieldNames, order);
-            fields.add(field);
-            validationRules.add(
-                "wildcard " + field.javaName() + " " + field.cardinality().toText());
-          } else {
-            diagnostic(
-                DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
-                "binding",
-                "Unsupported schema particle in binding model.");
+      if (complexType.mixed()) {
+        BindingField field = bindContentField(complexType, javaName, usedFieldNames, order);
+        fields.add(field);
+        validationRules.add("content " + field.javaName() + " " + field.cardinality().toText());
+      } else {
+        for (SchemaIrSequence sequence : complexType.sequences()) {
+          for (SchemaIrParticle particle : sequence.particles()) {
+            if (particle instanceof SchemaIrElement element) {
+              fields.add(bindElementField(element, usedFieldNames, order));
+              validationRules.add(
+                  "element "
+                      + fields.get(fields.size() - 1).javaName()
+                      + " "
+                      + fields.get(fields.size() - 1).cardinality().toText());
+            } else if (particle instanceof SchemaIrChoice choice) {
+              BindingField field =
+                  bindChoiceField(complexType, javaName, choice, usedFieldNames, order);
+              fields.add(field);
+              validationRules.add(
+                  "choice " + field.javaName() + " " + field.cardinality().toText());
+            } else if (particle instanceof SchemaIrWildcard wildcard) {
+              BindingField field = bindWildcardField(wildcard, usedFieldNames, order);
+              fields.add(field);
+              validationRules.add(
+                  "wildcard " + field.javaName() + " " + field.cardinality().toText());
+            } else {
+              diagnostic(
+                  DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+                  "binding",
+                  "Unsupported schema particle in binding model.");
+            }
+            order++;
           }
-          order++;
         }
       }
       for (SchemaIrAttribute attribute : complexType.attributes()) {
@@ -267,6 +274,97 @@ public final class BindingModelBuilder {
           order,
           required,
           semantics);
+    }
+
+    private BindingField bindContentField(
+        SchemaIrComplexType complexType,
+        BindingJavaName ownerName,
+        Set<String> usedFieldNames,
+        int order) {
+      String packageName = ownerName.packageName();
+      String contentSimpleName = uniqueTypeName(packageName, ownerName.simpleName() + "Content");
+      BindingJavaName contentName = new BindingJavaName(packageName, contentSimpleName);
+      Set<String> branchNames = new HashSet<>();
+      List<BindingContentBranch> branches = new ArrayList<>();
+      branches.add(
+          new BindingContentBranch(
+              "text",
+              new SchemaQName("", "#text"),
+              "text",
+              BindingTypeReference.scalar("string"),
+              new BindingJavaName(
+                  packageName, uniqueTypeName(packageName, ownerName.simpleName() + "TextContent")),
+              new BindingCardinality("list", 0, "unbounded"),
+              0,
+              null));
+      int branchOrder = 1;
+      for (SchemaIrSequence sequence : complexType.sequences()) {
+        for (SchemaIrParticle particle : sequence.particles()) {
+          if (particle instanceof SchemaIrElement element) {
+            branches.add(bindElementContentBranch(element, packageName, branchNames, branchOrder));
+          } else if (particle instanceof SchemaIrWildcard wildcard) {
+            branches.add(
+                bindWildcardContentBranch(
+                    wildcard, packageName, ownerName.simpleName(), branchNames, branchOrder));
+          } else {
+            diagnostic(
+                DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+                "binding",
+                "Mixed content supports only accepted element and wildcard sequence particles.");
+          }
+          branchOrder++;
+        }
+      }
+      String fieldName = JavaNames.unique("content", usedFieldNames);
+      return new BindingField(
+          "content",
+          complexType.name() == null ? new SchemaQName("", fieldName) : complexType.name(),
+          fieldName,
+          BindingTypeReference.choice(contentName),
+          new BindingCardinality("list", 0, "unbounded"),
+          order,
+          false,
+          new BindingContent(contentName, branches));
+    }
+
+    private BindingContentBranch bindElementContentBranch(
+        SchemaIrElement element, String packageName, Set<String> branchNames, int order) {
+      SchemaIrElement declaration =
+          element.reference() ? globalElements.get(element.name()) : element;
+      SchemaIrTypeReference type = declaration == null ? element.type() : declaration.type();
+      BindingTypeReference bindingType = bindTypeReference(type, declaration, element.name());
+      String branchFieldName = JavaNames.uniqueFieldName(element.name(), branchNames);
+      String branchSimpleName =
+          uniqueTypeName(packageName, JavaNames.typeName(element.name()) + "Content");
+      return new BindingContentBranch(
+          "element",
+          element.name(),
+          branchFieldName,
+          bindingType,
+          new BindingJavaName(packageName, branchSimpleName),
+          BindingCardinality.from(element.cardinality()),
+          order,
+          null);
+    }
+
+    private BindingContentBranch bindWildcardContentBranch(
+        SchemaIrWildcard wildcard,
+        String packageName,
+        String ownerSimpleName,
+        Set<String> branchNames,
+        int order) {
+      String branchFieldName = JavaNames.unique("wildcardContent", branchNames);
+      String branchSimpleName = uniqueTypeName(packageName, ownerSimpleName + "WildcardContent");
+      return new BindingContentBranch(
+          "wildcard",
+          new SchemaQName("", "*"),
+          branchFieldName,
+          BindingTypeReference.fragment(),
+          new BindingJavaName(packageName, branchSimpleName),
+          new BindingCardinality(
+              "list", wildcard.cardinality().minOccurs(), wildcard.cardinality().maxOccurs()),
+          order,
+          new BindingWildcard(wildcard.namespaceConstraint()));
     }
 
     private BindingField bindWildcardField(

@@ -550,6 +550,38 @@ final class XsdSyntaxParserTest {
   }
 
   @Test
+  void parsesMixedComplexTypeOnlyForDocumentProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order" mixed="true">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult narrowResult =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_XSD10_SEMANTIC);
+    XsdSyntaxResult documentResult =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(
+        List.of(DiagnosticCode.SCHEMA_FRONTEND_UNSUPPORTED_PROFILE), diagnosticCodes(narrowResult));
+    assertEquals(
+        "SCHEMA_FRONTEND_UNSUPPORTED_PROFILE | main.xsd | xs:complexType mixed content "
+            + "requires profile XP-XSD10-DOCUMENT.",
+        narrowResult.diagnostics().getFirst().toManifestLine());
+    assertTrue(documentResult.diagnostics().isEmpty());
+    assertTrue(documentResult.model().toText().contains("complexType name=Order mixed=true"));
+  }
+
+  @Test
   void reportsNonSchemaDocumentRoot() throws IOException {
     write("main.xsd", "<not-schema/>");
 

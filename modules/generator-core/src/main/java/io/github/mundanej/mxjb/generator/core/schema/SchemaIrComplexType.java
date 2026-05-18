@@ -9,6 +9,7 @@ public record SchemaIrComplexType(
     SchemaQName name,
     List<SchemaIrAttribute> attributes,
     List<SchemaIrSequence> sequences,
+    boolean mixed,
     boolean anonymous) {
   public SchemaIrComplexType {
     if (!anonymous) {
@@ -19,7 +20,11 @@ public record SchemaIrComplexType(
   }
 
   public String toText(String indent) {
-    String line = indent + "complexType " + (anonymous ? "anonymous" : name.toText());
+    String line =
+        indent
+            + "complexType "
+            + (anonymous ? "anonymous" : name.toText())
+            + (mixed ? " mixed=true" : "");
     String sequenceText =
         sequences.stream()
             .map(sequence -> sequence.toText(indent + "  "))

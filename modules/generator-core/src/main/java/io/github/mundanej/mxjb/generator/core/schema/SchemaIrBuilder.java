@@ -483,19 +483,19 @@ public final class SchemaIrBuilder {
           "abstract complexType is not supported in profile XP-XSD10-COMPOSED.");
       return null;
     }
-    if ("true".equals(node.attributes().get("mixed"))) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "mixed complexType is not supported in profile XP-XSD10-COMPOSED.");
-      return null;
-    }
-
+    boolean mixed = "true".equals(node.attributes().get("mixed"));
     List<XsdSyntaxNode> complexContentChildren =
         node.children().stream()
             .filter(child -> child.kind() == XsdSyntaxKind.COMPLEX_CONTENT)
             .toList();
+    if (mixed && !complexContentChildren.isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "mixed complexType with xs:complexContent is not supported in profile XP-XSD10-DOCUMENT.");
+      return null;
+    }
     if (!complexContentChildren.isEmpty()) {
       if (anonymous) {
         diagnostic(
@@ -516,12 +516,14 @@ public final class SchemaIrBuilder {
       return normalizeComplexContent(document, complexContentChildren.getFirst(), name, state);
     }
 
-    ComplexTypeContent content = normalizeComplexTypeContent(document, node.children(), state);
-    return new SchemaIrComplexType(name, content.attributes(), content.sequences(), anonymous);
+    ComplexTypeContent content =
+        normalizeComplexTypeContent(document, node.children(), state, mixed);
+    return new SchemaIrComplexType(
+        name, content.attributes(), content.sequences(), mixed, anonymous);
   }
 
   private ComplexTypeContent normalizeComplexTypeContent(
-      XsdSyntaxDocument document, List<XsdSyntaxNode> children, BuildState state) {
+      XsdSyntaxDocument document, List<XsdSyntaxNode> children, BuildState state, boolean mixed) {
     List<SchemaIrAttribute> attributes = new ArrayList<>();
     List<SchemaIrSequence> sequences = new ArrayList<>();
     int contentParticleCount = 0;
@@ -574,6 +576,38 @@ public final class SchemaIrBuilder {
           DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
           document.resourceId(),
           "Direct xs:group ref is supported only as the sole complexType content particle or inside xs:sequence.");
+    }
+    if (mixed) {
+      if (directChoiceSeen) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "mixed content supports xs:sequence content only; direct xs:choice is not supported.");
+      }
+      if (directGroupSeen) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "mixed content supports xs:sequence content only; direct xs:group ref is not supported.");
+      }
+      if (contentParticleCount != sequences.size()) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "mixed content supports only direct xs:sequence content and attributes.");
+      }
+      for (SchemaIrSequence sequence : sequences) {
+        if (!sequence.choices().isEmpty()) {
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              document.resourceId(),
+              "mixed xs:choice content is not supported in profile XP-XSD10-DOCUMENT.");
+        }
+      }
     }
     if (directGroupSeen || sequenceGroupSeen) {
       validateDuplicateElementNames(document, sequences, state);
@@ -644,7 +678,7 @@ public final class SchemaIrBuilder {
     }
     SchemaIrComplexType baseType = normalizeReferencedComplexType(document, baseName, state);
     ComplexTypeContent extensionContent =
-        normalizeComplexTypeContent(document, node.children(), state);
+        normalizeComplexTypeContent(document, node.children(), state, false);
     if (baseType == null) {
       return null;
     }
@@ -654,7 +688,7 @@ public final class SchemaIrBuilder {
     sequences.addAll(extensionContent.sequences());
     validateDuplicateElementNames(document, sequences, state);
     validateDuplicateAttributeNames(document, attributes, state);
-    return new SchemaIrComplexType(typeName, attributes, sequences, false);
+    return new SchemaIrComplexType(typeName, attributes, sequences, false, false);
   }
 
   private SchemaIrComplexType normalizeNamedComplexType(

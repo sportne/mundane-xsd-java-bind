@@ -14,7 +14,8 @@ public record BindingField(
     boolean required,
     BindingValueSemantics semantics,
     BindingChoice choice,
-    BindingWildcard wildcard) {
+    BindingWildcard wildcard,
+    BindingContent content) {
   public BindingField(
       String kind,
       SchemaQName xmlName,
@@ -35,7 +36,7 @@ public record BindingField(
       int order,
       boolean required,
       BindingValueSemantics semantics) {
-    this(kind, xmlName, javaName, type, cardinality, order, required, semantics, null, null);
+    this(kind, xmlName, javaName, type, cardinality, order, required, semantics, null, null, null);
   }
 
   public BindingField(
@@ -57,6 +58,7 @@ public record BindingField(
         required,
         BindingValueSemantics.NONE,
         choice,
+        null,
         null);
   }
 
@@ -79,7 +81,31 @@ public record BindingField(
         required,
         BindingValueSemantics.NONE,
         null,
-        wildcard);
+        wildcard,
+        null);
+  }
+
+  public BindingField(
+      String kind,
+      SchemaQName xmlName,
+      String javaName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      boolean required,
+      BindingContent content) {
+    this(
+        kind,
+        xmlName,
+        javaName,
+        type,
+        cardinality,
+        order,
+        required,
+        BindingValueSemantics.NONE,
+        null,
+        null,
+        content);
   }
 
   public BindingField {
@@ -109,6 +135,8 @@ public record BindingField(
             + required
             + semantics.toText()
             + (choice == null ? "" : "\n" + choice.toText(indent + "  "));
-    return base + (wildcard == null ? "" : "\n" + wildcard.toText(indent + "  "));
+    return base
+        + (wildcard == null ? "" : "\n" + wildcard.toText(indent + "  "))
+        + (content == null ? "" : "\n" + content.toText(indent + "  "));
   }
 }

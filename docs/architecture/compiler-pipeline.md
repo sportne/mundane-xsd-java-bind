@@ -55,7 +55,7 @@ instead of introducing DOM-backed runtime binding.
 - `TASK-0037` rejects unsupported wildcard locations and `processContents` modes before source
   emission, including wildcard choices, substitution-branch wildcards, `xs:anyAttribute`, and
   `processContents="lax"` or `"strict"`.
-- `TASK-0038` shall carry accepted `mixed="true"` metadata into binding as an ordered generated
+- `TASK-0038` carries accepted `mixed="true"` metadata into binding as an ordered generated
   content-list model rather than separate unordered element fields.
 - `TASK-0039` shall verify deterministic serialization policy for generated output and retained
   fragments without claiming formal XML Canonicalization.

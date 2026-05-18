@@ -690,6 +690,39 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void documentProfileGeneratesMixedContentSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("mixed-document-order.xsd", mixedDocumentOrderSchema());
+    Path output = tempDirectory.resolve("mixed-document-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_DOCUMENT,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String content = Files.readString(output.resolve("com/acme/orders/OrderContent.java"));
+    String textBranch = Files.readString(output.resolve("com/acme/orders/OrderTextContent.java"));
+    String reader = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlReader.java"));
+    String writer = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlWriter.java"));
+    String validator =
+        Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
+    assertTrue(order.contains("List<OrderContent> content"));
+    assertTrue(content.contains("sealed interface OrderContent"));
+    assertTrue(textBranch.contains("record OrderTextContent(String value)"));
+    assertTrue(reader.contains("OrderTextContent(input.text())"));
+    assertTrue(writer.contains("output.text(branch.value())"));
+    assertTrue(validator.contains("Out-of-order mixed content"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
   void documentProfileRejectsUnsupportedWildcardWithoutWritingSources() throws IOException {
     Path schema = writeSchema("bad-document-order.xsd", documentOrderSchema(true));
     Path output = tempDirectory.resolve("bad-document-generated");
@@ -1263,6 +1296,25 @@ final class CoreGeneratorTest {
         </xs:schema>
         """
         .replace("PROCESS_CONTENTS", processContents);
+  }
+
+  private String mixedDocumentOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order" mixed="true">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:element name="tail" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
   }
 
   private String lineSchema() {

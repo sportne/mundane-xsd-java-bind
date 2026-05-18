@@ -46,3 +46,9 @@ invariants, and remain safe for Native Image.
 Retained fragments preserve expanded element names, attributes, text content, and nested retained
 element fragments. They do not wrap DOM, StAX, SAX, XPath, parser handles, mutable maps, namespace
 prefix state, comments, processing instructions, entity references, or external resources.
+
+## `TASK-0038` mixed-content runtime shape
+
+`TASK-0038` adds no new `runtime-core` public values. Mixed-content model types are generated per
+containing schema type as sealed content-list interfaces and branch records. Accepted wildcard
+branches reuse `XmlFragment`; text and known-element branches are ordinary generated values.

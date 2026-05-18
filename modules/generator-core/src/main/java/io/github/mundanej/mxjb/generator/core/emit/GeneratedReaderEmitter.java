@@ -1,6 +1,7 @@
 package io.github.mundanej.mxjb.generator.core.emit;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -84,6 +85,12 @@ public final class GeneratedReaderEmitter {
         if ("attribute".equals(field.kind()) && "list".equals(field.cardinality().shape())) {
           diagnostics.add(invalidModel("Reader attributes do not support list cardinality."));
         }
+        if ("content".equals(field.kind()) && field.content() == null) {
+          diagnostics.add(invalidModel("Reader content field is missing content metadata."));
+        }
+        if ("content".equals(field.kind()) && !"list".equals(field.cardinality().shape())) {
+          diagnostics.add(invalidModel("Reader content fields require list cardinality."));
+        }
         if (!isSupportedCardinality(field.cardinality().shape())) {
           diagnostics.add(
               invalidModel("Unsupported reader cardinality " + field.cardinality().toText() + "."));
@@ -124,7 +131,8 @@ public final class GeneratedReaderEmitter {
     return "element".equals(kind)
         || "attribute".equals(kind)
         || "choice".equals(kind)
-        || "wildcard".equals(kind);
+        || "wildcard".equals(kind)
+        || "content".equals(kind);
   }
 
   private boolean isSupportedCardinality(String shape) {
@@ -269,19 +277,24 @@ public final class GeneratedReaderEmitter {
       source.append(
           "      throw readException(input, \"MXJB-GR-007\", \"Unexpected end of XML input.\");\n");
       source.append("    }\n");
-      source.append("    while (true) {\n");
-      source.append("      movePastWhitespace(input);\n");
-      source.append(
-          "      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {\n");
-      source.append("        break;\n");
-      source.append("      }\n");
-      source.append(
-          "      if (input.kind() != io.github.mundanej.mxjb.runtime.XmlEventKind.START_ELEMENT) {\n");
-      source.append(
-          "        throw readException(input, \"MXJB-GR-007\", \"Expected XML element content.\");\n");
-      source.append("      }\n");
-      appendElementDispatch(source, type);
-      source.append("    }\n");
+      BindingField mixedContent = mixedContentField(type);
+      if (mixedContent == null) {
+        source.append("    while (true) {\n");
+        source.append("      movePastWhitespace(input);\n");
+        source.append(
+            "      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {\n");
+        source.append("        break;\n");
+        source.append("      }\n");
+        source.append(
+            "      if (input.kind() != io.github.mundanej.mxjb.runtime.XmlEventKind.START_ELEMENT) {\n");
+        source.append(
+            "        throw readException(input, \"MXJB-GR-007\", \"Expected XML element content.\");\n");
+        source.append("      }\n");
+        appendElementDispatch(source, type);
+        source.append("    }\n");
+      } else {
+        appendMixedContentLoop(source, mixedContent);
+      }
       source.append("    if (!elementName.equals(input.name())) {\n");
       source.append(
           "      throw readException(input, \"MXJB-GR-007\", \"Mismatched end element.\");\n");
@@ -311,7 +324,47 @@ public final class GeneratedReaderEmitter {
             }
           }
         }
+        if ("content".equals(field.kind())) {
+          for (BindingContentBranch branch : field.content().branches()) {
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null
+                && !helperNames.contains(branchType.javaName().qualifiedName())) {
+              appendHelper(source, branchType);
+            }
+          }
+        }
       }
+    }
+
+    private void appendMixedContentLoop(StringBuilder source, BindingField field) {
+      source.append("    while (true) {\n");
+      source.append(
+          "      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT) {\n");
+      source.append("        if (!input.text().isBlank()) {\n");
+      source
+          .append("          ")
+          .append(field.javaName())
+          .append("Values.add(new ")
+          .append(textContentBranch(field).branchJavaName().qualifiedName())
+          .append("(input.text()));\n");
+      source.append("        }\n");
+      source.append("        if (!input.next()) {\n");
+      source.append(
+          "          throw readException(input, \"MXJB-GR-007\", \"Unexpected end of XML input.\");\n");
+      source.append("        }\n");
+      source.append(
+          "      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {\n");
+      source.append("        break;\n");
+      source.append(
+          "      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.START_ELEMENT) {\n");
+      appendMixedElementDispatch(source, field);
+      source.append("      } else {\n");
+      source.append("        if (!input.next()) {\n");
+      source.append(
+          "          throw readException(input, \"MXJB-GR-007\", \"Unexpected end of XML input.\");\n");
+      source.append("        }\n");
+      source.append("      }\n");
+      source.append("    }\n");
     }
 
     private void appendUnexpectedAttributeCheck(StringBuilder source, BindingType type) {
@@ -478,6 +531,32 @@ public final class GeneratedReaderEmitter {
       }
     }
 
+    private void appendMixedElementDispatch(StringBuilder source, BindingField field) {
+      boolean firstBranch = true;
+      for (BindingContentBranch branch : field.content().branches()) {
+        if ("text".equals(branch.kind())) {
+          continue;
+        }
+        appendDispatchPrefix(source, firstBranch);
+        if ("wildcard".equals(branch.kind())) {
+          source.append(wildcardMatchExpression(branch)).append(") {\n");
+        } else {
+          source.append(nameConstant(branch.xmlName())).append(".equals(input.name())) {\n");
+        }
+        appendContentBranchRead(source, field, branch);
+        firstBranch = false;
+      }
+      if (firstBranch) {
+        source.append(
+            "        throw readException(input, \"MXJB-GR-002\", \"Unexpected XML element.\");\n");
+      } else {
+        source.append("        } else {\n");
+        source.append(
+            "          throw readException(input, \"MXJB-GR-002\", \"Unexpected XML element.\");\n");
+        source.append("        }\n");
+      }
+    }
+
     private void appendDispatchPrefix(StringBuilder source, boolean firstBranch) {
       source.append(firstBranch ? "      if (" : "      } else if (");
     }
@@ -496,6 +575,27 @@ public final class GeneratedReaderEmitter {
           .append("        ")
           .append(field.javaName())
           .append("Values.add(readFragment(input));\n");
+    }
+
+    private void appendContentBranchRead(
+        StringBuilder source, BindingField field, BindingContentBranch branch) {
+      source.append("          if (").append(branch.order()).append(" < lastElementOrder) {\n");
+      source.append(
+          "            throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML mixed content.\");\n");
+      source.append("          }\n");
+      source
+          .append("          lastElementOrder = Math.max(lastElementOrder, ")
+          .append(branch.order())
+          .append(");\n");
+      appendContentMaxOccursCheck(source, field, branch);
+      source
+          .append("          ")
+          .append(field.javaName())
+          .append("Values.add(new ")
+          .append(branch.branchJavaName().qualifiedName())
+          .append("(")
+          .append(readContentBranchValueExpression(branch))
+          .append("));\n");
     }
 
     private void appendSingleElementRead(StringBuilder source, BindingField field) {
@@ -629,6 +729,42 @@ public final class GeneratedReaderEmitter {
       source.append("        }\n");
     }
 
+    private void appendContentMaxOccursCheck(
+        StringBuilder source, BindingField field, BindingContentBranch branch) {
+      if ("unbounded".equals(branch.cardinality().maxOccurs())) {
+        return;
+      }
+      source
+          .append("          int current")
+          .append(branch.branchJavaName().simpleName())
+          .append("Count = 0;\n");
+      source
+          .append("          for (")
+          .append(localType(field))
+          .append(" item : ")
+          .append(field.javaName())
+          .append("Values) {\n");
+      source
+          .append("            if (item instanceof ")
+          .append(branch.branchJavaName().qualifiedName())
+          .append(") {\n");
+      source
+          .append("              current")
+          .append(branch.branchJavaName().simpleName())
+          .append("Count++;\n");
+      source.append("            }\n");
+      source.append("          }\n");
+      source
+          .append("          if (current")
+          .append(branch.branchJavaName().simpleName())
+          .append("Count >= ")
+          .append(Integer.parseInt(branch.cardinality().maxOccurs()))
+          .append(") {\n");
+      source.append(
+          "            throw readException(input, \"MXJB-GR-005\", \"Too many XML mixed content values.\");\n");
+      source.append("          }\n");
+    }
+
     private String readValueExpression(BindingField field) {
       BindingType nestedType = modelType(field);
       if (nestedType != null) {
@@ -669,6 +805,21 @@ public final class GeneratedReaderEmitter {
     }
 
     private String readBranchValueExpression(BindingChoiceBranch branch) {
+      BindingType nestedType = modelType(branch.type());
+      if (nestedType != null) {
+        return helperName(nestedType) + "(input, " + nameConstant(branch.xmlName()) + ")";
+      }
+      return "read"
+          + readMethodSuffix(branch.type())
+          + "Element(input, "
+          + nameConstant(branch.xmlName())
+          + ")";
+    }
+
+    private String readContentBranchValueExpression(BindingContentBranch branch) {
+      if ("wildcard".equals(branch.kind())) {
+        return "readFragment(input)";
+      }
       BindingType nestedType = modelType(branch.type());
       if (nestedType != null) {
         return helperName(nestedType) + "(input, " + nameConstant(branch.xmlName()) + ")";
@@ -1271,6 +1422,19 @@ public final class GeneratedReaderEmitter {
         if ("wildcard".equals(field.kind())) {
           return true;
         }
+        if ("content".equals(field.kind())
+            && field.content().branches().stream()
+                .anyMatch(branch -> "wildcard".equals(branch.kind()))) {
+          return true;
+        }
+        if ("content".equals(field.kind())) {
+          for (BindingContentBranch branch : field.content().branches()) {
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null && needsWildcardSupport(branchType, visited)) {
+              return true;
+            }
+          }
+        }
         BindingType nestedType = modelType(field);
         if (nestedType != null && needsWildcardSupport(nestedType, visited)) {
           return true;
@@ -1377,9 +1541,24 @@ public final class GeneratedReaderEmitter {
               field ->
                   "element".equals(field.kind())
                       || "choice".equals(field.kind())
-                      || "wildcard".equals(field.kind()))
+                      || "wildcard".equals(field.kind())
+                      || "content".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
+    }
+
+    private BindingField mixedContentField(BindingType type) {
+      return type.fields().stream()
+          .filter(field -> "content".equals(field.kind()))
+          .findFirst()
+          .orElse(null);
+    }
+
+    private BindingContentBranch textContentBranch(BindingField field) {
+      return field.content().branches().stream()
+          .filter(branch -> "text".equals(branch.kind()))
+          .findFirst()
+          .orElseThrow();
     }
 
     private String wildcardMatchExpression(BindingField field) {
@@ -1387,6 +1566,16 @@ public final class GeneratedReaderEmitter {
           + escape(field.wildcard().namespaceConstraint().kind())
           + "\", java.util.Set.of("
           + field.wildcard().namespaceConstraint().namespaces().stream()
+              .map(value -> "\"" + escape(value) + "\"")
+              .collect(java.util.stream.Collectors.joining(", "))
+          + "))";
+    }
+
+    private String wildcardMatchExpression(BindingContentBranch branch) {
+      return "wildcardMatches(input.name(), \""
+          + escape(branch.wildcard().namespaceConstraint().kind())
+          + "\", java.util.Set.of("
+          + branch.wildcard().namespaceConstraint().namespaces().stream()
               .map(value -> "\"" + escape(value) + "\"")
               .collect(java.util.stream.Collectors.joining(", "))
           + "))";
@@ -1422,6 +1611,21 @@ public final class GeneratedReaderEmitter {
           type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
         for (BindingChoiceBranch branch : field.choice().branches()) {
           nameConstant(branch.xmlName());
+          BindingType nestedType = modelType(branch.type());
+          if (nestedType != null) {
+            collectNames(branch.xmlName(), nestedType, visited);
+          }
+        }
+      }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
+        for (BindingContentBranch branch : field.content().branches()) {
+          if ("text".equals(branch.kind())) {
+            continue;
+          }
+          if (!"wildcard".equals(branch.kind())) {
+            nameConstant(branch.xmlName());
+          }
           BindingType nestedType = modelType(branch.type());
           if (nestedType != null) {
             collectNames(branch.xmlName(), nestedType, visited);

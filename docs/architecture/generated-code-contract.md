@@ -128,6 +128,8 @@ The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and ge
   `<ContainingTypeSimpleName>Content`. Branch records represent text, accepted known elements, and
   accepted wildcard fragments in source order; generated records expose an immutable
   `List<<ContainingTypeSimpleName>Content>`.
+- Generated mixed-content readers preserve non-whitespace text nodes and drop whitespace-only text
+  nodes deterministically. Generated writers serialize the content list exactly in list order.
 - `TASK-0039` defines stable project XML output for generated and retained content without claiming
   W3C XML Canonicalization or cryptographic canonical XML compatibility.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
