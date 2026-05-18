@@ -115,3 +115,29 @@ evidence for the accepted `0.4.0` behavior; `TASK-0035` records readiness eviden
   include positive and negative cases compared against JDK XML Schema validation where practical.
 - Native Image: representative semantic generated-code paths join the generated-code smoke lane;
   broader Native Image conformance remains a later `TASK-0044` concern.
+
+## `0.5.0` document/open-content verification plan
+
+`TASK-0036` defines planned verification for `XP-XSD10-DOCUMENT`. `TASK-0037` must add executable
+evidence for the accepted wildcard/open-content subset, `TASK-0038` must add executable evidence
+for the accepted mixed-content subset, `TASK-0039` must add executable serialization-policy
+evidence, and `TASK-0040` records readiness evidence.
+
+- Wildcard/open-content support: `T-DOCUMENT-PROFILE-*`, `T-WILDCARD-FRONTEND-*`,
+  `T-WILDCARD-IR-*`, `T-WILDCARD-BIND-*`, `T-WILDCARD-SOURCE-*`, `T-WILDCARD-READER-*`,
+  `T-WILDCARD-WRITER-*`, and `T-WILDCARD-VALIDATOR-*` evidence must cover profile gating,
+  retained-fragment model shape, generated reader/writer/validator behavior, deterministic
+  emission, generated-source compilation, unsupported diagnostics, and security cases for unknown
+  content.
+- Mixed-content support: `T-MIXED-CONTENT-*` evidence must cover frontend/profile gating, generated
+  sealed content-list shape, reader/writer source-order preservation, validation diagnostics,
+  unsupported mixed constructs, conformance, interop, and generated-source compilation.
+- Serialization policy: `T-SERIALIZATION-POLICY-*` evidence must cover generated XML output,
+  retained fragment output, namespace prefix assignment, controlled attribute ordering, text
+  escaping, negative tests for unsupported canonical XML claims, and interop serialization
+  comparisons where practical.
+- Document conformance/interop: `T-CONF-XP-XSD10-DOCUMENT-*` and `T-INTEROP-DOCUMENT-*` fixtures
+  should include positive and negative wildcard and mixed-content cases compared against JDK XML
+  Schema validation and stable serialization expectations where practical.
+- Native Image: representative document/open-content generated-code paths must join the
+  generated-code smoke lane; broader Native Image conformance remains a later `TASK-0044` concern.

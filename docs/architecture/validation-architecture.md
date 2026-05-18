@@ -72,3 +72,18 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
   explicit schema diagnostics for unsupported validation categories.
 - Identity constraints, wildcards, mixed content, XSD 1.1 assertions, and full XSD 1.0 validation
   semantics remain future-profile work with explicit diagnostics.
+
+## `TASK-0036` planned document validation
+
+The planned `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
+
+- `TASK-0037` validates accepted wildcard cardinality, namespace constraints, and retained-fragment
+  well-formed event structure after reader capture. `processContents="skip"` means generated
+  validators do not schema-validate retained unknown fragments.
+- `TASK-0038` validates mixed-content ordering against the generated content list and preserves
+  deterministic diagnostics for missing, repeated, or out-of-order known elements.
+- `TASK-0039` verifies stable serialization policy for accepted generated output and retained
+  fragments without claiming formal XML Canonicalization.
+- `xs:anyAttribute`, `processContents="lax"` or `"strict"`, identity constraints, comments,
+  processing instructions, entity-reference semantics, wildcards outside accepted sequences, mixed
+  choices, XSD 1.1 assertions, and full XSD 1.0 validation remain schema diagnostics.

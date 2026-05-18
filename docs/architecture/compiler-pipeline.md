@@ -44,3 +44,18 @@ The `XP-XSD10-SEMANTIC` profile keeps semantic expansion inside the same compile
   then emits an explicit sealed branch model instead of runtime polymorphic lookup.
 - Substitution cycles, unsupported blocking/final semantics, repeated substitution groups, and
   unsupported semantic combinations must fail with deterministic diagnostics before source emission.
+
+## `TASK-0036` planned document/open-content normalization
+
+The planned `XP-XSD10-DOCUMENT` profile keeps open content inside the existing compiler stages
+instead of introducing DOM-backed runtime binding.
+
+- `TASK-0037` shall carry accepted direct `xs:any` particles through frontend, component graph, IR,
+  binding, and emission as explicit wildcard fields with namespace constraint metadata.
+- `TASK-0037` shall reject unsupported wildcard locations and `processContents` modes before source
+  emission, including wildcard choices, substitution-branch wildcards, `xs:anyAttribute`, and
+  `processContents="lax"` or `"strict"`.
+- `TASK-0038` shall carry accepted `mixed="true"` metadata into binding as an ordered generated
+  content-list model rather than separate unordered element fields.
+- `TASK-0039` shall verify deterministic serialization policy for generated output and retained
+  fragments without claiming formal XML Canonicalization.

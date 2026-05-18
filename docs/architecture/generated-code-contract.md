@@ -111,6 +111,27 @@ The `XP-XSD10-SEMANTIC` profile continues the explicit generated-code contract.
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, and external
   resource access.
 
+## `TASK-0036` planned document model shape
+
+The planned `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and generated.
+
+- `TASK-0037` will add the public profile token and support accepted direct `xs:any` particles as
+  immutable `List<XmlFragment>` fields. `XmlFragment` is a planned dependency-free `runtime-core`
+  value, not a DOM node or parser-specific object.
+- `TASK-0037` retained fragments preserve expanded element names, attributes, namespace
+  declarations needed for deterministic reserialization, text children, and nested retained
+  elements. Comments, processing instructions, entity references, DTDs, and external resources stay
+  out of scope.
+- `TASK-0038` mixed content uses a generated sealed interface named
+  `<ContainingTypeSimpleName>Content`. Branch records represent text, accepted known elements, and
+  accepted wildcard fragments in source order; generated records expose an immutable
+  `List<<ContainingTypeSimpleName>Content>`.
+- `TASK-0039` defines stable project XML output for generated and retained content without claiming
+  W3C XML Canonicalization or cryptographic canonical XML compatibility.
+- Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
+  dynamic proxies, parser APIs in generated code, third-party runtime dependencies, DOM-backed
+  binding, and external resource access.
+
 ## Package layout example
 
 ```text
