@@ -32,3 +32,19 @@ The root `nativeSmoke` aggregate currently covers:
   their respective task evidence
 - `:examples:purchase-order:nativeTest`
 - `:examples:multi-namespace:nativeTest`
+
+## `0.6.0` planned hardening lanes
+
+`TASK-0041` defines planned CI lanes for later tasks without changing active gates:
+
+- `TASK-0042` should document repeatable conformance/interop commands and decide which, if any,
+  become CI jobs.
+- `TASK-0043` should keep benchmarks outside default `qualityGate`; benchmark smoke checks may run
+  in an explicit or scheduled lane after baselines are stable.
+- `TASK-0044` should add selected Native Image conformance execution beside `nativeSmoke`, not by
+  weakening existing smoke checks.
+- `TASK-0045` should add publication dry-run validation only for release engineering artifacts and
+  must avoid publishing from normal CI.
+
+Until those tasks implement explicit changes, `qualityGate` remains the required JVM-focused gate
+and `nativeSmoke` remains the required GraalVM lane.

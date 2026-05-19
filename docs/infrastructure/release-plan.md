@@ -45,6 +45,22 @@ authorize artifact publication, XML Canonicalization claims, full XSD 1.0 confor
 
 Public alpha/beta releases must state supported compatibility profiles and conformance status.
 
+## `0.6.0` release maturity planning
+
+`TASK-0041` plans hardening and release maturity only. It does not authorize artifact publication,
+release workflow execution, signing, staging, or a release tag. `TASK-0045` owns release
+engineering implementation.
+
+Release readiness for `0.6.0` requires:
+
+- supported profile statements that match the compatibility profile and conformance matrix;
+- repeatable conformance/interop evidence from `TASK-0042`;
+- documented benchmark baselines from `TASK-0043` without hard performance guarantees;
+- selected Native Image conformance evidence from `TASK-0044`;
+- local publication dry-run or equivalent artifact metadata validation in `TASK-0045`;
+- release notes that name unsupported features and avoid full XSD 1.0, XSD 1.1, XML
+  Canonicalization, cryptographic canonical XML, or untested performance claims.
+
 ## Release gate
 
 No release may claim support for a schema feature unless the requirement, profile, conformance matrix, tests, and docs are complete.

@@ -10,12 +10,22 @@ Specification references: `docs/verification/verification-plan.md`, `docs/archit
 Target modules: benchmark or test support areas approved by `TASK-0041`, examples, conformance tests
 Allowed files: benchmark fixtures, performance test harness, docs, CI wiring only if accepted by planning
 Forbidden files: unplanned runtime redesign, dependency metadata unless approved, quality-gate weakening, unsupported feature implementation
-Expected behavior: add measurable performance, memory, and streaming benchmark fixtures for representative generated bindings and document baseline targets without converting benchmarks into unstable default gates unless accepted.
-Tests to add/update: benchmark smoke tests, large input/output fixtures, memory/streaming regression checks where stable, interop fixture reuse for comparable workloads
+Expected behavior: add measurable performance, memory, and streaming benchmark fixtures for representative generated bindings and document baseline targets without converting benchmarks into unstable default gates.
+Tests to add/update: benchmark smoke tests, large input/output fixtures, memory/streaming regression checks where stable, interop fixture reuse for comparable workloads, documentation checks
 Documentation to update: verification plan, performance requirements, CI plan, release plan, traceability matrix
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, documented benchmark command, `git diff --check`
-Acceptance criteria: benchmarks are repeatable; baseline results and thresholds are documented; no unsupported performance claims are made
+Acceptance criteria: benchmarks are repeatable from local fixtures; baseline results and any advisory thresholds are documented; default `qualityGate` remains stable; no unsupported performance or streaming guarantee is made
 Rollback notes: revert benchmarks, fixtures, CI/docs changes from this task
+
+## Accepted Planning Scope
+
+- Prefer a lightweight Gradle benchmark or performance-smoke lane using existing Java tooling before
+  adding dependencies; any dependency requires explicit review in this task.
+- Cover generated read, write, validate, and mixed/open-content serialization workloads with
+  bounded local fixtures.
+- Record baseline wall-clock, allocation/memory, or input-size observations as advisory evidence,
+  not hard release guarantees unless the task proves stable thresholds.
+- Keep large fixtures local, deterministic, and network-free.
 
 ## Impact Notes
 

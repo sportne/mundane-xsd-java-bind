@@ -11,11 +11,19 @@ Target areas: Native Image workflows, examples, conformance tests, generated bin
 Allowed files: native-image CI/workflow/config, native conformance tests, selected fixtures, docs
 Forbidden files: reflection configuration to hide architecture issues unless approved by ADR, quality-gate weakening, unsupported feature implementation
 Expected behavior: harden Native Image from smoke testing into selected conformance execution for representative generated bindings across supported profiles and interop-derived fixtures.
-Tests to add/update: native conformance tests, generated binding native round trips, diagnostics tests under native execution, CI validation
+Tests to add/update: native conformance tests, generated binding native round trips, unsupported diagnostics under native execution, resolver/entity denial checks under native execution, CI validation
 Documentation to update: native-image plan, CI plan, conformance matrix, verification plan, traceability matrix
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, documented native conformance command, `git diff --check`
-Acceptance criteria: selected conformance fixtures run under Native Image; reflection/proxy/resource failures are treated according to ADR-0010; evidence is documented
+Acceptance criteria: selected conformance fixtures run under Native Image when GraalVM is available; local toolchain blockers are recorded concretely; reflection/proxy/resource failures are treated according to ADR-0010; evidence is documented without weakening `nativeSmoke`
 Rollback notes: revert native workflow/tests/fixtures/docs from this task
+
+## Accepted Planning Scope
+
+- Reuse fixtures selected by `TASK-0042`; do not create native-only feature semantics.
+- Include at least one read/write/validate path from each supported profile family where practical.
+- Preserve existing `nativeSmoke`; add selected conformance execution beside it.
+- Do not add reflection configuration to hide architecture issues unless a new ADR approves the
+  exception.
 
 ## Impact Notes
 

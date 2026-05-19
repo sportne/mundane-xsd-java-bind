@@ -46,6 +46,19 @@ hardening task.
 
 If `native-image` is not on `PATH` and `JAVA_HOME` does not point to a GraalVM installation with `native-image`, the task fails with a concrete toolchain message before attempting a native build.
 
+## `0.6.0` selected conformance plan
+
+`TASK-0041` plans the transition from representative smoke coverage to selected conformance
+execution. `TASK-0044` owns implementation. The planned native conformance lane should:
+
+- reuse fixtures selected by `TASK-0042` rather than introduce separate native-only behavior;
+- cover at least one generated read/write/validate path from each supported profile family where
+  practical;
+- include resolver/entity-denial and unsupported-diagnostic cases that are safe to run in native
+  executables;
+- stay separate from the default JVM `qualityGate` unless a later task explicitly changes CI gates;
+- document local toolchain blockers instead of weakening native assertions.
+
 ## Failure policy
 
 A Native Image failure caused by reflection, resource lookup, proxy generation, serialization metadata, or classpath scanning must be treated as an architecture issue unless explicitly approved by ADR.

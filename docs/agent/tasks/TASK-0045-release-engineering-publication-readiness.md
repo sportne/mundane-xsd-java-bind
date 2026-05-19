@@ -11,11 +11,21 @@ Target areas: release docs, publishing configuration, CI, artifact metadata, exa
 Allowed files: publishing/release docs, artifact metadata, CI release workflows if approved, build scripts only for publication behavior, README/module docs, traceability docs
 Forbidden files: product feature implementation, dependency updates without review, quality-gate weakening, conformance overclaims
 Expected behavior: prepare artifact publication and release workflow for public alpha/beta maturity, including coordinates, signing/staging policy if needed, release notes, supported profile statement, conformance evidence links, and rollback instructions.
-Tests to add/update: publication dry-run or local publish validation, docs command checks, artifact metadata checks, release workflow dry-run where practical
+Tests to add/update: publication dry-run or local publish validation, docs command checks, artifact metadata checks, release workflow dry-run where practical, secret/cache exclusion checks where practical
 Documentation to update: release plan, build docs, README, module READMEs, verification/conformance docs, traceability matrix
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, documented publication dry-run command, `git diff --check`
-Acceptance criteria: release process is reproducible; artifacts identify supported profiles and conformance status; no release claim lacks tests/docs
+Acceptance criteria: release process is reproducible in dry-run/local validation; artifacts identify supported profiles and conformance status; release notes name unsupported features; no release claim lacks tests/docs; no actual publication or release tag occurs unless explicitly authorized
 Rollback notes: revert release workflow/build/docs changes from this task
+
+## Accepted Planning Scope
+
+- Validate planned artifact metadata, coordinates, signing/staging policy, and rollback steps.
+- Add only dry-run or local publication checks unless a maintainer explicitly authorizes real
+  publication.
+- Public support statements must link to conformance, benchmark, Native Image, and security
+  evidence from prior `0.6.0` tasks.
+- Release artifacts and docs must exclude local caches, secrets, generated temporary files, and
+  unsupported conformance claims.
 
 ## Impact Notes
 

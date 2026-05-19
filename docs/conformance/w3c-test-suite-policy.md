@@ -16,3 +16,8 @@ Large external test suites should be pulled through documented scripts or Git su
 `TASK-0017` uses small local `XP-DATA-10` fixtures under `modules/conformance-tests` rather than
 vendoring W3C suites. Those fixtures are representative conformance evidence for implemented
 features only.
+
+`TASK-0041` keeps `0.6.0` planning in the same posture: `TASK-0042` may add selected local fixture
+copies or documented intake scripts only after each selected test is mapped to a declared profile,
+unsupported diagnostic, or future-study category. It must not vendor a broad W3C suite snapshot or
+claim full-suite pass status.

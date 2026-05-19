@@ -144,3 +144,20 @@ the accepted mixed-content subset, `TASK-0039` adds executable serialization-pol
 - Native Image: representative document/open-content generated-code paths must join the
   generated-code smoke lane as `TASK-0040` readiness evidence; broader Native Image conformance
   remains a later `TASK-0044` concern.
+
+## `0.6.0` hardening verification plan
+
+`TASK-0041` defines the planning scope for release-maturity hardening. The implementation sequence
+is `TASK-0042` through `TASK-0046`.
+
+- Conformance/interop: `TASK-0042` selects profile-mapped external or W3C reference fixtures,
+  unsupported-diagnostic fixtures, and repeatable JDK/generated binding comparison workflows.
+- Performance and streaming: `TASK-0043` adds benchmark fixtures and documented baselines for
+  representative generated reader, writer, validator, and document/open-content workloads. These
+  are baselines, not performance guarantees.
+- Native Image conformance: `TASK-0044` promotes selected fixture execution beyond smoke coverage
+  while keeping native tooling outside the default JVM `qualityGate`.
+- Release engineering: `TASK-0045` validates publication metadata and dry-run behavior without
+  publishing artifacts or creating release tags.
+- Readiness: `TASK-0046` records final `0.6.0` evidence and confirms public claims match
+  conformance, benchmark, native, release, and security evidence.
