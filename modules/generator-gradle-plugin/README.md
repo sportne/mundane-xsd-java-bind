@@ -42,7 +42,8 @@ Supported properties and methods:
   The composed profile covers the accepted named group and attribute-group, list/union
   simple type, and initial derivation subsets only; the semantic profile adds accepted
   nillable/default/fixed, direct substitution-group, and generated semantic validation behavior;
-  the document profile adds accepted direct `xs:any` wildcard/open-content retention.
+  the document profile adds accepted direct `xs:any` wildcard/open-content retention, accepted
+  mixed-content sequence models, and stable project XML serialization policy evidence.
 - `defaultPackage`: fallback package for namespaces without an explicit mapping.
 - `namespacePackage(String, String)`: namespace-to-Java-package mapping.
 - `localRoot(Object)`: local schema root used by the resolver and declared as a task input.

@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, accepted serialization-policy evidence, accepted document-oriented/open-content readiness evidence, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -50,8 +50,10 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 37. `TASK-0036`: Plan document-oriented and open-content support. Completed and accepted.
 38. `TASK-0037`: Implement accepted wildcard/open-content support. Completed and accepted.
 39. `TASK-0038`: Implement accepted mixed-content support. Completed and accepted.
-40. `TASK-0039`: Add canonicalization and serialization-policy tests. Current implementation gate.
-41. `TASK-0040` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
+40. `TASK-0039`: Add canonicalization and serialization-policy tests. Completed and accepted.
+41. `TASK-0040`: Document-oriented/open-content readiness review. Completed and accepted.
+42. `TASK-0041`: Plan hardening and release maturity. Current implementation gate.
+43. `TASK-0042` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each slice planning task or predecessor is accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -70,8 +72,12 @@ dependency metadata, release tags, or publication claims. `TASK-0036` has accept
 document-oriented/open-content planning without adding product behavior, dependency metadata,
 release tags, or publication claims. `TASK-0037` has accepted direct wildcard/open-content support
 without adding dependency metadata, release tags, or publication claims. `TASK-0038` has accepted
-mixed-content support without adding dependency metadata, release tags, or publication claims. The
-next gate is `TASK-0039`.
+mixed-content support without adding dependency metadata, release tags, or publication claims.
+`TASK-0039` has accepted serialization-policy evidence without adding dependency metadata, release
+tags, publication claims, or formal XML Canonicalization claims. `TASK-0040` has accepted
+document-oriented/open-content readiness evidence without adding product behavior, dependency
+metadata, release tags, publication claims, full XSD 1.0 conformance claims, or formal XML
+Canonicalization claims. The next gate is `TASK-0041`.
 
 ## Draft completion backlog
 
@@ -120,8 +126,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0036` | 0.5.0 | accepted | Plan document-oriented and open-content support. |
 | `TASK-0037` | 0.5.0 | accepted | Implement accepted wildcard/open-content support. |
 | `TASK-0038` | 0.5.0 | accepted | Implement accepted mixed-content support. |
-| `TASK-0039` | 0.5.0 | draft | Add canonicalization and serialization-policy tests. |
-| `TASK-0040` | 0.5.0 | draft | Document-oriented/open-content readiness review. |
+| `TASK-0039` | 0.5.0 | accepted | Add canonicalization and serialization-policy tests. |
+| `TASK-0040` | 0.5.0 | accepted | Document-oriented/open-content readiness review. |
 | `TASK-0041` | 0.6.0 | draft | Plan hardening and release maturity. |
 | `TASK-0042` | 0.6.0 | draft | Expand ongoing interop/conformance harness. |
 | `TASK-0043` | 0.6.0 | draft | Add performance, memory, and streaming benchmarks. |
@@ -131,9 +137,9 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0039` is the current implementation gate. It adds canonicalization and serialization-policy
-tests on top of the accepted `TASK-0037` wildcard baseline and accepted `TASK-0038` mixed-content
-baseline.
+`TASK-0041` is the current implementation gate. It plans the `0.6.0` hardening and release
+maturity slice on top of the accepted `TASK-0040` document-oriented/open-content readiness
+evidence.
 The remaining work must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
@@ -203,7 +209,13 @@ The remaining work must preserve:
   generated reader/writer/validator behavior, unsupported diagnostics, and conformance/interop
   evidence. `TASK-0038` accepted mixed-content behavior with generated sealed content-list models,
   non-whitespace text preservation, whitespace-only text dropping, ordered reader/writer behavior,
-  generated validation, and conformance evidence.
+  generated validation, and conformance evidence. `TASK-0039` accepted stable project
+  serialization-policy evidence for generated output, retained fragments, deterministic namespace
+  prefix assignment, controlled attribute ordering, text/attribute escaping, secure reparse
+  interop, and explicit non-claims for W3C XML Canonicalization or cryptographic canonical XML.
+  `TASK-0040` accepted the `0.5.0` document/open-content readiness review, confirmed support
+  claims, conformance/interop evidence, Native Image smoke coverage, release posture, and
+  unsupported-document limitations.
   `xs:anyAttribute`,
   `processContents="lax"` or `"strict"`, wildcard choices, substitution-branch wildcards,
   unsupported namespace constraints, DOM-backed binding, parser-handle retention, comments/PI

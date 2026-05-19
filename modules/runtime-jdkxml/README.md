@@ -12,6 +12,12 @@ Public entry points:
 - `JdkXmlAdapters.eventReader(XMLStreamReader)` adapts StAX input to `XmlEventReader`.
 - `JdkXmlAdapters.output(XMLStreamWriter)` adapts StAX output to `XmlOutput`.
 
+`JdkXmlAdapters.output(XMLStreamWriter)` delegates text and attribute escaping to the underlying
+JDK writer. When generated or retained-fragment output needs a namespace prefix and the wrapped
+writer has no prefix bound for that namespace, the adapter assigns deterministic `ns1`, `ns2`, ...
+prefixes. Input lexical prefixes are not preserved, and the adapter does not implement W3C XML
+Canonicalization.
+
 ## Contributor notes
 
 - Do not make this module a required generated-code dependency.

@@ -6,8 +6,12 @@ import com.example.orders.xml.OrderXmlReader;
 import com.example.orders.xml.OrderXmlValidator;
 import com.example.orders.xml.OrderXmlWriter;
 import io.github.mundanej.mxjb.runtime.ValidationResult;
+import io.github.mundanej.mxjb.runtime.XmlAttribute;
 import io.github.mundanej.mxjb.runtime.XmlEventKind;
 import io.github.mundanej.mxjb.runtime.XmlEventReader;
+import io.github.mundanej.mxjb.runtime.XmlFragment;
+import io.github.mundanej.mxjb.runtime.XmlFragmentElement;
+import io.github.mundanej.mxjb.runtime.XmlFragmentText;
 import io.github.mundanej.mxjb.runtime.XmlLocation;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
@@ -82,6 +86,7 @@ public final class GeneratedCodeSmokeMain {
     runComposedSmoke();
     runSemanticSmoke();
     runSubstitutionSmoke();
+    runDocumentSerializationSmoke();
   }
 
   private static void runChoiceSmoke() throws XmlReadException, XmlWriteException {
@@ -304,6 +309,55 @@ public final class GeneratedCodeSmokeMain {
               + xmlValidation.errors()
               + " / "
               + invalidXmlValidation.errors());
+    }
+  }
+
+  private static void runDocumentSerializationSmoke() throws XmlWriteException {
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    XmlFragment child =
+        new XmlFragment(
+            new XmlName("urn:document-extension", "child"),
+            List.of(),
+            List.of(new XmlFragmentText("child-text")));
+    XmlFragment fragment =
+        new XmlFragment(
+            new XmlName("urn:document-extension", "note"),
+            List.of(
+                new XmlAttribute(new XmlName("", "code"), "N-1"),
+                new XmlAttribute(new XmlName("urn:document-extension", "priority"), "high")),
+            List.of(new XmlFragmentText("retained"), new XmlFragmentElement(child)));
+    com.example.document.Order order =
+        new com.example.document.Order(
+            List.of(
+                new com.example.document.OrderTextContent("before"),
+                new com.example.document.IdContent("D-1"),
+                new com.example.document.OrderWildcardContent(fragment),
+                new com.example.document.OrderTextContent("after")),
+            "v1");
+
+    com.example.document.xml.OrderXmlWriter.write(output, order);
+
+    List<String> expected =
+        List.of(
+            "start:{urn:document-smoke}order",
+            "attr:{urn:document-smoke}version=v1",
+            "text:before",
+            "start:{urn:document-smoke}id",
+            "text:D-1",
+            "end:{urn:document-smoke}id",
+            "start:{urn:document-extension}note",
+            "attr:{}code=N-1",
+            "attr:{urn:document-extension}priority=high",
+            "text:retained",
+            "start:{urn:document-extension}child",
+            "text:child-text",
+            "end:{urn:document-extension}child",
+            "end:{urn:document-extension}note",
+            "text:after",
+            "end:{urn:document-smoke}order");
+    if (!expected.equals(output.events)) {
+      throw new AssertionError(
+          "Generated-code document serialization smoke output mismatch: " + output.events);
     }
   }
 

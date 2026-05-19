@@ -52,3 +52,20 @@ prefix state, comments, processing instructions, entity references, or external 
 `TASK-0038` adds no new `runtime-core` public values. Mixed-content model types are generated per
 containing schema type as sealed content-list interfaces and branch records. Accepted wildcard
 branches reuse `XmlFragment`; text and known-element branches are ordinary generated values.
+
+## `TASK-0039` serialization policy runtime shape
+
+`TASK-0039` adds no new `runtime-core` public values. Stable project serialization is defined by
+the existing `XmlOutput` abstraction plus generated writer ordering rules.
+
+Generated writers emit schema-owned attributes immediately after `startElement`, then child content
+in binding order, repeated values in list order, and mixed-content branches in content-list order.
+Retained `XmlFragment` values are emitted through `XmlOutput` using `XmlFragment.attributes()` and
+`XmlFragment.content()` list order. This is deterministic project output, not W3C XML
+Canonicalization.
+
+`runtime-jdkxml` remains the optional concrete adapter for tests and examples. Its writer adapter
+assigns deterministic generated prefixes such as `ns1` and `ns2` for namespaces that do not already
+have a prefix on the wrapped `XMLStreamWriter`; it does not preserve lexical prefixes from input XML.
+Text and attribute escaping are delegated to the wrapped JDK XML writer and verified by reparsing the
+serialized XML through the secure adapter.

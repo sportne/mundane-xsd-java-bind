@@ -153,6 +153,65 @@ final class JdkXmlAdaptersTest {
   }
 
   @Test
+  void outputReusesDeterministicPrefixesWithinElementScope()
+      throws XMLStreamException, XmlWriteException {
+    StringWriter xml = new StringWriter();
+    XMLStreamWriter streamWriter = XMLOutputFactory.newFactory().createXMLStreamWriter(xml);
+    XmlOutput output = JdkXmlAdapters.output(streamWriter);
+
+    output.startElement(new XmlName("urn:orders", "order"));
+    output.startElement(new XmlName("urn:orders", "line"));
+    output.attribute(new XmlName("urn:orders", "code"), "L-1");
+    output.endElement(new XmlName("urn:orders", "line"));
+    output.startElement(new XmlName("urn:extensions", "note"));
+    output.attribute(new XmlName("urn:extensions", "priority"), "high");
+    output.endElement(new XmlName("urn:extensions", "note"));
+    output.endElement(new XmlName("urn:orders", "order"));
+    output.flush();
+
+    assertEquals(
+        "<ns1:order xmlns:ns1=\"urn:orders\"><ns1:line ns1:code=\"L-1\"></ns1:line>"
+            + "<ns2:note xmlns:ns2=\"urn:extensions\" ns2:priority=\"high\"></ns2:note>"
+            + "</ns1:order>",
+        xml.toString());
+  }
+
+  @Test
+  void outputEscapesTextAndAttributesWithoutLeakingLocalPaths()
+      throws XMLStreamException, XmlWriteException, XmlReadException {
+    StringWriter xml = new StringWriter();
+    XMLStreamWriter streamWriter = XMLOutputFactory.newFactory().createXMLStreamWriter(xml);
+    XmlOutput output = JdkXmlAdapters.output(streamWriter);
+
+    output.startElement(new XmlName("", "root"));
+    output.attribute(new XmlName("", "description"), "A&B \"quoted\" <tag>");
+    output.text("5 < 7 & 9 > 3");
+    output.endElement(new XmlName("", "root"));
+    output.flush();
+
+    String serialized = xml.toString();
+    assertTrue(serialized.contains("A&amp;B"));
+    assertTrue(serialized.contains("&quot;quoted&quot;"));
+    assertTrue(serialized.contains("&lt;tag&gt;"));
+    assertTrue(serialized.contains("5 &lt; 7 &amp; 9"));
+    assertFalse(serialized.contains(System.getProperty("user.dir")));
+    assertFalse(serialized.contains("memory://"));
+
+    XMLInputFactory factory = JdkXmlAdapters.secureInputFactory();
+    XmlEventReader reader =
+        JdkXmlAdapters.eventReader(factory.createXMLStreamReader(new StringReader(serialized)));
+    assertTrue(reader.next());
+    assertEquals(new XmlName("", "root"), reader.name());
+    assertEquals("A&B \"quoted\" <tag>", reader.attributeValue(0));
+    StringBuilder text = new StringBuilder();
+    while (reader.next() && reader.kind() == XmlEventKind.TEXT) {
+      text.append(reader.text());
+    }
+    assertEquals("5 < 7 & 9 > 3", text.toString());
+    assertEquals(XmlEventKind.END_ELEMENT, reader.kind());
+  }
+
+  @Test
   void outputRedeclaresNamespaceForRepeatedNamespacedSiblingScope()
       throws XMLStreamException, XmlWriteException, XmlReadException {
     StringWriter xml = new StringWriter();

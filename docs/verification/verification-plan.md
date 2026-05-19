@@ -119,9 +119,9 @@ evidence for the accepted `0.4.0` behavior; `TASK-0035` records readiness eviden
 ## `0.5.0` document/open-content verification plan
 
 `TASK-0036` defines planned verification for `XP-XSD10-DOCUMENT`. `TASK-0037` adds executable
-evidence for the accepted wildcard/open-content subset, `TASK-0038` must add executable evidence
-for the accepted mixed-content subset, `TASK-0039` must add executable serialization-policy
-evidence, and `TASK-0040` records readiness evidence.
+evidence for the accepted wildcard/open-content subset, `TASK-0038` adds executable evidence for
+the accepted mixed-content subset, `TASK-0039` adds executable serialization-policy evidence, and
+`TASK-0040` records readiness evidence.
 
 - Wildcard/open-content support: `T-DOCUMENT-PROFILE-*`, `T-WILDCARD-FRONTEND-*`,
   `T-WILDCARD-IR-*`, `T-WILDCARD-BIND-*`, `T-WILDCARD-SOURCE-*`, `T-WILDCARD-READER-*`,
@@ -133,12 +133,14 @@ evidence, and `TASK-0040` records readiness evidence.
   sealed content-list shape, reader/writer source-order preservation, whitespace-only text
   dropping, validation diagnostics, unsupported mixed constructs, conformance, interop, and
   generated-source compilation.
-- Serialization policy: `T-SERIALIZATION-POLICY-*` evidence must cover generated XML output,
-  retained fragment output, namespace prefix assignment, controlled attribute ordering, text
-  escaping, negative tests for unsupported canonical XML claims, and interop serialization
-  comparisons where practical.
+- Serialization policy: `T-SERIALIZATION-POLICY-*` evidence covers generated XML output, retained
+  fragment output, namespace prefix assignment, controlled attribute ordering, mixed-content order,
+  text/attribute escaping, secure reparse round trips, negative tests for unsupported canonical XML
+  claims, and interop serialization comparisons where practical.
 - Document conformance/interop: `T-CONF-XP-XSD10-DOCUMENT-*` and `T-INTEROP-DOCUMENT-*` fixtures
   include positive and negative wildcard and mixed-content cases compared against JDK XML Schema
-  validation. Stable serialization expectations remain planned for `TASK-0039`.
+  validation, plus generated serialization and secure reparse comparisons for accepted wildcard and
+  mixed-content fixtures.
 - Native Image: representative document/open-content generated-code paths must join the
-  generated-code smoke lane; broader Native Image conformance remains a later `TASK-0044` concern.
+  generated-code smoke lane as `TASK-0040` readiness evidence; broader Native Image conformance
+  remains a later `TASK-0044` concern.

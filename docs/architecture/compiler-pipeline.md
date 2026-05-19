@@ -57,5 +57,5 @@ instead of introducing DOM-backed runtime binding.
   `processContents="lax"` or `"strict"`.
 - `TASK-0038` carries accepted `mixed="true"` metadata into binding as an ordered generated
   content-list model rather than separate unordered element fields.
-- `TASK-0039` shall verify deterministic serialization policy for generated output and retained
+- `TASK-0039` verifies deterministic serialization policy for generated output and retained
   fragments without claiming formal XML Canonicalization.

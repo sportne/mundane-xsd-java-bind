@@ -130,8 +130,12 @@ The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and ge
   `List<<ContainingTypeSimpleName>Content>`.
 - Generated mixed-content readers preserve non-whitespace text nodes and drop whitespace-only text
   nodes deterministically. Generated writers serialize the content list exactly in list order.
-- `TASK-0039` defines stable project XML output for generated and retained content without claiming
-  W3C XML Canonicalization or cryptographic canonical XML compatibility.
+- `TASK-0039` verifies stable project XML output for generated and retained content. Generated
+  writers emit attributes immediately after `startElement`, ordinary child content in binding order,
+  repeated content in list order, and mixed-content branches in content-list order. Retained
+  wildcard fragments emit `XmlFragment.attributes()` and `XmlFragment.content()` in stored list
+  order. Namespace prefix assignment and escaping are adapter responsibilities. The project does
+  not claim W3C XML Canonicalization or cryptographic canonical XML compatibility.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, DOM-backed
   binding, and external resource access.

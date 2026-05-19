@@ -17,7 +17,9 @@ named list/union simple types, and initial derivation flattening slices only. Fu
 composition remains future profile work. The semantic profile covers accepted
 nillable/default/fixed behavior, direct substitution groups, and expanded generated validation for
 those accepted semantic paths only. The document profile currently covers accepted direct
-`xs:any` particles in sequences with retained `XmlFragment` wildcard fields only.
+`xs:any` particles in sequences with retained `XmlFragment` wildcard fields, accepted mixed-content
+sequence types, and verified stable project serialization policy. It does not claim W3C XML
+Canonicalization or cryptographic canonical XML compatibility.
 
 ## Contributor notes
 

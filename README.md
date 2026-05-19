@@ -2,8 +2,9 @@
 
 **Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice,
 accepted `0.2.0` Practical Data Contracts readiness evidence, accepted `0.3.0`
-`XP-XSD10-COMPOSED` readiness evidence, and accepted `0.4.0` `XP-XSD10-SEMANTIC`
-readiness evidence, with the first accepted `0.5.0` `XP-XSD10-DOCUMENT` wildcard slice. The repository includes generated
+`XP-XSD10-COMPOSED` readiness evidence, accepted `0.4.0` `XP-XSD10-SEMANTIC`
+readiness evidence, and accepted `0.5.0` `XP-XSD10-DOCUMENT` document/open-content
+readiness evidence. The repository includes generated
 model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a
 CLI `generate` command, a Gradle plugin for the accepted subsets, representative round-trip examples,
 and Native Image smoke coverage.
@@ -68,16 +69,20 @@ effective model values; accepted substitution head references bind as sealed bra
 preserve actual XML element names; generated readers, writers, and validators remain explicit and
 reflection-free.
 
-The opt-in `0.5.0` `XP-XSD10-DOCUMENT` profile currently adds accepted direct `xs:any`
-wildcard/open-content support inside sequences with explicit `processContents="skip"`.
-Accepted wildcard fields bind as immutable `List<XmlFragment>` values; generated readers retain
-expanded names, attributes, text, and nested element fragments, while writers and validators handle
-those fragments without DOM or reflection.
+The opt-in `0.5.0` `XP-XSD10-DOCUMENT` profile adds accepted direct `xs:any`
+wildcard/open-content support inside sequences with explicit `processContents="skip"`, accepted
+`mixed="true"` complex types with sequence content, and stable project XML serialization policy
+evidence. Accepted wildcard fields bind as immutable `List<XmlFragment>` values; generated readers
+retain expanded names, attributes, text, and nested element fragments, while writers and validators
+handle those fragments without DOM or reflection. Accepted mixed types expose generated content-list
+models that preserve non-whitespace text, known elements, and wildcard fragments in source order;
+whitespace-only mixed text is dropped.
 
 Full simple type semantics, repeated or optional list-valued XML fields, full derivation semantics,
 full substitution group semantics, wildcard shapes beyond the accepted direct `xs:any` subset,
-mixed content, identity constraints, full XSD 1.0 conformance, and XSD 1.1 remain future-profile
-work.
+`xs:anyAttribute`, `processContents="lax"` or `"strict"`, wildcard choices, mixed choices,
+comments or processing instruction retention, entity-reference identity, XML Canonicalization,
+identity constraints, full XSD 1.0 conformance, and XSD 1.1 remain future-profile work.
 
 ## Repository entry points
 

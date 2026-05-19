@@ -36,6 +36,13 @@ behavior, direct substitution-group behavior, generated semantic validation hard
 conformance/interop fixtures, and representative Native Image smoke paths; it still does not
 authorize artifact publication or a `v0.1.0`/`v0.2.0`/`v0.3.0`/`v0.4.0` release tag.
 
+`TASK-0040` accepts additional `0.5.0` document-oriented/open-content readiness evidence for the
+opt-in `XP-XSD10-DOCUMENT` profile. That evidence documents accepted direct wildcard/open-content
+retention, accepted mixed-content sequence models, stable project serialization policy evidence,
+conformance/interop fixtures, and representative generated-code smoke coverage; it still does not
+authorize artifact publication, XML Canonicalization claims, full XSD 1.0 conformance claims, or a
+`v0.1.0`/`v0.2.0`/`v0.3.0`/`v0.4.0`/`v0.5.0` release tag.
+
 Public alpha/beta releases must state supported compatibility profiles and conformance status.
 
 ## Release gate

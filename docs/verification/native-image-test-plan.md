@@ -40,8 +40,9 @@ multi-namespace example native tests. CI runs the same native aggregate together
 The generator-core generated-code smoke executable includes representative `XP-DATA-10-CHOICE`,
 `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED` group/attribute-group, list/union, and derivation
 paths, plus `XP-XSD10-SEMANTIC` nillable/default/fixed, direct substitution-group, and generated
-semantic validation paths, as accepted readiness evidence. Broader Native Image conformance remains
-a later hardening task.
+semantic validation paths, plus an `XP-XSD10-DOCUMENT` mixed/open-content serialization path, as
+accepted readiness evidence through `TASK-0040`. Broader Native Image conformance remains a later
+hardening task.
 
 If `native-image` is not on `PATH` and `JAVA_HOME` does not point to a GraalVM installation with `native-image`, the task fails with a concrete toolchain message before attempting a native build.
 

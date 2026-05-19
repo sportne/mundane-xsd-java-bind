@@ -22,7 +22,8 @@ Supported options:
   attribute-group flattening, named list/union simple types, and initial derivation flattening;
   `XP-XSD10-SEMANTIC` enables accepted nillable/default/fixed, direct substitution-group, and
   generated semantic validation behavior;
-  `XP-XSD10-DOCUMENT` enables accepted direct `xs:any` wildcard/open-content retention.
+  `XP-XSD10-DOCUMENT` enables accepted direct `xs:any` wildcard/open-content retention,
+  accepted mixed-content sequence models, and stable project XML serialization policy evidence.
 - `--default-package <package>`: package used when a namespace-specific mapping is absent.
 - `--namespace-package <namespace=package>`: explicit namespace-to-Java-package mapping.
 - `--local-root <dir>`: additional local schema resolution root.

@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContent;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -18,6 +20,10 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingValidationPlan;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
+import io.github.mundanej.mxjb.runtime.XmlAttribute;
+import io.github.mundanej.mxjb.runtime.XmlFragment;
+import io.github.mundanej.mxjb.runtime.XmlFragmentElement;
+import io.github.mundanej.mxjb.runtime.XmlFragmentText;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
 import java.io.IOException;
@@ -265,6 +271,85 @@ final class GeneratedWriterEmitterTest {
   }
 
   @Test
+  void generatedWriterSerializesMixedContentAndFragmentsInDeclaredListOrder()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = mixedContentOrderModel();
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedWriterEmissionResult writerResult = new GeneratedWriterEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(writerResult.sources());
+    String writerSource = writerResult.sources().getFirst().sourceText();
+
+    assertFalse(writerSource.contains("javax.xml"));
+    assertFalse(writerSource.contains("java.lang.reflect"));
+    assertFalse(writerSource.contains("ObjectInputStream"));
+    assertFalse(writerSource.contains("ObjectOutputStream"));
+    assertFalse(writerSource.contains("Serializable"));
+    assertTrue(writerSource.contains("writeFragment(output, branch.value())"));
+
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> textContentClass = compiledSources.load("com.example.orders.OrderTextContent");
+      Class<?> idContentClass = compiledSources.load("com.example.orders.IdContent");
+      Class<?> wildcardContentClass =
+          compiledSources.load("com.example.orders.OrderWildcardContent");
+      Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
+      XmlFragment child =
+          new XmlFragment(
+              new XmlName("urn:extension", "child"),
+              List.of(),
+              List.of(new XmlFragmentText("child-text")));
+      XmlFragment fragment =
+          new XmlFragment(
+              new XmlName("urn:extension", "note"),
+              List.of(
+                  new XmlAttribute(new XmlName("", "code"), "N-1"),
+                  new XmlAttribute(new XmlName("urn:extension", "priority"), "high")),
+              List.of(new XmlFragmentText("retained"), new XmlFragmentElement(child)));
+      Object order =
+          orderClass
+              .getConstructor(List.class, String.class)
+              .newInstance(
+                  List.of(
+                      textContentClass.getConstructor(String.class).newInstance("before"),
+                      idContentClass.getConstructor(String.class).newInstance("A-1"),
+                      wildcardContentClass.getConstructor(XmlFragment.class).newInstance(fragment),
+                      textContentClass.getConstructor(String.class).newInstance("after")),
+                  "v1");
+
+      writerClass.getMethod("write", XmlOutput.class, orderClass).invoke(null, output, order);
+    }
+
+    assertEquals(
+        List.of(
+            "start:{urn:orders}order",
+            "attr:{urn:orders}version=v1",
+            "text:before",
+            "start:{urn:orders}id",
+            "text:A-1",
+            "end:{urn:orders}id",
+            "start:{urn:extension}note",
+            "attr:{}code=N-1",
+            "attr:{urn:extension}priority=high",
+            "text:retained",
+            "start:{urn:extension}child",
+            "text:child-text",
+            "end:{urn:extension}child",
+            "end:{urn:extension}note",
+            "text:after",
+            "end:{urn:orders}order"),
+        output.events);
+  }
+
+  @Test
   void generatedWriterDispatchesChoiceBranches()
       throws IOException,
           ClassNotFoundException,
@@ -395,6 +480,75 @@ final class GeneratedWriterEmitterTest {
                 "com.example.orders",
                 "Order",
                 List.of(field("element", "id", scalar("string"), required(), 1), choiceField()))));
+  }
+
+  private BindingModel mixedContentOrderModel() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(
+                contentBranch(
+                    "text",
+                    new SchemaQName("", "#text"),
+                    "text",
+                    scalar("string"),
+                    "OrderTextContent",
+                    list(),
+                    0),
+                contentBranch(
+                    "element",
+                    schemaName("id"),
+                    "id",
+                    scalar("string"),
+                    "IdContent",
+                    required(),
+                    1),
+                contentBranch(
+                    "wildcard",
+                    new SchemaQName("", "*"),
+                    "wildcardContent",
+                    new BindingTypeReference(
+                        "fragment", "io.github.mundanej.mxjb.runtime.XmlFragment"),
+                    "OrderWildcardContent",
+                    list(),
+                    2)));
+    return new BindingModel(
+        List.of(root("order", model("com.example.orders.Order"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "Order",
+                List.of(
+                    new BindingField(
+                        "content",
+                        schemaName("Order"),
+                        "content",
+                        new BindingTypeReference("choice", contentName.qualifiedName()),
+                        list(),
+                        1,
+                        false,
+                        content),
+                    field("attribute", "version", scalar("string"), required(), 0)))));
+  }
+
+  private BindingContentBranch contentBranch(
+      String kind,
+      SchemaQName xmlName,
+      String javaName,
+      BindingTypeReference type,
+      String simpleName,
+      BindingCardinality cardinality,
+      int order) {
+    return new BindingContentBranch(
+        kind,
+        xmlName,
+        javaName,
+        type,
+        new BindingJavaName("com.example.orders", simpleName),
+        cardinality,
+        order,
+        null);
   }
 
   private BindingField field(

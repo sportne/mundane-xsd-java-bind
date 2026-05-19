@@ -1,5 +1,6 @@
 package io.github.mundanej.mxjb.conformance;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -125,6 +126,75 @@ final class XpXsd10DocumentConformanceTest {
     }
   }
 
+  @Test
+  void wildcardSerializationPolicyRoundTripsThroughGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema();
+    String validXml = resource("/xp-xsd10-document/document-valid.xml");
+
+    try (CompiledGeneratedDocumentBindings bindings = generateAndCompileDocumentBindings()) {
+      Class<?> orderClass = bindings.load("com.example.document.Order");
+      Class<?> readerClass = bindings.load("com.example.document.xml.OrderXmlReader");
+      Class<?> writerClass = bindings.load("com.example.document.xml.OrderXmlWriter");
+      Class<?> validatorClass = bindings.load("com.example.document.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      String serialized = writeWithGeneratedWriter(writerClass, orderClass, order);
+      Object reparsed =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(serialized));
+      ValidationResult validation =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, reparsed);
+
+      schema.newValidator().validate(new StreamSource(new StringReader(serialized)));
+      assertSerializationPolicyText(serialized);
+      assertTrue(serialized.contains("xmlns:ns1=\"urn:document\""));
+      assertTrue(serialized.contains("xmlns:ns2=\"urn:extension\""));
+      assertFalse(serialized.contains("ext:"));
+      assertTrue(serialized.indexOf("id") < serialized.indexOf("note"));
+      assertEquals(order, reparsed);
+      assertTrue(validation.isValid());
+    }
+  }
+
+  @Test
+  void mixedSerializationPolicyPreservesSemanticContentOrderWithoutCanonicalXmlClaims()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-document/mixed-order.xsd");
+    String validXml = resource("/xp-xsd10-document/mixed-valid.xml");
+
+    try (CompiledGeneratedDocumentBindings bindings =
+        generateAndCompileDocumentBindings("/xp-xsd10-document/mixed-order.xsd")) {
+      Class<?> orderClass = bindings.load("com.example.document.Order");
+      Class<?> readerClass = bindings.load("com.example.document.xml.OrderXmlReader");
+      Class<?> writerClass = bindings.load("com.example.document.xml.OrderXmlWriter");
+      Class<?> validatorClass = bindings.load("com.example.document.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      String serialized = writeWithGeneratedWriter(writerClass, orderClass, order);
+      Object reparsed =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(serialized));
+      ValidationResult validation =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, reparsed);
+
+      schema.newValidator().validate(new StreamSource(new StringReader(serialized)));
+      assertSerializationPolicyText(serialized);
+      assertTrue(serialized.contains("xmlns:ns1=\"urn:mixed-document\""));
+      assertTrue(serialized.contains("xmlns:ns2=\"urn:extension\""));
+      assertFalse(serialized.contains("ext:"));
+      assertTrue(serialized.indexOf("before") < serialized.indexOf("A-100"));
+      assertTrue(serialized.indexOf("A-100") < serialized.indexOf("between"));
+      assertTrue(serialized.indexOf("between") < serialized.indexOf("note"));
+      assertTrue(serialized.indexOf("note") < serialized.indexOf("done"));
+      assertTrue(serialized.indexOf("done") < serialized.indexOf("after"));
+      assertEquals(order, reparsed);
+      assertTrue(validation.isValid());
+    }
+  }
+
   private CompiledGeneratedDocumentBindings generateAndCompileDocumentBindings()
       throws IOException {
     return generateAndCompileDocumentBindings("/xp-xsd10-document/order.xsd");
@@ -207,6 +277,14 @@ final class XpXsd10DocumentConformanceTest {
     XMLInputFactory factory = JdkXmlAdapters.secureInputFactory();
     XMLStreamReader streamReader = factory.createXMLStreamReader(new StringReader(xml));
     return JdkXmlAdapters.eventReader(streamReader);
+  }
+
+  private void assertSerializationPolicyText(String serialized) {
+    assertFalse(serialized.contains(System.getProperty("user.dir")));
+    assertFalse(serialized.contains(tempDirectory.toString()));
+    assertFalse(serialized.contains("memory://"));
+    assertFalse(serialized.contains("Canonical XML"));
+    assertFalse(serialized.contains("XML Signature"));
   }
 
   private Path resourcePath(String resourceName) {

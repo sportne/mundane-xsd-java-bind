@@ -1,6 +1,6 @@
 # TASK-0040: document-oriented-open-content-readiness
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0040`
 Gate: `0.5.0` Document-Oriented and Open Content readiness; starts only after `TASK-0039` is accepted.
@@ -17,10 +17,34 @@ Commands to run: `./gradlew clean validateDesignControlPack qualityGate`, docume
 Acceptance criteria: open-content support claims match evidence; formal canonicalization claims are avoided unless proven; interop evidence is recorded
 Rollback notes: revert readiness-review docs and release metadata from this task
 
+## Acceptance Evidence
+
+- Updated user-facing support docs so `XP-XSD10-DOCUMENT` no longer appears wildcard-only and now
+  describes accepted direct wildcard/open-content retention, accepted mixed-content sequence
+  models, and stable project XML serialization policy evidence.
+- Reconciled conformance, verification, security, Native Image, release, and traceability docs so
+  the `0.5.0` readiness claims cover only accepted `TASK-0037`, `TASK-0038`, and `TASK-0039`
+  behavior.
+- Confirmed release posture remains readiness-only: no artifact publication claim, no full XSD 1.0
+  conformance claim, no XML Canonicalization or cryptographic canonical XML claim, and no `0.5.0`
+  release tag.
+- Confirmed unsupported document constructs remain explicit, including `xs:anyAttribute`,
+  `processContents="lax"` or `"strict"`, wildcard choices, unsupported namespace constraints,
+  mixed choices, comments/PI retention, entity-reference semantics, DOM-backed binding, identity
+  constraints, full datatype semantics, full derivation semantics, and XSD 1.1.
+- Verification completed:
+  - `./gradlew :modules:conformance-tests:check :modules:generator-core:generatedCodeSmoke --console=plain`
+  - `./gradlew clean validateDesignControlPack qualityGate --console=plain`
+  - `git diff --check`
+  - `git tag --list` returned no release tags.
+  - `command -v native-image` returned no path; local Native Image execution remains blocked by
+    the local GraalVM toolchain.
+
 ## Impact Notes
 
 - Interop: readiness requires recorded validation and serialization evidence or explicit limitation notes.
-- Native Image: representative open-content fixtures should run in selected lanes.
+- Native Image: representative open-content fixtures are present in the generated-code smoke lane;
+  local Native Image execution depends on a GraalVM `native-image` toolchain.
 - Security: unknown/mixed content limits remain verified.
 - Documentation: distinguish supported document-oriented cases from full XML ecosystem support.
 
