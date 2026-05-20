@@ -32,8 +32,8 @@ without changing JaCoCo thresholds. Later tasks may add:
 
 - conformance classification and interop tests that count as normal JVM test coverage when they run
   inside existing test tasks;
-- benchmark smoke checks that prove the benchmark harness runs but do not alter coverage
-  thresholds;
+- `TASK-0043` benchmark smoke checks that prove the benchmark harness runs but do not alter
+  coverage thresholds;
 - selected Native Image conformance execution that remains separate from JaCoCo;
 - publication dry-run checks that validate metadata and artifacts without changing code coverage.
 

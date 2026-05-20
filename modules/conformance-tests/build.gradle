@@ -11,6 +11,15 @@ plugins {
 // Human-readable module purpose shown in Gradle reports and generated metadata.
 description = 'Internal conformance test harness; not published.'
 
+sourceSets {
+    benchmarkSmoke {
+        java.srcDir 'src/benchmarkSmoke/java'
+        resources.srcDir 'src/test/resources'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
 dependencies {
     // Representative example bindings are the conformance fixtures for TASK-0017.
     testImplementation project(':examples:multi-namespace')
@@ -21,4 +30,19 @@ dependencies {
     testImplementation project(':modules:runtime-jdkxml')
     // Conformance tests reuse shared test helpers from the testing-support module.
     testImplementation project(':modules:testing-support')
+
+    // Benchmark smoke reuses representative generated bindings and the public generator pipeline.
+    benchmarkSmokeImplementation project(':examples:multi-namespace')
+    benchmarkSmokeImplementation project(':examples:purchase-order')
+    benchmarkSmokeImplementation project(':modules:generator-core')
+    benchmarkSmokeImplementation project(':modules:runtime-jdkxml')
+}
+
+tasks.register('benchmarkSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Runs advisory generated-binding performance, memory, and streaming smoke checks.'
+    dependsOn tasks.named('benchmarkSmokeClasses')
+    classpath = sourceSets.benchmarkSmoke.runtimeClasspath
+    mainClass = 'io.github.mundanej.mxjb.conformance.benchmark.ConformanceBenchmarkSmokeMain'
+    systemProperty 'file.encoding', 'UTF-8'
 }

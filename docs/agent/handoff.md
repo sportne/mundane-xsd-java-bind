@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, accepted serialization-policy evidence, accepted document-oriented/open-content readiness evidence, accepted hardening/release maturity planning, accepted selected interop/conformance harness expansion, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, accepted serialization-policy evidence, accepted document-oriented/open-content readiness evidence, accepted hardening/release maturity planning, accepted selected interop/conformance harness expansion, accepted benchmark baseline evidence, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -54,8 +54,9 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 41. `TASK-0040`: Document-oriented/open-content readiness review. Completed and accepted.
 42. `TASK-0041`: Plan hardening and release maturity. Completed and accepted.
 43. `TASK-0042`: Expand ongoing interop/conformance harness. Completed and accepted.
-44. `TASK-0043`: Add performance, memory, and streaming benchmarks. Current implementation gate.
-45. `TASK-0044` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each predecessor is accepted.
+44. `TASK-0043`: Add performance, memory, and streaming benchmarks. Completed and accepted.
+45. `TASK-0044`: Harden Native Image conformance lane. Current implementation gate.
+46. `TASK-0045` through `TASK-0046`: Draft post-0.1.0 vertical-slice backlog. Not approved for implementation until each predecessor is accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -83,8 +84,10 @@ Canonicalization claims. `TASK-0041` has accepted `0.6.0` hardening and release 
 without adding product behavior, dependency metadata, generated output, release tags, publication
 workflows, quality-gate weakening, or unsupported conformance claims. `TASK-0042` has accepted
 selected local interop/conformance harness expansion without adding schema-feature behavior,
-dependencies, broad external suite vendoring, release claims, or quality-gate weakening. The next
-gate is `TASK-0043`.
+dependencies, broad external suite vendoring, release claims, or quality-gate weakening.
+`TASK-0043` has accepted advisory benchmark baseline evidence without adding dependencies, product
+behavior, hard performance guarantees, release claims, release tags, or `qualityGate`
+requirements. The next gate is `TASK-0044`.
 
 ## Draft completion backlog
 
@@ -137,15 +140,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0040` | 0.5.0 | accepted | Document-oriented/open-content readiness review. |
 | `TASK-0041` | 0.6.0 | accepted | Plan hardening and release maturity. |
 | `TASK-0042` | 0.6.0 | accepted | Expand ongoing interop/conformance harness. |
-| `TASK-0043` | 0.6.0 | draft | Add performance, memory, and streaming benchmarks. |
+| `TASK-0043` | 0.6.0 | accepted | Add performance, memory, and streaming benchmarks. |
 | `TASK-0044` | 0.6.0 | draft | Harden Native Image conformance lane. |
 | `TASK-0045` | 0.6.0 | draft | Release engineering and publication readiness. |
 | `TASK-0046` | 0.6.0 | draft | Hardening and release maturity readiness review. |
 
 ## Current implementation gate
 
-`TASK-0043` is the current implementation gate. It adds performance, memory, and streaming
-benchmark baselines on top of the accepted `TASK-0042` selected conformance and interop harness.
+`TASK-0044` is the current implementation gate. It hardens selected Native Image conformance on top
+of the accepted `TASK-0043` benchmark baseline evidence.
 The remaining work must preserve:
 
 - `TASK-0014` JDK XML adapters are the accepted optional bridge from JDK StAX to `runtime-core` interfaces for tests and examples.
@@ -238,4 +241,9 @@ The remaining work must preserve:
   `selected-fixtures.tsv`, manifest classification tests, deterministic unsupported-diagnostic
   schemas, and manifest-linked executable conformance tests. It did not add schema-feature support,
   dependencies, broad external suite vendoring, release claims, or quality-gate weakening.
+- `TASK-0043` accepted advisory benchmark baseline evidence with the explicit
+  `./gradlew benchmarkSmoke --console=plain` lane, deterministic generated read/write/validate and
+  document open-content/mixed-content workloads, and `docs/verification/performance-baselines.md`.
+  It did not add dependencies, product behavior, hard performance guarantees, release claims,
+  release tags, or `qualityGate` requirements.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

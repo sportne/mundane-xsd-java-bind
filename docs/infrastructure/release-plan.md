@@ -55,7 +55,8 @@ Release readiness for `0.6.0` requires:
 
 - supported profile statements that match the compatibility profile and conformance matrix;
 - repeatable conformance/interop evidence from `TASK-0042`;
-- documented benchmark baselines from `TASK-0043` without hard performance guarantees;
+- documented benchmark baselines from `TASK-0043`, produced by `./gradlew benchmarkSmoke`, without
+  hard performance guarantees;
 - selected Native Image conformance evidence from `TASK-0044`;
 - local publication dry-run or equivalent artifact metadata validation in `TASK-0045`;
 - release notes that name unsupported features and avoid full XSD 1.0, XSD 1.1, XML

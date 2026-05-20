@@ -61,6 +61,13 @@ tasks.register('nativeSmoke') {
     dependsOn ':examples:multi-namespace:nativeTest'
 }
 
+// benchmarkSmoke is intentionally separate from qualityGate because its measurements are advisory.
+tasks.register('benchmarkSmoke') {
+    group = 'verification'
+    description = 'Runs the advisory generated-binding benchmark smoke lane.'
+    dependsOn ':modules:conformance-tests:benchmarkSmoke'
+}
+
 // This help task prints the artifacts that publishToMavenLocal or a real publish will create.
 tasks.register('printPublishedArtifacts') {
     group = 'help'

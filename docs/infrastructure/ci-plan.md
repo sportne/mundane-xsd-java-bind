@@ -39,12 +39,12 @@ The root `nativeSmoke` aggregate currently covers:
 
 - `TASK-0042` should document repeatable conformance/interop commands and decide which, if any,
   become CI jobs.
-- `TASK-0043` should keep benchmarks outside default `qualityGate`; benchmark smoke checks may run
-  in an explicit or scheduled lane after baselines are stable.
+- `TASK-0043` adds the explicit `./gradlew benchmarkSmoke --console=plain` lane and keeps it
+  outside default `qualityGate`; it may run in scheduled CI after baselines are stable.
 - `TASK-0044` should add selected Native Image conformance execution beside `nativeSmoke`, not by
   weakening existing smoke checks.
 - `TASK-0045` should add publication dry-run validation only for release engineering artifacts and
   must avoid publishing from normal CI.
 
-Until those tasks implement explicit changes, `qualityGate` remains the required JVM-focused gate
-and `nativeSmoke` remains the required GraalVM lane.
+`qualityGate` remains the required JVM-focused gate, `benchmarkSmoke` is advisory and opt-in, and
+`nativeSmoke` remains the required GraalVM lane.

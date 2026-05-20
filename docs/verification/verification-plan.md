@@ -155,7 +155,8 @@ is `TASK-0042` through `TASK-0046`.
   binding comparison references without networked suite retrieval.
 - Performance and streaming: `TASK-0043` adds benchmark fixtures and documented baselines for
   representative generated reader, writer, validator, and document/open-content workloads. These
-  are baselines, not performance guarantees.
+  are baselines, not performance guarantees. The explicit command is
+  `./gradlew benchmarkSmoke --console=plain`; it remains outside `qualityGate`.
 - Native Image conformance: `TASK-0044` promotes selected fixture execution beyond smoke coverage
   while keeping native tooling outside the default JVM `qualityGate`.
 - Release engineering: `TASK-0045` validates publication metadata and dry-run behavior without
