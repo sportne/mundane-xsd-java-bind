@@ -39,6 +39,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
 
 final class XpXsd10ComposedConformanceTest {
+  // Selected fixture manifest ID: T-CONF-XP-XSD10-COMPOSED-GROUPS.
+
   @TempDir private Path tempDirectory;
 
   @Test

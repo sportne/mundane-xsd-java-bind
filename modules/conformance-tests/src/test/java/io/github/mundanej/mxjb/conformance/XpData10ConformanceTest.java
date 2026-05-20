@@ -23,6 +23,9 @@ import javax.xml.stream.XMLStreamWriter;
 import org.junit.jupiter.api.Test;
 
 final class XpData10ConformanceTest {
+  // Selected fixture manifest IDs:
+  // T-CONF-XP-DATA-10-PO-VALID, T-CONF-XP-DATA-10-MNS-VALID.
+
   @Test
   void purchaseOrderFixtureRoundTripsThroughGeneratedBindings()
       throws IOException, XMLStreamException, XmlReadException, XmlWriteException {

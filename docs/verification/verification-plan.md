@@ -150,8 +150,9 @@ the accepted mixed-content subset, `TASK-0039` adds executable serialization-pol
 `TASK-0041` defines the planning scope for release-maturity hardening. The implementation sequence
 is `TASK-0042` through `TASK-0046`.
 
-- Conformance/interop: `TASK-0042` selects profile-mapped external or W3C reference fixtures,
-  unsupported-diagnostic fixtures, and repeatable JDK/generated binding comparison workflows.
+- Conformance/interop: `TASK-0042` adds the selected local fixture manifest, profile coverage
+  classification, deterministic unsupported-diagnostic schemas, and repeatable local JDK/generated
+  binding comparison references without networked suite retrieval.
 - Performance and streaming: `TASK-0043` adds benchmark fixtures and documented baselines for
   representative generated reader, writer, validator, and document/open-content workloads. These
   are baselines, not performance guarantees.

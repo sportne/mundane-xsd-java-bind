@@ -40,6 +40,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
 
 final class XpValidation10BasicConformanceTest {
+  // Selected fixture manifest ID: T-CONF-XP-VALIDATION-10-BASIC-FACET.
+
   @TempDir private Path tempDirectory;
 
   @Test

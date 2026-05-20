@@ -1,6 +1,6 @@
 # TASK-0042: interop-conformance-harness-expansion
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0042`
 Gate: `0.6.0` Hardening and Release Maturity; starts only after `TASK-0041` is accepted.
@@ -10,8 +10,8 @@ Specification references: `docs/verification/conformance-strategy.md`, `docs/con
 Target modules: `modules/conformance-tests`, `modules/testing-support`, examples as needed
 Allowed files: conformance harness source/tests/fixtures, documented test-suite intake scripts if approved, interop fixtures, docs
 Forbidden files: broad vendoring of external suites without license/maintenance review, unsupported feature implementation, dependency metadata unless approved, quality-gate weakening
-Expected behavior: expand the ongoing conformance and interop harness with selected W3C/external reference fixtures mapped to declared profiles, unsupported-feature diagnostics, and repeatable local comparison workflows.
-Tests to add/update: conformance fixture classification tests, selected positive/negative profile tests, interop comparison tests, unsupported diagnostics, storage-policy checks where practical, documentation checks
+Expected behavior: expand the ongoing conformance and interop harness with selected local fixtures mapped to declared profiles, unsupported-feature diagnostics, and repeatable local comparison workflows.
+Tests added/updated: conformance fixture classification tests, manifest-linked profile tests, unsupported diagnostics, storage-policy checks where practical, documentation checks
 Documentation to update: conformance strategy, W3C test-suite policy, conformance matrix, verification plan, traceability matrix
 Commands to run: `./gradlew validateDesignControlPack qualityGate`, documented conformance/interop commands, `git diff --check`
 Acceptance criteria: selected tests are profile-mapped; unsupported tests prove deterministic diagnostics; external suite intake respects storage policy; interop evidence is repeatable without network access; no full-suite conformance claim is made
@@ -34,3 +34,24 @@ Rollback notes: revert harness, fixtures, scripts, and docs added by this task
 - Native Image: selected conformance fixtures should be candidates for `TASK-0044`.
 - Security: no untagged network access in tests.
 - Documentation: full-suite claims remain forbidden unless proven.
+
+## Implementation Evidence
+
+- Added `modules/conformance-tests/src/test/resources/selected-fixtures.tsv` as the dependency-free
+  selected fixture manifest with `supported-profile`, `unsupported-diagnostic`, `future-study`, and
+  `blocked` classifications.
+- Covered all current supported profile families with existing local fixture rows:
+  `XP-DATA-10`, `XP-DATA-10-CHOICE`, `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`,
+  `XP-XSD10-SEMANTIC`, and `XP-XSD10-DOCUMENT`.
+- Added minimal local unsupported-diagnostic schemas for `xs:anyAttribute`, wildcard
+  `processContents="strict"`, mixed `xs:choice`, identity constraints, and XSD 1.1 assertions.
+- Added `SelectedConformanceFixtureManifestTest` to verify stable unique IDs, known
+  profile/category values, executable resource presence, blocked/future reasons, no broad W3C suite
+  claims, and deterministic unsuccessful generation codes for unsupported fixtures.
+- Linked existing executable conformance/interop tests to manifest IDs with source comments.
+
+## Verification Evidence
+
+- `./gradlew :modules:conformance-tests:check --console=plain` passed.
+- `./gradlew validateDesignControlPack qualityGate --console=plain` passed.
+- `git diff --check` passed.

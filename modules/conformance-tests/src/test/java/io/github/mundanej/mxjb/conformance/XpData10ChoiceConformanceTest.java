@@ -45,6 +45,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
 
 final class XpData10ChoiceConformanceTest {
+  // Selected fixture manifest ID: T-CONF-XP-DATA-10-CHOICE-DOMESTIC.
+
   @TempDir private Path tempDirectory;
 
   @Test

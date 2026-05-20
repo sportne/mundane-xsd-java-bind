@@ -8,6 +8,13 @@ Selected local `XP-DATA-10` fixtures exercise the first public vertical slice wi
 W3C XML Schema conformance. The tests reuse the checked-in generated fixture sources from the
 purchase-order and multi-namespace examples.
 
+`src/test/resources/selected-fixtures.tsv` is the selected fixture manifest for the `0.6.0`
+hardening lane. It classifies local evidence as `supported-profile`, `unsupported-diagnostic`,
+`future-study`, or `blocked`, and maps executable rows to either existing profile fixtures or
+minimal unsupported schemas. `SelectedConformanceFixtureManifestTest` verifies the manifest shape,
+resource presence, supported-profile coverage, and deterministic generator diagnostic codes for the
+unsupported rows.
+
 Covered behavior:
 
 - XML to object to XML round trips for representative generated bindings.
@@ -16,6 +23,8 @@ Covered behavior:
 - Opt-in `xs:choice`, `XP-VALIDATION-10-BASIC` facet, `XP-XSD10-COMPOSED` composed-schema,
   `XP-XSD10-SEMANTIC` semantic, and accepted `XP-XSD10-DOCUMENT` wildcard, mixed-content, and
   serialization-policy fixtures compared with JDK XML Schema validation where practical.
+- Selected unsupported-diagnostic schemas for `xs:anyAttribute`, wildcard
+  `processContents="strict"`, mixed `xs:choice`, identity constraints, and XSD 1.1 assertions.
 
 Unsupported or future-profile constructs such as full simple-type facets beyond
 `XP-VALIDATION-10-BASIC`, full derivation semantics, wildcard behavior beyond accepted direct

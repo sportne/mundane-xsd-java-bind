@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:unsupported"
+    targetNamespace="urn:unsupported"
+    elementFormDefault="qualified">
+  <xs:element name="order" type="tns:Order"/>
+  <xs:complexType name="Order" mixed="true">
+    <xs:choice>
+      <xs:element name="id" type="xs:string"/>
+      <xs:element name="note" type="xs:string"/>
+    </xs:choice>
+  </xs:complexType>
+</xs:schema>

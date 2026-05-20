@@ -40,6 +40,9 @@ import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
 
 final class XpXsd10SemanticConformanceTest {
+  // Selected fixture manifest IDs:
+  // T-CONF-XP-XSD10-SEMANTIC-DEFAULTS, T-CONF-XP-XSD10-SEMANTIC-SUBSTITUTION.
+
   @TempDir private Path tempDirectory;
 
   @Test

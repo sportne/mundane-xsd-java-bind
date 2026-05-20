@@ -24,7 +24,8 @@ A W3C or external conformance test is included only when:
 ## `0.6.0` hardening intake plan
 
 `TASK-0041` defines the planning scope for hardening conformance and interop evidence without
-claiming full XML Schema conformance. `TASK-0042` is the first implementation gate for this lane.
+claiming full XML Schema conformance. `TASK-0042` implements the first selected local fixture
+manifest for this lane under `modules/conformance-tests/src/test/resources/selected-fixtures.tsv`.
 
 Selected W3C or external fixtures must be classified before they are executable evidence:
 
@@ -41,6 +42,11 @@ Schema validation, secure JDK XML parsing, generated binding round trips, and do
 comparisons. Byte-identical XML output, W3C XML Canonicalization, XML Signature canonical forms,
 networked test retrieval, and broad vendoring of external suites remain out of scope unless a later
 task and ADR approve them.
+
+The `TASK-0042` manifest covers the current supported profile families (`XP-DATA-10`,
+`XP-DATA-10-CHOICE`, `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`,
+`XP-XSD10-SEMANTIC`, and `XP-XSD10-DOCUMENT`) and selected unsupported-diagnostic schemas. Blocked
+and future-study rows are classification evidence only; they do not create runnable suite coverage.
 
 ## Unsupported feature behavior
 

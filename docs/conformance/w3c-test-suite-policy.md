@@ -17,7 +17,8 @@ Large external test suites should be pulled through documented scripts or Git su
 vendoring W3C suites. Those fixtures are representative conformance evidence for implemented
 features only.
 
-`TASK-0041` keeps `0.6.0` planning in the same posture: `TASK-0042` may add selected local fixture
-copies or documented intake scripts only after each selected test is mapped to a declared profile,
-unsupported diagnostic, or future-study category. It must not vendor a broad W3C suite snapshot or
-claim full-suite pass status.
+`TASK-0041` keeps `0.6.0` planning in the same posture. `TASK-0042` adds
+`modules/conformance-tests/src/test/resources/selected-fixtures.tsv` as selected local fixture
+classification evidence. The manifest maps existing local fixtures to declared profiles, adds
+minimal local unsupported-diagnostic schemas, and records future-study/blocked rows without
+vendoring a broad W3C suite snapshot or claiming full-suite pass status.

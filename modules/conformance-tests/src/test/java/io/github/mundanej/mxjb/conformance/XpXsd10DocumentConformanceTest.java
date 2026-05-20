@@ -42,6 +42,9 @@ import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
 
 final class XpXsd10DocumentConformanceTest {
+  // Selected fixture manifest IDs:
+  // T-CONF-XP-XSD10-DOCUMENT-WILDCARD, T-CONF-XP-XSD10-DOCUMENT-MIXED.
+
   @TempDir private Path tempDirectory;
 
   @Test
