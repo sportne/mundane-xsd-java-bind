@@ -30,6 +30,9 @@ See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
 - `./gradlew nativeSmoke` runs the representative GraalVM Native Image smoke lane when
   `native-image` is available.
 - `./gradlew printPublishedArtifacts` prints the planned Maven coordinates.
+- `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun` stages candidate Maven artifacts
+  under `build/staging-repository` and validates local publication metadata without remote
+  publication, signing, tagging, or a committed version bump.
 - `./gradlew printOfflineBuildInstructions` prints the offline build command pattern.
 - `generateMxjbSources` is registered by the public `io.github.mundanej.mxjb` plugin in consumer
   builds and generates Java sources from explicit schema inputs.
@@ -44,8 +47,9 @@ Most module build files stay short because they apply convention plugins from `b
 - `mxjb.java-conventions` sets Java 21 toolchains, JUnit, Error Prone, UTF-8, and test defaults.
 - `mxjb.quality-conventions` configures Spotless, Checkstyle, and SpotBugs.
 - `mxjb.coverage-conventions` configures JaCoCo reports and module-specific coverage verification for implemented modules.
-- `mxjb.publishing-conventions` configures Maven publication for Java libraries.
-- `mxjb.platform-conventions` configures Java platform BOM publication.
+- `mxjb.publishing-conventions` configures Maven publication metadata and local staging for Java
+  libraries and Gradle plugin implementation artifacts.
+- `mxjb.platform-conventions` configures Java platform BOM publication metadata and local staging.
 - `mxjb.application-conventions` configures application modules.
 - `mxjb.native-conventions` configures GraalVM Native Image checks.
 - `mxjb.docs-validation-conventions` adds design-control validation tasks.

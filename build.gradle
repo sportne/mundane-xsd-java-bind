@@ -30,6 +30,18 @@ def checkedProjects = [
     ':examples:multi-namespace',
 ]
 
+// These projects are the only publishable artifacts for the current release dry-run.
+def publishedProjects = [
+    ':modules:mxjb-bom',
+    ':modules:runtime-core',
+    ':modules:runtime-jdkxml',
+    ':modules:generator-api',
+    ':modules:generator-core',
+    ':modules:generator-cli',
+    ':modules:generator-gradle-plugin',
+    ':modules:testing-support',
+]
+
 // The BOM has no Java source code, so quality tools such as Spotless and JaCoCo do not run there.
 def qualityProjects = checkedProjects.findAll { it != ':modules:mxjb-bom' }
 
@@ -74,6 +86,152 @@ tasks.register('benchmarkSmoke') {
     group = 'verification'
     description = 'Runs the advisory generated-binding benchmark smoke lane.'
     dependsOn ':modules:conformance-tests:benchmarkSmoke'
+}
+
+def publicationStagingDirectory = layout.buildDirectory.dir('staging-repository')
+def publicationCandidateVersion = version.toString()
+def releaseDryRunNotes = layout.projectDirectory.file('docs/infrastructure/release-notes-0.6.0-alpha.md')
+def repositoryRootPath = rootDir.absolutePath
+
+tasks.register('cleanPublicationStaging', Delete) {
+    group = 'publishing'
+    description = 'Removes the local publication staging repository.'
+    delete publicationStagingDirectory
+}
+
+tasks.register('stagePublications') {
+    group = 'publishing'
+    description = 'Publishes approved artifacts to the local staging repository.'
+    dependsOn publishedProjects.collect { "${it}:publishAllPublicationsToLocalStagingRepository" }
+    mustRunAfter tasks.named('cleanPublicationStaging')
+}
+
+gradle.projectsEvaluated {
+    publishedProjects.each { projectPath ->
+        project(projectPath).tasks.matching {
+            it.name.startsWith('publish') && it.name.endsWith('PublicationToLocalStagingRepository')
+        }.configureEach {
+            dependsOn rootProject.tasks.named('cleanPublicationStaging')
+        }
+    }
+}
+
+tasks.register('validatePublicationStaging') {
+    group = 'verification'
+    description = 'Validates the local publication staging repository layout and metadata.'
+    dependsOn tasks.named('stagePublications')
+    inputs.dir(publicationStagingDirectory)
+    inputs.file(releaseDryRunNotes)
+    doLast {
+        def repository = publicationStagingDirectory.get().asFile
+        if (!repository.isDirectory()) {
+            throw new GradleException("Missing publication staging repository: ${repository}")
+        }
+
+        def candidateVersion = publicationCandidateVersion
+        def expectedArtifacts = [
+            [group: 'io.github.mundanej', artifact: 'mxjb-bom', files: ['pom', 'module']],
+            [group: 'io.github.mundanej', artifact: 'mxjb-runtime-core', files: ['pom', 'module', 'jar', 'sources.jar', 'javadoc.jar']],
+            [group: 'io.github.mundanej', artifact: 'mxjb-runtime-jdkxml', files: ['pom', 'module', 'jar', 'sources.jar', 'javadoc.jar']],
+            [group: 'io.github.mundanej', artifact: 'mxjb-generator-api', files: ['pom', 'module', 'jar', 'sources.jar', 'javadoc.jar']],
+            [group: 'io.github.mundanej', artifact: 'mxjb-generator-core', files: ['pom', 'module', 'jar', 'sources.jar', 'javadoc.jar']],
+            [group: 'io.github.mundanej', artifact: 'mxjb-cli', files: ['pom', 'module', 'jar', 'sources.jar', 'javadoc.jar']],
+            [group: 'io.github.mundanej', artifact: 'mxjb-gradle-plugin', files: ['pom', 'module', 'jar', 'sources.jar', 'javadoc.jar']],
+            [group: 'io.github.mundanej', artifact: 'mxjb-testing-support', files: ['pom', 'module', 'jar', 'sources.jar', 'javadoc.jar']],
+            [group: 'io.github.mundanej.mxjb', artifact: 'io.github.mundanej.mxjb.gradle.plugin', files: ['pom']],
+        ]
+        def coordinateDirectory = { artifact ->
+            new File(repository, "${artifact.group.replace('.', '/')}/${artifact.artifact}/${candidateVersion}")
+        }
+        def artifactFileName = { artifact, suffix ->
+            if (['pom', 'module', 'jar'].contains(suffix)) {
+                return "${artifact.artifact}-${candidateVersion}.${suffix}"
+            }
+            return "${artifact.artifact}-${candidateVersion}-${suffix}"
+        }
+        def expectedVersionDirectories = expectedArtifacts.collect { coordinateDirectory(it).canonicalFile } as Set
+        def stagedFiles = []
+        repository.eachFileRecurse(groovy.io.FileType.FILES) { stagedFile ->
+            stagedFiles.add(stagedFile)
+        }
+
+        expectedArtifacts.each { artifact ->
+            def artifactDirectory = coordinateDirectory(artifact)
+            if (!artifactDirectory.isDirectory()) {
+                throw new GradleException("Missing staged coordinate directory: ${artifactDirectory}")
+            }
+            artifact.files.each { suffix ->
+                def expectedFile = new File(artifactDirectory, artifactFileName(artifact, suffix))
+                if (!expectedFile.isFile()) {
+                    throw new GradleException("Missing staged artifact file: ${expectedFile}")
+                }
+            }
+        }
+
+        stagedFiles.findAll { it.name.endsWith("-${candidateVersion}.pom") }.each { pomFile ->
+            if (!expectedVersionDirectories.contains(pomFile.parentFile.canonicalFile)) {
+                throw new GradleException("Unexpected staged publication metadata: ${pomFile}")
+            }
+        }
+
+        def stagedMetadata = stagedFiles.findAll {
+            it.name.endsWith('.pom') || it.name.endsWith('.module') || it.name.endsWith('.xml')
+        }
+        def forbiddenMetadataFragments = [
+            repositoryRootPath,
+            repository.absolutePath,
+            'generator-gradle-plugin',
+            '.m2',
+        ]
+        stagedMetadata.each { metadataFile ->
+            def metadataText = metadataFile.getText('UTF-8')
+            forbiddenMetadataFragments.each { fragment ->
+                if (metadataText.contains(fragment)) {
+                    throw new GradleException("Forbidden metadata fragment '${fragment}' found in ${metadataFile}")
+                }
+            }
+            ['password', 'secret', 'token'].each { secretWord ->
+                if (metadataText.toLowerCase(Locale.ROOT).contains(secretWord)) {
+                    throw new GradleException("Secret-like metadata word '${secretWord}' found in ${metadataFile}")
+                }
+            }
+        }
+
+        def stagedPaths = stagedFiles.collect { repository.toPath().relativize(it.toPath()).toString() }
+        ['conformance-tests', 'examples', 'build-logic', '.m2'].each { forbiddenPath ->
+            if (stagedPaths.any { it.contains(forbiddenPath) }) {
+                throw new GradleException("Forbidden staged path fragment '${forbiddenPath}' found")
+            }
+        }
+        if (stagedPaths.any { it.startsWith('.gradle/') || it.contains('/.gradle/') }) {
+            throw new GradleException("Forbidden staged Gradle cache path found")
+        }
+
+        def releaseNotes = releaseDryRunNotes.asFile
+        if (!releaseNotes.isFile()) {
+            throw new GradleException("Missing release dry-run notes: ${releaseNotes}")
+        }
+        def releaseNotesText = releaseNotes.getText('UTF-8')
+        [
+            'not a released artifact',
+            'No release tag is created',
+            'Full XSD 1.0 conformance is not claimed',
+            'XML Canonicalization is not claimed',
+            'No remote publication is performed',
+        ].each { requiredPhrase ->
+            if (!releaseNotesText.contains(requiredPhrase)) {
+                throw new GradleException("Release notes missing required non-claim phrase: ${requiredPhrase}")
+            }
+        }
+
+        println "Validated ${expectedArtifacts.size()} staged publication coordinates for ${candidateVersion}."
+    }
+}
+
+tasks.register('publicationDryRun') {
+    group = 'publishing'
+    description = 'Stages approved Maven artifacts locally and validates release metadata without publishing remotely.'
+    dependsOn tasks.named('validatePublicationStaging')
 }
 
 // This help task prints the artifacts that publishToMavenLocal or a real publish will create.

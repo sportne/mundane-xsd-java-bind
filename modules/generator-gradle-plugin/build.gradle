@@ -27,8 +27,21 @@ gradlePlugin {
 publishing {
     publications {
         // Published Maven artifact name for the Gradle integration artifact.
-        mavenJava(MavenPublication) {
+        pluginMaven(MavenPublication) {
             artifactId = 'mxjb-gradle-plugin'
+        }
+        withType(MavenPublication).configureEach { publication ->
+            pom {
+                name = publication.artifactId
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    publishing.publications.named('mxjbPluginMarkerMaven', MavenPublication).configure {
+        pom {
+            name = 'io.github.mundanej.mxjb.gradle.plugin'
         }
     }
 }

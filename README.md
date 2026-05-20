@@ -4,10 +4,11 @@
 accepted `0.2.0` Practical Data Contracts readiness evidence, accepted `0.3.0`
 `XP-XSD10-COMPOSED` readiness evidence, accepted `0.4.0` `XP-XSD10-SEMANTIC`
 readiness evidence, and accepted `0.5.0` `XP-XSD10-DOCUMENT` document/open-content
-readiness evidence. The repository includes generated
-model, reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a
-CLI `generate` command, a Gradle plugin for the accepted subsets, representative round-trip examples,
-and Native Image smoke coverage.
+readiness evidence, and accepted `0.6.0` hardening evidence through selected conformance,
+benchmark, Native Image, and release dry-run lanes. The repository includes generated model,
+reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a CLI
+`generate` command, a Gradle plugin for the accepted subsets, representative round-trip examples,
+Native Image smoke coverage, and local publication dry-run validation.
 
 `mundane XSD Java Binding` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
 
@@ -109,10 +110,15 @@ Common commands after hydrating the wrapper and dependencies:
 ./gradlew qualityGate
 ./gradlew nativeSmoke
 ./gradlew printPublishedArtifacts
+./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun
 ```
 
 `nativeSmoke` requires a GraalVM installation with `native-image`; the documented local path for
 the current environment is in `docs/verification/native-image-test-plan.md`.
+
+`publicationDryRun` stages candidate Maven artifacts under `build/staging-repository` and validates
+metadata without publishing remotely, signing artifacts, creating a release tag, or committing a
+version bump.
 
 Generate Java sources for an approved schema subset with:
 

@@ -9,6 +9,10 @@ internal conformance/example projects. It should track public artifacts as they
 become publication candidates; it is not a place for test fixtures, examples, or
 internal harness modules.
 
+`publicationDryRun` validates the BOM beside the runtime, generator, Gradle plugin, plugin marker,
+and testing-support artifacts in the local staging repository. The dry-run does not publish the BOM
+remotely or authorize a release tag.
+
 ## Contributor notes
 
 - Add new published artifacts to the BOM in the same change that introduces them.

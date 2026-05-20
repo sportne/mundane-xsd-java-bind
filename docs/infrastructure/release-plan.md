@@ -62,6 +62,21 @@ Release readiness for `0.6.0` requires:
 - release notes that name unsupported features and avoid full XSD 1.0, XSD 1.1, XML
   Canonicalization, cryptographic canonical XML, or untested performance claims.
 
+`TASK-0045` adds the local release-engineering dry-run lane:
+
+```bash
+./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun --console=plain
+```
+
+The lane stages only the approved publishable coordinates to `build/staging-repository`: the BOM,
+runtime modules, generator API/core/CLI/Gradle plugin, testing support, and the Gradle plugin
+marker. It validates expected artifact files, rejects unexpected publication coordinates such as
+internal conformance/example/build-logic projects, checks staged POM/module metadata for local path
+or secret-like leakage, and confirms the release notes preserve non-claims. The repository default
+version remains `0.1.0-SNAPSHOT`; candidate validation uses `-Pmxjb.version=0.6.0-alpha.0` and does
+not create a release tag, signing setup, credentials, remote staging repository, or actual
+publication.
+
 ## Release gate
 
 No release may claim support for a schema feature unless the requirement, profile, conformance matrix, tests, and docs are complete.

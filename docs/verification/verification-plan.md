@@ -161,7 +161,10 @@ is `TASK-0042` through `TASK-0046`.
   `nativeSmoke`. The selected executable covers supported profile round trips, unsupported
   diagnostics, and resolver/entity denial while keeping native tooling outside the default JVM
   `qualityGate`.
-- Release engineering: `TASK-0045` validates publication metadata and dry-run behavior without
-  publishing artifacts or creating release tags.
+- Release engineering: `TASK-0045` adds
+  `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun --console=plain`, which stages only
+  approved publication coordinates under `build/staging-repository`, validates Maven layout and
+  POM/module metadata, verifies Gradle plugin marker publication, checks release-note non-claims,
+  and does not publish remotely, sign, bump `gradle.properties`, or create release tags.
 - Readiness: `TASK-0046` records final `0.6.0` evidence and confirms public claims match
   conformance, benchmark, native, release, and security evidence.

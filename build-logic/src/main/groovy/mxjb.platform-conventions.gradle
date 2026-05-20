@@ -13,11 +13,41 @@ javaPlatform {
     allowDependencies()
 }
 
+def configureProjectPom = { MavenPublication publication ->
+    publication.pom {
+        name = publication.artifactId ?: project.name
+        description = project.description ?: project.name
+        url = 'https://github.com/sportne/mundane-xsd-java-bind'
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                distribution = 'repo'
+            }
+        }
+        scm {
+            url = 'https://github.com/sportne/mundane-xsd-java-bind'
+            connection = 'scm:git:https://github.com/sportne/mundane-xsd-java-bind.git'
+            developerConnection = 'scm:git:ssh://git@github.com/sportne/mundane-xsd-java-bind.git'
+        }
+        developers {
+            developer {
+                id = 'mundanej'
+                name = 'mundane XSD Java Binding maintainers'
+                url = 'https://github.com/sportne/mundane-xsd-java-bind'
+            }
+        }
+    }
+}
+
 publishing {
     publications {
         // Publish the javaPlatform component as a Maven BOM publication.
         mavenBom(MavenPublication) {
             from components.javaPlatform
+        }
+        withType(MavenPublication).configureEach { publication ->
+            configureProjectPom(publication)
         }
     }
     repositories {

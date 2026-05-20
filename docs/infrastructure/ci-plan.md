@@ -55,8 +55,10 @@ The root `nativeConformance` aggregate currently covers:
   outside default `qualityGate`; it may run in scheduled CI after baselines are stable.
 - `TASK-0044` adds selected Native Image conformance execution beside `nativeSmoke`, without
   weakening existing smoke checks.
-- `TASK-0045` should add publication dry-run validation only for release engineering artifacts and
-  must avoid publishing from normal CI.
+- `TASK-0045` adds `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun --console=plain` as
+  an explicit release-engineering dry-run lane. It validates local staging metadata only and must
+  not publish from normal CI, sign artifacts, create tags, or require release secrets.
 
 `qualityGate` remains the required JVM-focused gate, `benchmarkSmoke` is advisory and opt-in, and
-`nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes.
+`nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes. `publicationDryRun` is opt-in for
+release readiness evidence and is not wired into `qualityGate`.

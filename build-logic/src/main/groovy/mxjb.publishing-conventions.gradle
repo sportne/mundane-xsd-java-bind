@@ -6,25 +6,46 @@ plugins {
     id 'maven-publish'
 }
 
+def configureProjectPom = { MavenPublication publication ->
+    publication.pom {
+        // These values show up in generated Maven POM files.
+        name = publication.artifactId ?: project.name
+        description = project.description ?: project.name
+        url = 'https://github.com/sportne/mundane-xsd-java-bind'
+        licenses {
+            license {
+                // Apache 2.0 is the declared project license.
+                name = 'The Apache License, Version 2.0'
+                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                distribution = 'repo'
+            }
+        }
+        scm {
+            url = 'https://github.com/sportne/mundane-xsd-java-bind'
+            connection = 'scm:git:https://github.com/sportne/mundane-xsd-java-bind.git'
+            developerConnection = 'scm:git:ssh://git@github.com/sportne/mundane-xsd-java-bind.git'
+        }
+        developers {
+            developer {
+                id = 'mundanej'
+                name = 'mundane XSD Java Binding maintainers'
+                url = 'https://github.com/sportne/mundane-xsd-java-bind'
+            }
+        }
+    }
+}
+
 publishing {
     publications {
         // mavenJava is the normal publication name for a Java library.
-        mavenJava(MavenPublication) {
-            // Publish the compiled jar, sources jar, Javadoc jar, and dependency metadata.
-            from components.java
-            pom {
-                // These values show up in generated Maven POM files.
-                name = project.name
-                description = project.description ?: project.name
-                url = 'https://github.com/sportne/mundane-xsd-java-bind'
-                licenses {
-                    license {
-                        // Apache 2.0 is the declared project license.
-                        name = 'The Apache License, Version 2.0'
-                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
+        if (!project.plugins.hasPlugin('java-gradle-plugin')) {
+            mavenJava(MavenPublication) {
+                // Publish the compiled jar, sources jar, Javadoc jar, and dependency metadata.
+                from components.java
             }
+        }
+        withType(MavenPublication).configureEach { publication ->
+            configureProjectPom(publication)
         }
     }
     repositories {

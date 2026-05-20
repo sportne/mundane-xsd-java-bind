@@ -1,6 +1,6 @@
 # TASK-0045: release-engineering-publication-readiness
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0045`
 Gate: `0.6.0` Hardening and Release Maturity; starts only after `TASK-0044` is accepted.
@@ -33,3 +33,36 @@ Rollback notes: revert release workflow/build/docs changes from this task
 - Native Image: release readiness must include native conformance status.
 - Security: release artifacts must not include local `.repo` caches or secrets.
 - Documentation: public support statements must match conformance matrix.
+
+## Completion Notes
+
+- Added root `publicationDryRun`, `stagePublications`, `cleanPublicationStaging`, and
+  `validatePublicationStaging` lanes. The dry-run stages approved Maven artifacts to
+  `build/staging-repository` and validates expected coordinates, required files, staged metadata,
+  plugin marker publication, release-note non-claims, and local path/secret-like leakage.
+- Kept `gradle.properties` at `0.1.0-SNAPSHOT`; candidate dry-run validation uses
+  `-Pmxjb.version=0.6.0-alpha.0`.
+- Normalized Gradle plugin publication so the implementation artifact stages as
+  `io.github.mundanej:mxjb-gradle-plugin` plus the marker
+  `io.github.mundanej.mxjb:io.github.mundanej.mxjb.gradle.plugin`; the unintended
+  `io.github.mundanej:generator-gradle-plugin` coordinate is not staged.
+- Extended staged POM metadata with project URL, Apache 2.0 license, SCM coordinates, and
+  maintainer identity without adding signing, secrets, remote repositories, release tags, or
+  publication workflows.
+- Added `docs/infrastructure/release-notes-0.6.0-alpha.md` with supported profiles, selected
+  conformance/benchmark/Native Image evidence, rollback steps, and explicit non-claims for remote
+  publication, release tags, signing, full XSD 1.0 conformance, XSD 1.1, XML Canonicalization,
+  XML Signature canonical forms, lexical prefix preservation, comments/PIs, DTD/entity identity,
+  hard performance guarantees, and unavailable Native Image tooling.
+- Updated README, build docs, release plan, CI plan, conformance matrix, verification plan,
+  traceability matrix, BOM notes, and handoff for the accepted release-engineering dry-run gate.
+
+## Verification Evidence
+
+- `git tag --list` returned no release tags before this task's dry-run evidence.
+- `./gradlew printPublishedArtifacts --console=plain` passed and printed the approved BOM,
+  runtime, generator, Gradle plugin, and testing-support coordinates.
+- `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun --console=plain` passed and reported
+  `Validated 9 staged publication coordinates for 0.6.0-alpha.0.`
+- `./gradlew validateDesignControlPack qualityGate --console=plain` passed.
+- `git diff --check` passed.
