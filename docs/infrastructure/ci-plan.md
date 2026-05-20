@@ -16,12 +16,18 @@
 3. Setup Gradle cache.
 4. Run `./gradlew qualityGate` in the main CI matrix.
 5. Run `./gradlew validateDesignControlPack` in documentation lanes.
-6. Run `./gradlew validateDesignControlPack nativeSmoke --console=plain` in the GraalVM Native Image matrix.
+6. Run `./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain` in the GraalVM Native Image matrix.
 7. Upload available Gradle test, quality, and verification reports on failure.
 
 ## Native Image lane
 
-Runtime primitive native tests start with `TASK-0010`, and generated-code smoke starts with `TASK-0013` through `:modules:generator-core:generatedCodeNativeSmoke`. `TASK-0020` promotes the native workflow from a placeholder to the mandatory representative native lane by running `./gradlew validateDesignControlPack nativeSmoke --console=plain` on the GraalVM Java 21 and Java 25 matrix.
+Runtime primitive native tests start with `TASK-0010`, and generated-code smoke starts with
+`TASK-0013` through `:modules:generator-core:generatedCodeNativeSmoke`. `TASK-0020` promotes the
+native workflow from a placeholder to the mandatory representative native lane by running
+`./gradlew validateDesignControlPack nativeSmoke --console=plain` on the GraalVM Java 21 and Java
+25 matrix. `TASK-0044` keeps that smoke aggregate intact and adds
+`./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain` for selected
+conformance execution in the same GraalVM workflow.
 
 The root `nativeSmoke` aggregate currently covers:
 
@@ -33,6 +39,12 @@ The root `nativeSmoke` aggregate currently covers:
 - `:examples:purchase-order:nativeTest`
 - `:examples:multi-namespace:nativeTest`
 
+The root `nativeConformance` aggregate currently covers:
+
+- `:modules:conformance-tests:nativeConformance`, a selected fixture executable that runs static
+  generated read/write/validate paths across the supported profile families, selected
+  unsupported-diagnostic schemas, and secure entity/resource denial.
+
 ## `0.6.0` planned hardening lanes
 
 `TASK-0041` defines planned CI lanes for later tasks without changing active gates:
@@ -41,10 +53,10 @@ The root `nativeSmoke` aggregate currently covers:
   become CI jobs.
 - `TASK-0043` adds the explicit `./gradlew benchmarkSmoke --console=plain` lane and keeps it
   outside default `qualityGate`; it may run in scheduled CI after baselines are stable.
-- `TASK-0044` should add selected Native Image conformance execution beside `nativeSmoke`, not by
+- `TASK-0044` adds selected Native Image conformance execution beside `nativeSmoke`, without
   weakening existing smoke checks.
 - `TASK-0045` should add publication dry-run validation only for release engineering artifacts and
   must avoid publishing from normal CI.
 
 `qualityGate` remains the required JVM-focused gate, `benchmarkSmoke` is advisory and opt-in, and
-`nativeSmoke` remains the required GraalVM lane.
+`nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes.

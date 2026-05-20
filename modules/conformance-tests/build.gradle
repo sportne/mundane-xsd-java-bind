@@ -11,12 +11,42 @@ plugins {
 // Human-readable module purpose shown in Gradle reports and generated metadata.
 description = 'Internal conformance test harness; not published.'
 
+def nativeConformanceGeneratedSourcesDirectory =
+        layout.buildDirectory.dir('generated/native-conformance/sources')
+def nativeConformanceGeneratedClassesDirectory =
+        layout.buildDirectory.dir('classes/native-conformance/generated')
+def nativeConformanceNativeDirectory = layout.buildDirectory.dir('native/native-conformance')
+def nativeConformanceNativeExecutable =
+        layout.buildDirectory.file('native/native-conformance/native-conformance')
+def nativeConformanceMainClass =
+        'io.github.mundanej.mxjb.conformance.nativeimage.NativeConformanceMain'
+
 sourceSets {
     benchmarkSmoke {
         java.srcDir 'src/benchmarkSmoke/java'
         resources.srcDir 'src/test/resources'
         compileClasspath += sourceSets.main.output
         runtimeClasspath += output + compileClasspath
+    }
+    nativeConformanceGenerator {
+        java.srcDir 'src/nativeConformanceGenerator/java'
+        resources.srcDir 'src/test/resources'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += output + compileClasspath
+    }
+    nativeConformance {
+        java.srcDir 'src/nativeConformance/java'
+        resources.srcDir 'src/test/resources'
+        compileClasspath += sourceSets.main.output + files(nativeConformanceGeneratedClassesDirectory)
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+configurations {
+    nativeConformanceGeneratedCompileClasspath {
+        canBeConsumed = false
+        canBeResolved = true
+        description = 'Classpath for selected native conformance generated binding compilation.'
     }
 }
 
@@ -36,6 +66,17 @@ dependencies {
     benchmarkSmokeImplementation project(':examples:purchase-order')
     benchmarkSmokeImplementation project(':modules:generator-core')
     benchmarkSmokeImplementation project(':modules:runtime-jdkxml')
+
+    // Native conformance source generation uses the public generator pipeline at build time.
+    nativeConformanceGeneratorImplementation project(':modules:generator-core')
+    nativeConformanceGeneratedCompileClasspath project(':modules:runtime-core')
+
+    // Native conformance execution uses static generated bindings plus representative examples.
+    nativeConformanceImplementation project(':examples:multi-namespace')
+    nativeConformanceImplementation project(':examples:purchase-order')
+    nativeConformanceImplementation project(':modules:generator-core')
+    nativeConformanceImplementation project(':modules:runtime-core')
+    nativeConformanceImplementation project(':modules:runtime-jdkxml')
 }
 
 tasks.register('benchmarkSmoke', JavaExec) {
@@ -45,4 +86,103 @@ tasks.register('benchmarkSmoke', JavaExec) {
     classpath = sourceSets.benchmarkSmoke.runtimeClasspath
     mainClass = 'io.github.mundanej.mxjb.conformance.benchmark.ConformanceBenchmarkSmokeMain'
     systemProperty 'file.encoding', 'UTF-8'
+}
+
+tasks.register('generateNativeConformanceSources', JavaExec) {
+    group = 'verification'
+    description = 'Generates selected conformance binding sources for Native Image compilation.'
+    dependsOn tasks.named('nativeConformanceGeneratorClasses')
+    inputs.files sourceSets.nativeConformanceGenerator.runtimeClasspath
+    outputs.dir nativeConformanceGeneratedSourcesDirectory
+    classpath = sourceSets.nativeConformanceGenerator.runtimeClasspath
+    mainClass = 'io.github.mundanej.mxjb.conformance.nativeimage.NativeConformanceSourceGeneratorMain'
+    args nativeConformanceGeneratedSourcesDirectory.get().asFile.absolutePath
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+tasks.register('compileNativeConformanceGeneratedJava', JavaCompile) {
+    group = 'verification'
+    description = 'Compiles generated selected conformance bindings for the Native Image lane.'
+    dependsOn tasks.named('generateNativeConformanceSources')
+    source nativeConformanceGeneratedSourcesDirectory
+    classpath = configurations.nativeConformanceGeneratedCompileClasspath
+    destinationDirectory = nativeConformanceGeneratedClassesDirectory
+}
+
+tasks.named('compileNativeConformanceJava') {
+    dependsOn tasks.named('compileNativeConformanceGeneratedJava')
+}
+
+def findNativeImageExecutable = {
+    def executableNames = [
+        'native-image',
+        'native-image.cmd'
+    ]
+    def candidates = []
+    def javaHome = System.getenv('JAVA_HOME')
+    if (javaHome != null && !javaHome.isBlank()) {
+        executableNames.each { executableName ->
+            candidates.add(new File(new File(javaHome, 'bin'), executableName))
+        }
+    }
+    def path = System.getenv('PATH')
+    if (path != null && !path.isBlank()) {
+        path.split(File.pathSeparator).each { pathEntry ->
+            executableNames.each { executableName ->
+                candidates.add(new File(pathEntry, executableName))
+            }
+        }
+    }
+    candidates.find { candidate -> candidate.isFile() && candidate.canExecute() }
+}
+
+def nativeImageExecutable = findNativeImageExecutable()
+def nativeConformanceRuntimeClasspath = sourceSets.nativeConformance.runtimeClasspath
+def nativeConformanceNativeClasspath = nativeConformanceRuntimeClasspath.asPath
+
+tasks.register('checkNativeConformanceToolchain') {
+    group = 'verification'
+    description = 'Verifies native-image is available for selected conformance checks.'
+    doLast {
+        if (nativeImageExecutable == null) {
+            throw new GradleException(
+            'native-image was not found. Run this task with GraalVM native-image on PATH or set JAVA_HOME to a GraalVM installation that includes native-image.')
+        }
+    }
+}
+
+tasks.register('compileNativeConformance', Exec) {
+    group = 'verification'
+    description = 'Builds a Native Image executable for selected conformance fixtures.'
+    dependsOn tasks.named('checkNativeConformanceToolchain')
+    dependsOn tasks.named('nativeConformanceClasses')
+    inputs.files(nativeConformanceRuntimeClasspath)
+    outputs.file(nativeConformanceNativeExecutable)
+    executable = nativeImageExecutable == null ? 'native-image' : nativeImageExecutable.absolutePath
+    args '--no-fallback',
+            '-H:+ReportExceptionStackTraces',
+            '-H:IncludeResources=.*\\.(xml|xsd|tsv)$',
+            '-cp',
+            nativeConformanceNativeClasspath,
+            nativeConformanceMainClass,
+            '-o',
+            nativeConformanceNativeExecutable.get().asFile.absolutePath
+    doFirst {
+        nativeConformanceNativeDirectory.get().asFile.mkdirs()
+    }
+}
+
+tasks.register('runNativeConformance', Exec) {
+    group = 'verification'
+    description = 'Runs the Native Image executable for selected conformance fixtures.'
+    dependsOn tasks.named('compileNativeConformance')
+    inputs.file(nativeConformanceNativeExecutable)
+    executable = nativeConformanceNativeExecutable.get().asFile.absolutePath
+}
+
+tasks.register('nativeConformance') {
+    group = 'verification'
+    description = 'Builds and runs a Native Image executable for selected conformance fixtures.'
+    dependsOn tasks.named('runNativeConformance')
+    outputs.dir(nativeConformanceNativeDirectory)
 }

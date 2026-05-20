@@ -15,6 +15,11 @@ minimal unsupported schemas. `SelectedConformanceFixtureManifestTest` verifies t
 resource presence, supported-profile coverage, and deterministic generator diagnostic codes for the
 unsupported rows.
 
+`nativeConformance` is the opt-in GraalVM Native Image conformance lane added for `TASK-0044`.
+It builds selected generated bindings during Gradle setup, compiles a static native executable, and
+runs supported-profile round trips, selected unsupported diagnostics, and secure entity/resource
+denial. It is separate from `check`, `qualityGate`, and the representative `nativeSmoke` aggregate.
+
 Covered behavior:
 
 - XML to object to XML round trips for representative generated bindings.

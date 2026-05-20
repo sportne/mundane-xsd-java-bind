@@ -21,6 +21,8 @@ Native Image checks are not part of the default `qualityGate` because they requi
 - `TASK-0017` reuses representative purchase-order and multi-namespace round-trip fixtures through
   `:examples:purchase-order:nativeTest` and `:examples:multi-namespace:nativeTest`.
 - `TASK-0020` adds the root `nativeSmoke` aggregate and makes the CI Native Image workflow run that aggregate; it must not be the first point where generated/runtime Native Image compatibility is exercised.
+- `TASK-0044` adds the selected `nativeConformance` aggregate beside `nativeSmoke` for the
+  `0.6.0` hardening lane.
 
 ## Active native smoke command
 
@@ -46,18 +48,31 @@ hardening task.
 
 If `native-image` is not on `PATH` and `JAVA_HOME` does not point to a GraalVM installation with `native-image`, the task fails with a concrete toolchain message before attempting a native build.
 
-## `0.6.0` selected conformance plan
+## Active selected conformance command
 
-`TASK-0041` plans the transition from representative smoke coverage to selected conformance
-execution. `TASK-0044` owns implementation. The planned native conformance lane should:
+Run the selected Native Image conformance lane with GraalVM native-image available:
 
-- reuse fixtures selected by `TASK-0042` rather than introduce separate native-only behavior;
-- cover at least one generated read/write/validate path from each supported profile family where
-  practical;
-- include resolver/entity-denial and unsupported-diagnostic cases that are safe to run in native
-  executables;
-- stay separate from the default JVM `qualityGate` unless a later task explicitly changes CI gates;
-- document local toolchain blockers instead of weakening native assertions.
+```bash
+JAVA_HOME=$HOME/.sdkman/candidates/java/21.0.2-graalce \
+PATH=$HOME/.sdkman/candidates/java/21.0.2-graalce/bin:$PATH \
+./gradlew nativeConformance --console=plain
+```
+
+The `nativeConformance` aggregate depends on
+`:modules:conformance-tests:nativeConformance`. That task builds one executable that reuses the
+`TASK-0042` selected fixtures, compiles generated bindings at build time, and executes static
+read/write/validate round trips for `XP-DATA-10`, `XP-DATA-10-CHOICE`,
+`XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`, `XP-XSD10-SEMANTIC`, and
+`XP-XSD10-DOCUMENT` wildcard/mixed content. The same executable also checks selected
+unsupported-diagnostic schemas and secure adapter entity/resource denial.
+
+`nativeConformance` remains separate from `nativeSmoke` and the default JVM `qualityGate`. CI runs
+`./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain` only in the
+GraalVM Native Image workflow.
+
+If `native-image` is unavailable locally, `:modules:conformance-tests:checkNativeConformanceToolchain`
+fails before attempting native compilation with the same concrete toolchain message as the
+generated-code smoke lane.
 
 ## Failure policy
 

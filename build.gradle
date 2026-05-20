@@ -61,6 +61,14 @@ tasks.register('nativeSmoke') {
     dependsOn ':examples:multi-namespace:nativeTest'
 }
 
+// nativeConformance is intentionally separate from qualityGate because it requires GraalVM
+// native-image and runs selected conformance fixtures beyond the smoke lane.
+tasks.register('nativeConformance') {
+    group = 'verification'
+    description = 'Runs the selected GraalVM Native Image conformance lane.'
+    dependsOn ':modules:conformance-tests:nativeConformance'
+}
+
 // benchmarkSmoke is intentionally separate from qualityGate because its measurements are advisory.
 tasks.register('benchmarkSmoke') {
     group = 'verification'
