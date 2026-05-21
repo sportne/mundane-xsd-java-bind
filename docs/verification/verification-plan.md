@@ -167,4 +167,7 @@ is `TASK-0042` through `TASK-0046`.
   POM/module metadata, verifies Gradle plugin marker publication, checks release-note non-claims,
   and does not publish remotely, sign, bump `gradle.properties`, or create release tags.
 - Readiness: `TASK-0046` records final `0.6.0` evidence and confirms public claims match
-  conformance, benchmark, native, release, and security evidence.
+  conformance, benchmark, native, release, and security evidence. It keeps `qualityGate` as the
+  stable JVM correctness gate, treats benchmark output as advisory, records local Native Image
+  toolchain blockers when present, and keeps publication dry-run evidence separate from real
+  release publication.

@@ -20,6 +20,9 @@ It builds selected generated bindings during Gradle setup, compiles a static nat
 runs supported-profile round trips, selected unsupported diagnostics, and secure entity/resource
 denial. It is separate from `check`, `qualityGate`, and the representative `nativeSmoke` aggregate.
 
+`TASK-0046` treats this module as selected local readiness evidence for the `0.6.0` hardening
+slice. It is not broad W3C suite coverage and does not change supported schema behavior.
+
 Covered behavior:
 
 - XML to object to XML round trips for representative generated bindings.

@@ -33,6 +33,8 @@ Evidence remains selected and local. Full XSD 1.0 conformance is not claimed.
   toolchain blocker when GraalVM Native Image is unavailable.
 - `TASK-0045` stages the BOM, runtime modules, generator modules, Gradle plugin implementation,
   Gradle plugin marker, and testing support artifacts to `build/staging-repository`.
+- `TASK-0046` reconciles final `0.6.0` readiness evidence across public docs, conformance,
+  benchmarks, Native Image, release dry-run, security posture, and traceability.
 
 ## Explicit non-claims
 

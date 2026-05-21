@@ -38,3 +38,7 @@ without changing JaCoCo thresholds. Later tasks may add:
 - publication dry-run checks that validate metadata and artifacts without changing code coverage.
 
 Any threshold increase or new required gate must be accepted by the task that implements it.
+
+`TASK-0046` closes the `0.6.0` hardening slice without changing JaCoCo thresholds. Selected
+conformance tests continue to contribute through normal JVM checks where applicable; benchmark,
+Native Image, and publication dry-run lanes remain outside coverage enforcement.

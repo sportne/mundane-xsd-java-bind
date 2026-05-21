@@ -62,3 +62,7 @@ The root `nativeConformance` aggregate currently covers:
 `qualityGate` remains the required JVM-focused gate, `benchmarkSmoke` is advisory and opt-in, and
 `nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes. `publicationDryRun` is opt-in for
 release readiness evidence and is not wired into `qualityGate`.
+
+`TASK-0046` confirms the hardening lanes above are evidence lanes, not new required default gates.
+Future CI changes for real publication, broader external suites, or benchmark thresholds require a
+new accepted task and must not be inferred from the `0.6.0` readiness closeout.

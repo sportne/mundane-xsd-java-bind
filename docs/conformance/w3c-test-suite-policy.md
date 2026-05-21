@@ -22,3 +22,7 @@ features only.
 classification evidence. The manifest maps existing local fixtures to declared profiles, adds
 minimal local unsupported-diagnostic schemas, and records future-study/blocked rows without
 vendoring a broad W3C suite snapshot or claiming full-suite pass status.
+
+`TASK-0046` confirms the `0.6.0` closeout remains selected local evidence only. A future task that
+wants broader W3C suite intake must define license review, storage policy, fixture selection,
+profile mapping, expected diagnostics, and CI cost before adding or claiming broader coverage.

@@ -3,9 +3,9 @@
 **Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice,
 accepted `0.2.0` Practical Data Contracts readiness evidence, accepted `0.3.0`
 `XP-XSD10-COMPOSED` readiness evidence, accepted `0.4.0` `XP-XSD10-SEMANTIC`
-readiness evidence, and accepted `0.5.0` `XP-XSD10-DOCUMENT` document/open-content
-readiness evidence, and accepted `0.6.0` hardening evidence through selected conformance,
-benchmark, Native Image, and release dry-run lanes. The repository includes generated model,
+readiness evidence, accepted `0.5.0` `XP-XSD10-DOCUMENT` document/open-content readiness evidence,
+and accepted `0.6.0` hardening/readiness evidence through selected conformance, benchmark, Native
+Image, and release dry-run lanes. The repository includes generated model,
 reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a CLI
 `generate` command, a Gradle plugin for the accepted subsets, representative round-trip examples,
 Native Image smoke coverage, and local publication dry-run validation.
@@ -79,11 +79,19 @@ handle those fragments without DOM or reflection. Accepted mixed types expose ge
 models that preserve non-whitespace text, known elements, and wildcard fragments in source order;
 whitespace-only mixed text is dropped.
 
+The accepted `0.6.0` hardening slice adds no new schema behavior. It records selected local
+conformance/interop fixture classification, advisory generated-binding benchmark baselines,
+selected Native Image conformance wiring, publication dry-run readiness, and final documentation
+reconciliation. These lanes are evidence for release maturity only; they do not create a release
+tag, publish artifacts, sign artifacts, authorize remote staging, or turn advisory benchmark output
+into a performance guarantee.
+
 Full simple type semantics, repeated or optional list-valued XML fields, full derivation semantics,
 full substitution group semantics, wildcard shapes beyond the accepted direct `xs:any` subset,
 `xs:anyAttribute`, `processContents="lax"` or `"strict"`, wildcard choices, mixed choices,
-comments or processing instruction retention, entity-reference identity, XML Canonicalization,
-identity constraints, full XSD 1.0 conformance, and XSD 1.1 remain future-profile work.
+comments or processing instruction retention, entity-reference identity, lexical prefix
+preservation, XML Canonicalization, XML Signature canonical forms, identity constraints, full
+XSD 1.0 conformance, and XSD 1.1 remain future-profile work.
 
 ## Repository entry points
 

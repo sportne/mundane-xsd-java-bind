@@ -77,6 +77,11 @@ version remains `0.1.0-SNAPSHOT`; candidate validation uses `-Pmxjb.version=0.6.
 not create a release tag, signing setup, credentials, remote staging repository, or actual
 publication.
 
+`TASK-0046` closes the `0.6.0` hardening slice as readiness evidence only. It confirms selected
+conformance/interop, advisory benchmark, Native Image conformance, and publication dry-run evidence
+agree with public documentation. It does not convert `0.6.0-alpha.0` into a released artifact,
+authorize signing or remote staging, create a release tag, or broaden supported schema claims.
+
 ## Release gate
 
 No release may claim support for a schema feature unless the requirement, profile, conformance matrix, tests, and docs are complete.

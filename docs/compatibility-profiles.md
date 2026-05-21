@@ -34,6 +34,7 @@
 | `BUILD-OFFLINE-HYDRATED` | Offline build using hydrated local Maven repo and provisioned Gradle distribution. |
 | `BUILD-CI-MATRIX` | CI on Java 21 and Java 25. |
 | `BUILD-STRICT` | Full quality, architecture, coverage, docs, generated-code, and native-image gates. |
+| `BUILD-RELEASE-DRY-RUN` | Local publication staging and metadata validation without remote publication, signing, tags, or version bumps. |
 
 ## `0.2.0` Readiness Baseline
 
@@ -151,3 +152,22 @@ namespace constraints, mixed choices, comments or processing instruction preserv
 entity-reference semantics, DOM-backed binding, identity constraints, full datatype semantics, full
 derivation semantics, XSD 1.1, artifact publication, and full XSD 1.0 conformance remain out of
 scope with explicit diagnostics.
+
+## `0.6.0` Hardening Readiness Baseline
+
+`TASK-0041` accepted `0.6.0` as a hardening and release maturity slice rather than a schema-feature
+slice. `TASK-0042` adds selected local conformance/interop fixture classification and unsupported
+diagnostic evidence. `TASK-0043` adds advisory generated-binding benchmark baselines.
+`TASK-0044` adds selected Native Image conformance wiring and records a local `native-image`
+toolchain blocker when unavailable. `TASK-0045` adds local publication dry-run staging and metadata
+validation. `TASK-0046` reconciles these evidence lanes as final readiness evidence.
+
+The accepted `0.6.0` posture keeps `qualityGate` JVM-focused and leaves benchmark, Native Image,
+and publication dry-run lanes explicit and opt-in. It does not add product behavior, dependency
+metadata, signing, remote publication, release tags, full XSD 1.0 conformance, XSD 1.1 support,
+XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, or hard
+performance guarantees.
+
+Recommended future-profile gates should start from accepted ADR/task cards for broader XSD 1.0
+conformance, identity constraints, full derivation/substitution semantics, broader wildcard/mixed
+content, XSD 1.1 assertions, XML 1.1 compatibility, or a real publication workflow.

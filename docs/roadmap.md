@@ -26,7 +26,13 @@ Deliver CLI and Gradle plugin generation for supported data-structure schemas wi
 
 ## Future phases
 
-Full simple type semantics beyond `XP-VALIDATION-10-BASIC`, full derivation semantics, substitution
-groups, mixed content, wildcards, identity constraints, nillable/default/fixed values, XSD 1.1
-assertions, streaming optimization, canonicalization, interop hardening, performance tuning, and
-release engineering.
+Future phases must be opened through new task gates after the accepted `0.6.0` hardening closeout.
+Likely candidates include full simple type semantics beyond `XP-VALIDATION-10-BASIC`, full
+derivation semantics, broader substitution-group behavior, wildcard and mixed-content shapes beyond
+the accepted `XP-XSD10-DOCUMENT` subset, identity constraints, XSD 1.1 assertions, XML 1.1
+compatibility, streaming optimization, broader external-suite intake, benchmark thresholds, and a
+real signed publication workflow.
+
+The project does not currently claim full XSD 1.0 conformance, XSD 1.1 support, W3C XML
+Canonicalization, XML Signature canonical forms, lexical prefix preservation, hard performance
+guarantees, artifact publication, or a release tag.
