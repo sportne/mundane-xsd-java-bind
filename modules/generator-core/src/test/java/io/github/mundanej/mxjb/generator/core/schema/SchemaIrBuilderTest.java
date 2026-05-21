@@ -786,6 +786,36 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
+  void indexesNotationAndChameleonIncludedComponents() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:include schemaLocation="common.xsd"/>
+                <xs:notation name="gif" public="image/gif"/>
+                <xs:element name="order" type="tns:Order"/>
+                """));
+    write(
+        "common.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+              <xs:complexType name="Order">
+                <xs:sequence>
+                  <xs:element name="id" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:schema>
+            """);
+
+    SchemaIrResult result = build("main.xsd");
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    assertTrue(result.graph().toText().contains("notation {urn:orders}gif @ main.xsd"));
+    assertTrue(result.graph().toText().contains("complexType {urn:orders}Order @ common.xsd"));
+  }
+
+  @Test
   void reportsMissingGlobalNames() throws IOException {
     write(
         "main.xsd",
@@ -805,6 +835,57 @@ final class SchemaIrBuilderTest {
             DiagnosticCode.SCHEMA_IR_MISSING_NAME,
             DiagnosticCode.SCHEMA_IR_MISSING_NAME),
         diagnosticCodes(result));
+  }
+
+  @Test
+  void recognizedFullXsd10ConstructsFailBeforeBinding() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:redefine schemaLocation="base.xsd"/>
+                <xs:complexType name="Order">
+                  <xs:all>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:all>
+                  <xs:anyAttribute processContents="skip"/>
+                </xs:complexType>
+                <xs:element name="orders">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element name="order" type="xs:string"/>
+                    </xs:sequence>
+                  </xs:complexType>
+                  <xs:key name="orderId">
+                    <xs:selector xpath="tns:order"/>
+                    <xs:field xpath="@id"/>
+                  </xs:key>
+                </xs:element>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_FULL);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(diagnostic -> diagnostic.message().contains("Global xs:redefine")));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(diagnostic -> diagnostic.message().contains("Unsupported child all")));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(
+                diagnostic -> diagnostic.message().contains("Unsupported child anyAttribute")));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(diagnostic -> diagnostic.message().contains("xs:key is not supported")));
   }
 
   @Test

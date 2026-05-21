@@ -5,11 +5,14 @@ import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -28,8 +31,11 @@ public final class XsdSyntaxParser {
     List<SchemaDiagnostic> diagnostics = new ArrayList<>();
     List<XsdSyntaxDocument> documents = new ArrayList<>();
     GeneratorProfile effectiveProfile = profile == null ? GeneratorProfile.XP_DATA_10 : profile;
+    Map<String, String> effectiveNamespaces = effectiveNamespaces(manifest, diagnostics);
     for (ResolvedSchema schema : manifest.schemas()) {
-      XsdSyntaxDocument document = parseDocument(schema, diagnostics, effectiveProfile);
+      XsdSyntaxDocument document =
+          parseDocument(
+              schema, diagnostics, effectiveProfile, effectiveNamespaces.get(schema.resourceId()));
       if (document != null) {
         documents.add(document);
       }
@@ -38,14 +44,17 @@ public final class XsdSyntaxParser {
   }
 
   private XsdSyntaxDocument parseDocument(
-      ResolvedSchema schema, List<SchemaDiagnostic> diagnostics, GeneratorProfile profile) {
+      ResolvedSchema schema,
+      List<SchemaDiagnostic> diagnostics,
+      GeneratorProfile profile,
+      String effectiveTargetNamespace) {
     XMLInputFactory factory = XMLInputFactory.newFactory();
     factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
     factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
     try (InputStream input = java.nio.file.Files.newInputStream(schema.sourcePath())) {
       XMLStreamReader reader = factory.createXMLStreamReader(input);
       try {
-        return readDocument(schema, reader, diagnostics, profile);
+        return readDocument(schema, reader, diagnostics, profile, effectiveTargetNamespace);
       } finally {
         reader.close();
       }
@@ -63,13 +72,14 @@ public final class XsdSyntaxParser {
       ResolvedSchema schema,
       XMLStreamReader reader,
       List<SchemaDiagnostic> diagnostics,
-      GeneratorProfile profile)
+      GeneratorProfile profile,
+      String effectiveTargetNamespace)
       throws XMLStreamException {
     while (reader.hasNext()) {
       int event = reader.next();
       if (event == XMLStreamConstants.START_ELEMENT) {
         if (isXsdElement(reader, "schema")) {
-          return readSchema(schema, reader, diagnostics, profile);
+          return readSchema(schema, reader, diagnostics, profile, effectiveTargetNamespace);
         }
         diagnostics.add(
             new SchemaDiagnostic(
@@ -92,13 +102,20 @@ public final class XsdSyntaxParser {
       ResolvedSchema schema,
       XMLStreamReader reader,
       List<SchemaDiagnostic> diagnostics,
-      GeneratorProfile profile)
+      GeneratorProfile profile,
+      String effectiveTargetNamespace)
       throws XMLStreamException {
     String targetNamespace = valueOrEmpty(reader.getAttributeValue(null, "targetNamespace"));
+    Map<String, String> schemaAttributes = schemaAttributes(reader);
     Map<String, String> namespaceDeclarations = namespaceDeclarations(reader);
     List<XsdSyntaxNode> children = readChildren(schema.resourceId(), reader, diagnostics, profile);
     return new XsdSyntaxDocument(
-        schema.resourceId(), targetNamespace, namespaceDeclarations, children);
+        schema.resourceId(),
+        targetNamespace,
+        valueOrDefault(effectiveTargetNamespace, targetNamespace),
+        schemaAttributes,
+        namespaceDeclarations,
+        children);
   }
 
   private List<XsdSyntaxNode> readChildren(
@@ -134,10 +151,6 @@ public final class XsdSyntaxParser {
     }
 
     String localName = reader.getLocalName();
-    if ("include".equals(localName) || "import".equals(localName)) {
-      skipSubtree(reader);
-      return null;
-    }
     if ("choice".equals(localName) && !supportsChoice(profile)) {
       diagnostics.add(
           new SchemaDiagnostic(
@@ -264,29 +277,34 @@ public final class XsdSyntaxParser {
     return profile == GeneratorProfile.XP_DATA_10_CHOICE
         || profile == GeneratorProfile.XP_XSD10_COMPOSED
         || profile == GeneratorProfile.XP_XSD10_SEMANTIC
-        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT
+        || profile == GeneratorProfile.XP_XSD10_FULL;
   }
 
   private boolean supportsSimpleRestrictions(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_VALIDATION_10_BASIC
         || profile == GeneratorProfile.XP_XSD10_COMPOSED
         || profile == GeneratorProfile.XP_XSD10_SEMANTIC
-        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT
+        || profile == GeneratorProfile.XP_XSD10_FULL;
   }
 
   private boolean supportsComposedSchema(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_XSD10_COMPOSED
         || profile == GeneratorProfile.XP_XSD10_SEMANTIC
-        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT
+        || profile == GeneratorProfile.XP_XSD10_FULL;
   }
 
   private boolean supportsSemanticSchema(GeneratorProfile profile) {
     return profile == GeneratorProfile.XP_XSD10_SEMANTIC
-        || profile == GeneratorProfile.XP_XSD10_DOCUMENT;
+        || profile == GeneratorProfile.XP_XSD10_DOCUMENT
+        || profile == GeneratorProfile.XP_XSD10_FULL;
   }
 
   private boolean supportsDocumentSchema(GeneratorProfile profile) {
-    return profile == GeneratorProfile.XP_XSD10_DOCUMENT;
+    return profile == GeneratorProfile.XP_XSD10_DOCUMENT
+        || profile == GeneratorProfile.XP_XSD10_FULL;
   }
 
   private boolean hasMixedAttribute(XsdSyntaxKind kind, Map<String, String> attributes) {
@@ -312,6 +330,12 @@ public final class XsdSyntaxParser {
   private XsdSyntaxKind kindFor(String localName) {
     return switch (localName) {
       case "element" -> XsdSyntaxKind.ELEMENT;
+      case "annotation" -> XsdSyntaxKind.ANNOTATION;
+      case "appinfo" -> XsdSyntaxKind.APPINFO;
+      case "documentation" -> XsdSyntaxKind.DOCUMENTATION;
+      case "include" -> XsdSyntaxKind.INCLUDE;
+      case "import" -> XsdSyntaxKind.IMPORT;
+      case "redefine" -> XsdSyntaxKind.REDEFINE;
       case "complexType" -> XsdSyntaxKind.COMPLEX_TYPE;
       case "complexContent" -> XsdSyntaxKind.COMPLEX_CONTENT;
       case "extension" -> XsdSyntaxKind.EXTENSION;
@@ -330,9 +354,17 @@ public final class XsdSyntaxParser {
       case "attribute" -> XsdSyntaxKind.ATTRIBUTE;
       case "group" -> XsdSyntaxKind.GROUP;
       case "attributeGroup" -> XsdSyntaxKind.ATTRIBUTE_GROUP;
+      case "notation" -> XsdSyntaxKind.NOTATION;
       case "sequence" -> XsdSyntaxKind.SEQUENCE;
+      case "all" -> XsdSyntaxKind.ALL;
       case "choice" -> XsdSyntaxKind.CHOICE;
       case "any" -> XsdSyntaxKind.ANY;
+      case "anyAttribute" -> XsdSyntaxKind.ANY_ATTRIBUTE;
+      case "unique" -> XsdSyntaxKind.UNIQUE;
+      case "key" -> XsdSyntaxKind.KEY;
+      case "keyref" -> XsdSyntaxKind.KEYREF;
+      case "selector" -> XsdSyntaxKind.SELECTOR;
+      case "field" -> XsdSyntaxKind.FIELD;
       default -> null;
     };
   }
@@ -340,6 +372,22 @@ public final class XsdSyntaxParser {
   private Map<String, String> attributes(XsdSyntaxKind kind, XMLStreamReader reader) {
     Map<String, String> attributes = new LinkedHashMap<>();
     switch (kind) {
+      case ANNOTATION -> {
+        addIfPresent(attributes, "id", reader.getAttributeValue(null, "id"));
+      }
+      case APPINFO, DOCUMENTATION -> {
+        addIfPresent(attributes, "source", reader.getAttributeValue(null, "source"));
+        addIfPresent(
+            attributes, "xml:lang", reader.getAttributeValue(XMLConstants.XML_NS_URI, "lang"));
+      }
+      case INCLUDE, REDEFINE ->
+          addIfPresent(
+              attributes, "schemaLocation", reader.getAttributeValue(null, "schemaLocation"));
+      case IMPORT -> {
+        addIfPresent(attributes, "namespace", reader.getAttributeValue(null, "namespace"));
+        addIfPresent(
+            attributes, "schemaLocation", reader.getAttributeValue(null, "schemaLocation"));
+      }
       case ELEMENT -> {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
@@ -358,8 +406,11 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
         addIfPresent(attributes, "mixed", reader.getAttributeValue(null, "mixed"));
         addIfPresent(attributes, "abstract", reader.getAttributeValue(null, "abstract"));
+        addIfPresent(attributes, "block", reader.getAttributeValue(null, "block"));
+        addIfPresent(attributes, "final", reader.getAttributeValue(null, "final"));
       }
-      case SIMPLE_TYPE -> addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+      case SIMPLE_TYPE, UNIQUE, KEY ->
+          addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
       case COMPLEX_CONTENT ->
           addIfPresent(attributes, "mixed", reader.getAttributeValue(null, "mixed"));
       case EXTENSION, RESTRICTION ->
@@ -377,6 +428,11 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "default", reader.getAttributeValue(null, "default"));
         addIfPresent(attributes, "fixed", reader.getAttributeValue(null, "fixed"));
       }
+      case NOTATION -> {
+        addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+        addIfPresent(attributes, "public", reader.getAttributeValue(null, "public"));
+        addIfPresent(attributes, "system", reader.getAttributeValue(null, "system"));
+      }
       case GROUP -> {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
@@ -386,13 +442,24 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
       }
-      case SEQUENCE, CHOICE -> addCardinality(attributes, reader);
+      case SEQUENCE, CHOICE, ALL -> addCardinality(attributes, reader);
       case ANY -> {
         addIfPresent(attributes, "namespace", reader.getAttributeValue(null, "namespace"));
         addIfPresent(
             attributes, "processContents", reader.getAttributeValue(null, "processContents"));
         addCardinality(attributes, reader);
       }
+      case ANY_ATTRIBUTE -> {
+        addIfPresent(attributes, "namespace", reader.getAttributeValue(null, "namespace"));
+        addIfPresent(
+            attributes, "processContents", reader.getAttributeValue(null, "processContents"));
+      }
+      case KEYREF -> {
+        addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));
+        addIfPresent(attributes, "refer", reader.getAttributeValue(null, "refer"));
+      }
+      case SELECTOR, FIELD ->
+          addIfPresent(attributes, "xpath", reader.getAttributeValue(null, "xpath"));
       case LIST, UNION -> {
         addIfPresent(attributes, "itemType", reader.getAttributeValue(null, "itemType"));
         addIfPresent(attributes, "memberTypes", reader.getAttributeValue(null, "memberTypes"));
@@ -410,6 +477,17 @@ public final class XsdSyntaxParser {
     if (value != null && !value.isBlank()) {
       attributes.put(name, value);
     }
+  }
+
+  private Map<String, String> schemaAttributes(XMLStreamReader reader) {
+    Map<String, String> attributes = new LinkedHashMap<>();
+    addIfPresent(
+        attributes, "elementFormDefault", reader.getAttributeValue(null, "elementFormDefault"));
+    addIfPresent(
+        attributes, "attributeFormDefault", reader.getAttributeValue(null, "attributeFormDefault"));
+    addIfPresent(attributes, "blockDefault", reader.getAttributeValue(null, "blockDefault"));
+    addIfPresent(attributes, "finalDefault", reader.getAttributeValue(null, "finalDefault"));
+    return attributes;
   }
 
   private boolean isXmlSchemaBuiltInBase(String base, XMLStreamReader reader) {
@@ -473,5 +551,156 @@ public final class XsdSyntaxParser {
 
   private String valueOrEmpty(String value) {
     return value == null ? "" : value;
+  }
+
+  private Map<String, String> effectiveNamespaces(
+      ResolvedSchemaManifest manifest, List<SchemaDiagnostic> diagnostics) {
+    Map<String, ResolvedSchema> schemasByResource = new LinkedHashMap<>();
+    for (ResolvedSchema schema : manifest.schemas()) {
+      schemasByResource.put(schema.resourceId(), schema);
+    }
+
+    Map<String, Set<String>> adoptedNamespaces = new LinkedHashMap<>();
+    for (ResolvedSchema schema : manifest.schemas()) {
+      adoptedNamespaces.put(schema.resourceId(), new LinkedHashSet<>());
+      if (!schema.targetNamespace().isBlank()) {
+        adoptedNamespaces.get(schema.resourceId()).add(schema.targetNamespace());
+      }
+    }
+
+    boolean changed;
+    do {
+      changed = false;
+      for (ResolvedSchema schema : manifest.schemas()) {
+        Set<String> sourceNamespaces = adoptedNamespaces.get(schema.resourceId());
+        if (sourceNamespaces.isEmpty()) {
+          continue;
+        }
+        for (SchemaReference reference : schema.references()) {
+          if (reference.kind() == SchemaReferenceKind.INCLUDE) {
+            for (String targetResource :
+                matchingResources(
+                    schema.resourceId(), reference.target(), schemasByResource.keySet())) {
+              ResolvedSchema targetSchema = schemasByResource.get(targetResource);
+              if (targetSchema.targetNamespace().isBlank()
+                  && adoptedNamespaces.get(targetResource).addAll(sourceNamespaces)) {
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+    } while (changed);
+
+    Map<String, Set<String>> includedNamespacesByResource = new LinkedHashMap<>();
+    Set<String> namespaceConflictKeys = new LinkedHashSet<>();
+    for (ResolvedSchema schema : manifest.schemas()) {
+      for (SchemaReference reference : schema.references()) {
+        if (reference.kind() == SchemaReferenceKind.INCLUDE) {
+          for (String targetResource :
+              matchingResources(
+                  schema.resourceId(), reference.target(), schemasByResource.keySet())) {
+            Set<String> sourceNamespaces = adoptedNamespaces.get(schema.resourceId());
+            ResolvedSchema targetSchema = schemasByResource.get(targetResource);
+            if (!targetSchema.targetNamespace().isBlank()
+                && sourceNamespaces.stream()
+                    .anyMatch(namespace -> !namespace.equals(targetSchema.targetNamespace()))) {
+              addNamespaceConflictDiagnostic(
+                  diagnostics,
+                  namespaceConflictKeys,
+                  targetResource,
+                  "Chameleon include target namespace conflicts.");
+            } else {
+              includedNamespacesByResource
+                  .computeIfAbsent(targetResource, ignored -> new LinkedHashSet<>())
+                  .addAll(sourceNamespaces);
+            }
+          }
+        }
+      }
+    }
+
+    Map<String, String> effectiveNamespaces = new LinkedHashMap<>();
+    for (ResolvedSchema schema : manifest.schemas()) {
+      if (!schema.targetNamespace().isBlank()) {
+        effectiveNamespaces.put(schema.resourceId(), schema.targetNamespace());
+        continue;
+      }
+      Set<String> namespaces =
+          includedNamespaces(schema.resourceId(), includedNamespacesByResource);
+      if (namespaces.size() == 1) {
+        effectiveNamespaces.put(schema.resourceId(), namespaces.iterator().next());
+      } else if (namespaces.size() > 1) {
+        diagnostics.add(
+            new SchemaDiagnostic(
+                DiagnosticCode.SCHEMA_IR_NAMESPACE_CONFLICT,
+                schema.resourceId(),
+                "Chameleon include is referenced from multiple target namespaces."));
+        effectiveNamespaces.put(schema.resourceId(), "");
+      } else {
+        effectiveNamespaces.put(schema.resourceId(), "");
+      }
+    }
+    return effectiveNamespaces;
+  }
+
+  private void addNamespaceConflictDiagnostic(
+      List<SchemaDiagnostic> diagnostics,
+      Set<String> namespaceConflictKeys,
+      String resourceId,
+      String message) {
+    if (namespaceConflictKeys.add(resourceId + ":" + message)) {
+      diagnostics.add(
+          new SchemaDiagnostic(DiagnosticCode.SCHEMA_IR_NAMESPACE_CONFLICT, resourceId, message));
+    }
+  }
+
+  private Set<String> includedNamespaces(
+      String resourceId, Map<String, Set<String>> includedNamespacesByResource) {
+    return includedNamespacesByResource.getOrDefault(resourceId, Set.of());
+  }
+
+  private Set<String> matchingResources(
+      String sourceResource, String target, Set<String> resources) {
+    Set<String> matches = new LinkedHashSet<>();
+    String normalizedTarget = target.replace('\\', '/');
+    for (String resource : resources) {
+      if (resource.equals(normalizedTarget)) {
+        matches.add(resource);
+      }
+    }
+    if (!matches.isEmpty()) {
+      return matches;
+    }
+    String relativeTarget = relativeTarget(sourceResource, normalizedTarget);
+    for (String resource : resources) {
+      if (resource.equals(relativeTarget)) {
+        matches.add(resource);
+      }
+    }
+    if (!matches.isEmpty()) {
+      return matches;
+    }
+    for (String resource : resources) {
+      if (resource.endsWith("/" + normalizedTarget)) {
+        matches.add(resource);
+      }
+    }
+    return matches;
+  }
+
+  private String relativeTarget(String sourceResource, String target) {
+    if (target.indexOf(':') > 0) {
+      return target;
+    }
+    int slash = sourceResource.lastIndexOf('/');
+    if (slash < 0) {
+      return target;
+    }
+    return Path.of(sourceResource.substring(0, slash))
+        .resolve(target)
+        .normalize()
+        .toString()
+        .replace('\\', '/');
   }
 }

@@ -34,7 +34,7 @@ public final class NativeConformanceMain {
           new UnsupportedFixture(
               "T-CONF-UNSUPPORTED-ANY-ATTRIBUTE",
               "unsupported/any-attribute.xsd",
-              List.of("SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT")),
+              List.of("SCHEMA_IR_INVALID_COMPONENT")),
           new UnsupportedFixture(
               "T-CONF-UNSUPPORTED-WILDCARD-STRICT",
               "unsupported/wildcard-strict.xsd",
@@ -46,7 +46,7 @@ public final class NativeConformanceMain {
           new UnsupportedFixture(
               "T-CONF-UNSUPPORTED-IDENTITY-CONSTRAINT",
               "unsupported/identity-constraint.xsd",
-              List.of("SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT")));
+              List.of("SCHEMA_IR_INVALID_COMPONENT")));
 
   private NativeConformanceMain() {}
 

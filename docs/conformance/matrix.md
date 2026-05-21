@@ -32,7 +32,7 @@
 | full substitution groups | XSD 1.0 | `XP-XSD10-FULL` | future | W3C subset | broader substitution group semantics remain future |
 | identity constraints | XSD 1.0 | `XP-XSD10-FULL` | future | W3C subset | not phase one |
 | full XSD 1.0 feature matrix | XSD 1.0 | `XP-XSD10-FULL` | designed | `TASK-0048` | `TASK-0048` defines the full XSD 1.0 feature matrix and task sequence; the profile token exists but generation is intentionally rejected until implementation gates accept support |
-| full XSD 1.0 frontend/component model | XSD 1.0 | `XP-XSD10-FULL` | planned | `TASK-0049` | complete schema/component representation and deterministic diagnostics |
+| full XSD 1.0 frontend/component model | XSD 1.0 | `XP-XSD10-FULL` | verified | `TASK-0049`, `XsdSyntaxParserTest`, `SchemaIrBuilderTest`, selected unsupported diagnostics | `TASK-0049` parses and preserves schema defaults, annotations, notations, direct/transitive chameleon include effective namespaces with conflict diagnostics, redefine/all/anyAttribute/identity-constraint syntax, abstract/block/final metadata, and complete planning symbol spaces while keeping unimplemented binding behavior as deterministic pre-binding diagnostics |
 | full XSD 1.0 datatype/facet engine | XSD 1.0 Datatypes | `XP-XSD10-FULL` | planned | `TASK-0050` | all built-in simple types, derived built-ins, and facets |
 | full XSD 1.0 content model | XSD 1.0 Structures | `XP-XSD10-FULL` | planned | `TASK-0051` | nested particles, `xs:all`, repeated groups, and UPA validation |
 | full XSD 1.0 attributes/wildcards | XSD 1.0 Structures | `XP-XSD10-FULL` | planned | `TASK-0052` | `xs:anyAttribute`, complete wildcard constraints, and `processContents` policy |

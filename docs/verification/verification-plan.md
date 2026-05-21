@@ -177,8 +177,10 @@ is `TASK-0042` through `TASK-0046`.
 `TASK-0048` defines the full XML Schema 1.0 feature matrix and task sequence without making the
 profile executable. The planned verification sequence is:
 
-- `TASK-0049`: frontend and component-model tests for every remaining XSD 1.0 declaration,
-  reference, symbol space, schema default, and deterministic unsupported binding diagnostic.
+- `TASK-0049`: accepted frontend and component-model tests for schema defaults, annotations,
+  notations, direct/transitive chameleon includes with ambiguity/conflict diagnostics, remaining
+  planning symbol spaces, and deterministic pre-binding diagnostics for known-but-later XSD 1.0
+  constructs.
 - `TASK-0050`: datatype and facet unit tests, generated reader/writer lexical tests, generated
   validator tests, and selected JDK XML Schema comparison fixtures for all XSD 1.0 built-ins and
   facets.

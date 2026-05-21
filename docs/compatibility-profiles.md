@@ -173,7 +173,10 @@ or hard performance guarantees.
 one stable target; `CoreGenerator` still rejects that profile until implementation tasks accept
 support. The planned sequence is:
 
-- `TASK-0049`: complete XSD 1.0 frontend and component model.
+- accepted in `TASK-0049`: complete XSD 1.0 frontend and component-model awareness for schema
+  defaults, annotations, notations, direct and transitive chameleon include namespace adoption with
+  conflict diagnostics, remaining symbol spaces, and deterministic pre-binding diagnostics for
+  known-but-later XSD 1.0 constructs.
 - `TASK-0050`: complete datatype and facet engine.
 - `TASK-0051`: full content-model compiler.
 - `TASK-0052`: full attributes and wildcards.

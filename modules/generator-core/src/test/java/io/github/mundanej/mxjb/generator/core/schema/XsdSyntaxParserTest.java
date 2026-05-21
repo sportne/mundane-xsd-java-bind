@@ -78,7 +78,7 @@ final class XsdSyntaxParserTest {
   }
 
   @Test
-  void parsesMultipleResolverApprovedDocumentsWithoutParsingImportsAsSyntax() throws IOException {
+  void parsesMultipleResolverApprovedDocumentsAndImportSyntax() throws IOException {
     write(
         "main.xsd",
         schema(
@@ -107,6 +107,7 @@ final class XsdSyntaxParserTest {
                 document main.xsd namespace=urn:orders
                   namespace xmlns:tns=urn:orders
                   namespace xmlns:xs=http://www.w3.org/2001/XMLSchema
+                  import namespace=urn:address schemaLocation=address.xsd
                   element name=order type=tns:Order minOccurs=1 maxOccurs=1
 
                 document address.xsd namespace=urn:address
@@ -154,6 +155,7 @@ final class XsdSyntaxParserTest {
                 document main.xsd namespace=urn:orders
                   namespace xmlns:tns=urn:orders
                   namespace xmlns:xs=http://www.w3.org/2001/XMLSchema
+                  import namespace=urn:address schemaLocation=https://schemas.example.test/address.xsd
                   element name=order type=tns:Order minOccurs=1 maxOccurs=1
 
                 document address.xsd namespace=urn:address
@@ -162,6 +164,258 @@ final class XsdSyntaxParserTest {
                   element name=address type=xs:string minOccurs=1 maxOccurs=1
                 """,
         result.model().toText());
+  }
+
+  @Test
+  void parsesFullXsd10FrontendMetadataWithoutEnablingBinding() throws IOException {
+    write(
+        "main.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                xmlns:tns="urn:orders"
+                targetNamespace="urn:orders"
+                elementFormDefault="qualified"
+                attributeFormDefault="unqualified"
+                blockDefault="#all"
+                finalDefault="extension restriction">
+              <xs:annotation id="schema-note">
+                <xs:documentation source="docs" xml:lang="en"/>
+                <xs:appinfo source="tooling"/>
+              </xs:annotation>
+              <xs:notation name="gif" public="image/gif" system="viewer"/>
+              <xs:redefine schemaLocation="base.xsd"/>
+              <xs:complexType name="Order" abstract="true" block="extension" final="restriction">
+                <xs:all minOccurs="1" maxOccurs="1">
+                  <xs:element name="id" type="xs:string"/>
+                </xs:all>
+                <xs:anyAttribute namespace="##other" processContents="lax"/>
+              </xs:complexType>
+              <xs:element name="orders">
+                <xs:unique name="orderId">
+                  <xs:selector xpath="tns:order"/>
+                  <xs:field xpath="@id"/>
+                </xs:unique>
+              </xs:element>
+            </xs:schema>
+            """);
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result =
+        new XsdSyntaxParser().parse(resolution.manifest(), GeneratorProfile.XP_XSD10_FULL);
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertEquals(
+        """
+                document main.xsd namespace=urn:orders
+                  schemaAttribute elementFormDefault=qualified
+                  schemaAttribute attributeFormDefault=unqualified
+                  schemaAttribute blockDefault=#all
+                  schemaAttribute finalDefault=extension restriction
+                  namespace xmlns:tns=urn:orders
+                  namespace xmlns:xs=http://www.w3.org/2001/XMLSchema
+                  annotation id=schema-note
+                    documentation source=docs xml:lang=en
+                    appinfo source=tooling
+                  notation name=gif public=image/gif system=viewer
+                  redefine schemaLocation=base.xsd
+                  complexType name=Order abstract=true block=extension final=restriction
+                    all minOccurs=1 maxOccurs=1
+                      element name=id type=xs:string minOccurs=1 maxOccurs=1
+                    anyAttribute namespace=##other processContents=lax
+                  element name=orders minOccurs=1 maxOccurs=1
+                    unique name=orderId
+                      selector xpath=tns:order
+                      field xpath=@id
+                """,
+        result.model().toText());
+  }
+
+  @Test
+  void appliesChameleonIncludeEffectiveNamespaceInSyntaxModel() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:include schemaLocation="common.xsd"/>
+                <xs:element name="order" type="tns:Order"/>
+                """));
+    write(
+        "common.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+              <xs:complexType name="Order">
+                <xs:sequence>
+                  <xs:element name="id" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:schema>
+            """);
+
+    XsdSyntaxResult result = parseWithLocalResolver("main.xsd");
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains("document common.xsd namespace= effectiveNamespace=urn:orders"),
+        result.model().toText());
+  }
+
+  @Test
+  void appliesTransitiveChameleonIncludeEffectiveNamespaceInSyntaxModel() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:include schemaLocation="common.xsd"/>
+                <xs:element name="order" type="tns:Order"/>
+                """));
+    write(
+        "common.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+              <xs:include schemaLocation="leaf.xsd"/>
+              <xs:complexType name="Order">
+                <xs:sequence>
+                  <xs:element name="id" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:schema>
+            """);
+    write(
+        "leaf.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+              <xs:notation name="plain" public="text/plain"/>
+            </xs:schema>
+            """);
+
+    XsdSyntaxResult result = parseWithLocalResolver("main.xsd");
+
+    assertTrue(result.diagnostics().isEmpty());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains("document leaf.xsd namespace= effectiveNamespace=urn:orders"),
+        result.model().toText());
+  }
+
+  @Test
+  void appliesChameleonIncludesRelativeToTheIncludingResource() throws IOException {
+    write(
+        "a/main.xsd",
+        schema(
+            "urn:a",
+            """
+                <xs:include schemaLocation="common.xsd"/>
+                <xs:import namespace="urn:b" schemaLocation="../b/main.xsd"/>
+                """));
+    write(
+        "a/common.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+              <xs:element name="aShared" type="xs:string"/>
+            </xs:schema>
+            """);
+    write(
+        "b/main.xsd",
+        schema(
+            "urn:b",
+            """
+                <xs:include schemaLocation="common.xsd"/>
+                """));
+    write(
+        "b/common.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+              <xs:element name="bShared" type="xs:string"/>
+            </xs:schema>
+            """);
+
+    XsdSyntaxResult result = parseWithLocalResolver("a/main.xsd");
+    String syntaxText = result.model().toText();
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    assertTrue(
+        syntaxText.contains("document a/common.xsd namespace= effectiveNamespace=urn:a"),
+        syntaxText);
+    assertTrue(
+        syntaxText.contains("document b/common.xsd namespace= effectiveNamespace=urn:b"),
+        syntaxText);
+  }
+
+  @Test
+  void reportsAmbiguousChameleonIncludeNamespaceAdoption() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:include schemaLocation="common.xsd"/>
+                <xs:import namespace="urn:invoices" schemaLocation="invoice.xsd"/>
+                """));
+    write(
+        "invoice.xsd",
+        schema(
+            "urn:invoices",
+            """
+                <xs:include schemaLocation="common.xsd"/>
+                """));
+    write(
+        "common.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+              <xs:element name="shared" type="xs:string"/>
+            </xs:schema>
+            """);
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result = new XsdSyntaxParser().parse(resolution.manifest());
+
+    assertTrue(resolution.diagnostics().isEmpty());
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_NAMESPACE_CONFLICT), diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_IR_NAMESPACE_CONFLICT | common.xsd | "
+            + "Chameleon include is referenced from multiple target namespaces.",
+        result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
+  void reportsConflictingIncludeTargetNamespace() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:include schemaLocation="invoice.xsd"/>
+                """));
+    write(
+        "invoice.xsd",
+        schema(
+            "urn:invoices",
+            """
+                <xs:element name="invoice" type="xs:string"/>
+                """));
+    SchemaResolver resolver =
+        new SchemaResolver(SchemaResolverPolicy.localRoots(List.of(tempDirectory)));
+    SchemaResolutionResult resolution = resolver.resolve(tempDirectory.resolve("main.xsd"));
+
+    XsdSyntaxResult result = new XsdSyntaxParser().parse(resolution.manifest());
+
+    assertTrue(resolution.diagnostics().isEmpty());
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_NAMESPACE_CONFLICT), diagnosticCodes(result));
+    assertEquals(
+        "SCHEMA_IR_NAMESPACE_CONFLICT | invoice.xsd | "
+            + "Chameleon include target namespace conflicts.",
+        result.diagnostics().getFirst().toManifestLine());
   }
 
   @Test
@@ -608,7 +862,12 @@ final class XsdSyntaxParserTest {
   }
 
   private void write(String fileName, String contents) throws IOException {
-    Files.writeString(tempDirectory.resolve(fileName), contents);
+    Path path = tempDirectory.resolve(fileName);
+    Path parent = path.getParent();
+    if (parent != null) {
+      Files.createDirectories(parent);
+    }
+    Files.writeString(path, contents);
   }
 
   private String schema(String namespace, String body) {

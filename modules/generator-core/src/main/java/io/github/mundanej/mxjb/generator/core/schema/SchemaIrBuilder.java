@@ -55,7 +55,7 @@ public final class SchemaIrBuilder {
           continue;
         }
         SchemaComponentKey key =
-            new SchemaComponentKey(kind, new SchemaQName(document.targetNamespace(), name));
+            new SchemaComponentKey(kind, new SchemaQName(schemaNamespace(document), name));
         SchemaComponent previous =
             state.components.putIfAbsent(
                 key, new SchemaComponent(key, document.resourceId(), child));
@@ -103,6 +103,9 @@ public final class SchemaIrBuilder {
             // scalar aliases deterministically.
           }
           case ATTRIBUTE -> addIfPresent(attributes, normalizeAttribute(document, child, state));
+          case ANNOTATION, APPINFO, DOCUMENTATION, INCLUDE, IMPORT, NOTATION -> {
+            // Metadata and notation declarations are indexed/tolerated at the component layer.
+          }
           case GROUP, ATTRIBUTE_GROUP -> {
             // Normalized in a first pass so complex type references can be flattened
             // deterministically.
@@ -132,12 +135,20 @@ public final class SchemaIrBuilder {
               PATTERN,
               LIST,
               UNION,
+              REDEFINE,
+              ALL,
               ANY ->
               diagnostic(
                   state,
                   DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
                   document.resourceId(),
                   "Global xs:" + child.kind().manifestName() + " is not valid.");
+          case ANY_ATTRIBUTE, UNIQUE, KEY, KEYREF, SELECTOR, FIELD ->
+              diagnostic(
+                  state,
+                  DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+                  document.resourceId(),
+                  "xs:" + child.kind().manifestName() + " is not supported before binding.");
         }
       }
     }
@@ -190,7 +201,7 @@ public final class SchemaIrBuilder {
       return null;
     }
     SchemaIrModelGroup group =
-        new SchemaIrModelGroup(new SchemaQName(document.targetNamespace(), localName), sequence);
+        new SchemaIrModelGroup(new SchemaQName(schemaNamespace(document), localName), sequence);
     state.modelGroups.put(group.name(), group);
     return group;
   }
@@ -229,7 +240,7 @@ public final class SchemaIrBuilder {
     }
     SchemaIrAttributeGroup group =
         new SchemaIrAttributeGroup(
-            new SchemaQName(document.targetNamespace(), localName), attributes);
+            new SchemaQName(schemaNamespace(document), localName), attributes);
     state.attributeGroups.put(group.name(), group);
     return group;
   }
@@ -392,6 +403,9 @@ public final class SchemaIrBuilder {
         return null;
       }
     }
+    if (hasUnsupportedBindingChildren(document, node, state)) {
+      return null;
+    }
 
     SchemaIrComplexType inlineComplexType = inlineComplexType(document, node, state);
     SchemaIrTypeReference type = typeReference(document, node, inlineComplexType, state);
@@ -400,13 +414,31 @@ public final class SchemaIrBuilder {
     }
     SchemaIrValueSemantics semantics = semanticAttributes(node);
     return new SchemaIrElement(
-        new SchemaQName(document.targetNamespace(), name),
+        new SchemaQName(schemaNamespace(document), name),
         type,
         cardinality,
         inlineComplexType,
         semantics,
         substitutionGroup,
         false);
+  }
+
+  private boolean hasUnsupportedBindingChildren(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    boolean unsupported = false;
+    for (XsdSyntaxNode child : node.children()) {
+      if (child.kind() == XsdSyntaxKind.UNIQUE
+          || child.kind() == XsdSyntaxKind.KEY
+          || child.kind() == XsdSyntaxKind.KEYREF) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:" + child.kind().manifestName() + " is not supported before binding.");
+        unsupported = true;
+      }
+    }
+    return unsupported;
   }
 
   private SchemaIrTypeReference typeReference(
@@ -473,7 +505,7 @@ public final class SchemaIrBuilder {
             "complexType declaration is missing a name.");
         return null;
       }
-      name = new SchemaQName(document.targetNamespace(), localName);
+      name = new SchemaQName(schemaNamespace(document), localName);
     }
     if ("true".equals(node.attributes().get("abstract"))) {
       diagnostic(
@@ -481,6 +513,14 @@ public final class SchemaIrBuilder {
           DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
           document.resourceId(),
           "abstract complexType is not supported in profile XP-XSD10-COMPOSED.");
+      return null;
+    }
+    if (node.attributes().containsKey("block") || node.attributes().containsKey("final")) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "complexType block/final derivation controls are not supported in profile XP-XSD10-FULL.");
       return null;
     }
     boolean mixed = "true".equals(node.attributes().get("mixed"));
@@ -702,7 +742,7 @@ public final class SchemaIrBuilder {
           "complexType declaration is missing a name.");
       return null;
     }
-    SchemaQName name = new SchemaQName(document.targetNamespace(), localName);
+    SchemaQName name = new SchemaQName(schemaNamespace(document), localName);
     SchemaIrComplexType cached = state.complexTypes.get(name);
     if (cached != null) {
       return cached;
@@ -878,13 +918,13 @@ public final class SchemaIrBuilder {
     if (tokens.size() == 1) {
       String token = tokens.get(0);
       if ("##other".equals(token)) {
-        return new SchemaIrWildcardNamespace("other", List.of(document.targetNamespace()));
+        return new SchemaIrWildcardNamespace("other", List.of(schemaNamespace(document)));
       }
       if ("##local".equals(token)) {
         return new SchemaIrWildcardNamespace("explicit", List.of(""));
       }
       if ("##targetNamespace".equals(token)) {
-        return new SchemaIrWildcardNamespace("explicit", List.of(document.targetNamespace()));
+        return new SchemaIrWildcardNamespace("explicit", List.of(schemaNamespace(document)));
       }
     }
     List<String> explicitNamespaces = new ArrayList<>();
@@ -1140,7 +1180,7 @@ public final class SchemaIrBuilder {
       }
     }
     return new SchemaIrSimpleType(
-        new SchemaQName(document.targetNamespace(), localName), restriction, list, union);
+        new SchemaQName(schemaNamespace(document), localName), restriction, list, union);
   }
 
   private SchemaIrSimpleList normalizeSimpleList(
@@ -1497,7 +1537,7 @@ public final class SchemaIrBuilder {
           "simpleType declaration is missing a name.");
       return null;
     }
-    SchemaQName name = new SchemaQName(document.targetNamespace(), localName);
+    SchemaQName name = new SchemaQName(schemaNamespace(document), localName);
     SchemaIrSimpleType cached = state.simpleTypes.get(name);
     if (cached != null) {
       return cached;
@@ -1797,7 +1837,7 @@ public final class SchemaIrBuilder {
     }
     SchemaIrValueSemantics semantics = semanticAttributes(node);
     return new SchemaIrAttribute(
-        new SchemaQName(document.targetNamespace(), localName),
+        new SchemaQName(schemaNamespace(document), localName),
         typeReference,
         node.attributes().get("use"),
         semantics,
@@ -1929,7 +1969,14 @@ public final class SchemaIrBuilder {
       case ATTRIBUTE -> SchemaComponentKind.ATTRIBUTE;
       case GROUP -> SchemaComponentKind.MODEL_GROUP;
       case ATTRIBUTE_GROUP -> SchemaComponentKind.ATTRIBUTE_GROUP;
-      case RESTRICTION,
+      case NOTATION -> SchemaComponentKind.NOTATION;
+      case ANNOTATION,
+          APPINFO,
+          DOCUMENTATION,
+          INCLUDE,
+          IMPORT,
+          REDEFINE,
+          RESTRICTION,
           COMPLEX_CONTENT,
           EXTENSION,
           SIMPLE_CONTENT,
@@ -1943,10 +1990,21 @@ public final class SchemaIrBuilder {
           LIST,
           UNION,
           SEQUENCE,
+          ALL,
           CHOICE,
-          ANY ->
+          ANY,
+          ANY_ATTRIBUTE,
+          UNIQUE,
+          KEY,
+          KEYREF,
+          SELECTOR,
+          FIELD ->
           null;
     };
+  }
+
+  private String schemaNamespace(XsdSyntaxDocument document) {
+    return document.effectiveTargetNamespace();
   }
 
   private <T> void addIfPresent(List<T> values, T value) {

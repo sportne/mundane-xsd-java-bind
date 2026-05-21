@@ -7,7 +7,8 @@ public enum SchemaComponentKind {
   SIMPLE_TYPE("simpleType"),
   ATTRIBUTE("attribute"),
   MODEL_GROUP("group"),
-  ATTRIBUTE_GROUP("attributeGroup");
+  ATTRIBUTE_GROUP("attributeGroup"),
+  NOTATION("notation");
 
   private final String manifestName;
 
