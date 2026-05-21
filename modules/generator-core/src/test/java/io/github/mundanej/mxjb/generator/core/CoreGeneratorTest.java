@@ -112,6 +112,30 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void plannedFullXsd10ProfileRejectsBeforeGeneration() throws IOException {
+    Path schema = writeSchema("purchase-order.xsd", purchaseOrderSchema());
+    Path output = tempDirectory.resolve("full-planned");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_FULL,
+                    "com.acme.generated",
+                    Map.of("urn:purchase", "com.acme.purchase"),
+                    List.of(),
+                    Map.of()));
+
+    assertFalse(result.successful());
+    assertEquals(List.of(), result.generatedSources());
+    assertEquals("GENERATOR_REQUEST_INVALID", result.diagnostics().getFirst().code());
+    assertTrue(result.diagnostics().getFirst().message().contains("Unsupported generator profile"));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
   void choiceProfileGeneratesChoiceSourcesAndCompilesThem() throws IOException {
     Path schema = writeSchema("choice-order.xsd", choiceOrderSchema());
     Path output = tempDirectory.resolve("choice-generated");

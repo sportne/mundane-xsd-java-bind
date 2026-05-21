@@ -46,10 +46,6 @@ public final class NativeConformanceMain {
           new UnsupportedFixture(
               "T-CONF-UNSUPPORTED-IDENTITY-CONSTRAINT",
               "unsupported/identity-constraint.xsd",
-              List.of("SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT")),
-          new UnsupportedFixture(
-              "T-CONF-UNSUPPORTED-XSD11-ASSERT",
-              "unsupported/xsd11-assert.xsd",
               List.of("SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT")));
 
   private NativeConformanceMain() {}
@@ -68,7 +64,7 @@ public final class NativeConformanceMain {
     runUnsupportedDiagnostics();
     runResolverDenial();
     System.out.println(
-        "NATIVE_CONFORMANCE status=passed supportedFixtures=9 unsupportedFixtures=5");
+        "NATIVE_CONFORMANCE status=passed supportedFixtures=9 unsupportedFixtures=4");
   }
 
   private static void runPurchaseOrderRoundTrip()

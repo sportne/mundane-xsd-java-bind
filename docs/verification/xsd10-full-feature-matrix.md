@@ -1,0 +1,97 @@
+# XSD 1.0 full feature matrix
+
+This matrix defines the target surface for the `XP-XSD10-FULL` program. It is a planning and
+traceability artifact, not a support claim. Status values:
+
+- `supported`: implemented and covered by accepted tests.
+- `tolerated/ignored`: parsed or carried without changing generated binding behavior.
+- `diagnostic`: recognized and rejected deterministically.
+- `not implemented yet`: known XSD 1.0 behavior that requires a future task.
+
+## Schema and component model
+
+| Construct | Current status | Target task | Notes |
+|---|---|---|---|
+| `xs:schema` | supported | done | XML 1.0 and Namespaces in XML 1.0 baseline only. |
+| `targetNamespace`, `elementFormDefault`, `attributeFormDefault` | partially supported | `TASK-0049` | Form defaults need complete component-model coverage. |
+| `blockDefault`, `finalDefault` | diagnostic/not implemented yet | `TASK-0053` | Required for full derivation and substitution semantics. |
+| `xs:annotation`, `xs:documentation`, `xs:appinfo` | not implemented yet | `TASK-0049` | Parse and tolerate unless binding customizations later use appinfo. |
+| `xs:include`, `xs:import` | supported | done/`TASK-0049` | Chameleon include and full symbol-space behavior need completion. |
+| `xs:redefine` | not implemented yet | `TASK-0049` | Requires component graph rewrite semantics. |
+| Global/local `xs:element` | partially supported | `TASK-0049`, `TASK-0053` | Abstract, block/final, substitution, and dynamic type behavior remain incomplete. |
+| Global/local `xs:attribute` | partially supported | `TASK-0052` | Prohibited use, full defaults/fixed, and wildcard composition remain incomplete. |
+| `xs:complexType` | partially supported | `TASK-0051`, `TASK-0053` | Needs full model groups, simpleContent, restriction, abstract types, and `xsi:type`. |
+| `xs:simpleType` | partially supported | `TASK-0050`, `TASK-0053` | Needs full datatype, facet, list, union, and derivation semantics. |
+| `xs:group` | partially supported | `TASK-0051` | Needs repeated/optional refs and arbitrary nested groups. |
+| `xs:attributeGroup` | partially supported | `TASK-0052` | Needs recursion checks, nested groups, and anyAttribute composition. |
+| `xs:notation` | not implemented yet | `TASK-0049`, `TASK-0050` | Needed for NOTATION datatype completeness. |
+| Identity constraints | diagnostic | `TASK-0054` | `xs:unique`, `xs:key`, and `xs:keyref`. |
+
+## Particles and content models
+
+| Construct | Current status | Target task | Notes |
+|---|---|---|---|
+| `xs:sequence` | supported for accepted shapes | `TASK-0051` | Replace narrow ordering code with compiled content model. |
+| `xs:choice` | partially supported | `TASK-0051` | Needs nested, repeated, and mixed/wildcard choice forms. |
+| `xs:all` | diagnostic/not implemented yet | `TASK-0051` | Requires unordered content-model validation. |
+| `xs:any` | partially supported | `TASK-0052` | Needs all locations, lax/strict processing, and derivation interactions. |
+| `minOccurs`, `maxOccurs` | partially supported | `TASK-0051` | Needs cardinality composition across nested particles. |
+| UPA validation | not implemented yet | `TASK-0051` | Must detect ambiguous content models before binding. |
+| Mixed content | partially supported | `TASK-0051`, `TASK-0053` | Needs mixed choices and derivation interactions. |
+
+## Attributes and wildcards
+
+| Construct | Current status | Target task | Notes |
+|---|---|---|---|
+| Attribute `use=optional|required` | supported for accepted shapes | `TASK-0052` | Complete with defaults/fixed and refs. |
+| Attribute `use=prohibited` | not implemented yet | `TASK-0052` | Required for restriction and group composition. |
+| Attribute defaults/fixed | partially supported | `TASK-0052` | Needs full datatype and derivation interactions. |
+| `xs:anyAttribute` | diagnostic | `TASK-0052` | Bind retained unknown attributes without DOM. |
+| Wildcard namespace constraints | partially supported | `TASK-0052` | Complete union/intersection/subset semantics. |
+| `processContents=skip` | partially supported | `TASK-0052` | Current support is direct element wildcard only. |
+| `processContents=lax` and `strict` | diagnostic | `TASK-0052` | Requires schema-known dispatch/validation policy. |
+
+## Simple types and facets
+
+| Construct | Current status | Target task | Notes |
+|---|---|---|---|
+| Primitive string/boolean/decimal/integer family | partially supported | `TASK-0050` | Complete lexical spaces, whiteSpace, and bounds. |
+| Primitive float/double | not implemented yet | `TASK-0050` | Include NaN/INF lexical handling. |
+| Primitive duration/dateTime/time/date/g* types | not implemented yet | `TASK-0050` | Add exact runtime value types where Java lacks one. |
+| Primitive hexBinary/base64Binary | not implemented yet | `TASK-0050` | Add stable byte value representation and lexical checks. |
+| Primitive anyURI | not implemented yet | `TASK-0050` | Define lexical/value policy. |
+| Primitive QName/NOTATION | not implemented yet | `TASK-0050` | Requires namespace-context-aware lexical conversion. |
+| Derived string types | partially supported | `TASK-0050` | normalizedString, token, language, Name, NCName, ID, IDREF, ENTITY, NMTOKEN families. |
+| Derived numeric types | partially supported | `TASK-0050` | long/int/short/byte, unsigned types, positive/negative variants. |
+| Restriction facets | partially supported | `TASK-0050` | Complete length, min/max length, pattern, enumeration, whiteSpace, bounds, totalDigits, fractionDigits. |
+| `xs:list` | partially supported | `TASK-0050`, `TASK-0053` | Needs optional/repeated fields, anonymous item types, and nested composition rules. |
+| `xs:union` | partially supported | `TASK-0050`, `TASK-0053` | Needs anonymous members, nested unions, and full member validation. |
+
+## Derivation and dynamic typing
+
+| Construct | Current status | Target task | Notes |
+|---|---|---|---|
+| `complexContent/extension` | partially supported | `TASK-0053` | Current implementation flattens accepted named extensions only. |
+| `complexContent/restriction` | diagnostic/not implemented yet | `TASK-0053` | Requires particle and attribute restriction checks. |
+| `simpleContent/extension` | diagnostic/not implemented yet | `TASK-0053` | Required for text-with-attributes binding. |
+| `simpleContent/restriction` | diagnostic/not implemented yet | `TASK-0053` | Requires base simple content validation. |
+| Simple restriction derivation chains | partially supported | `TASK-0050`, `TASK-0053` | Needs all facets and built-ins. |
+| Abstract elements/types | diagnostic/not implemented yet | `TASK-0053` | Requires generated polymorphic model shapes. |
+| Substitution groups | partially supported | `TASK-0053` | Needs abstract heads, nested groups, cycles, repeated heads, block/final. |
+| `xsi:type` | not implemented yet | `TASK-0053` | Requires known derived-type dispatch and validation. |
+| `xsi:nil` | partially supported | `TASK-0053` | Needs optional/repeated and derivation interactions. |
+
+## Validation and conformance
+
+| Construct | Current status | Target task | Notes |
+|---|---|---|---|
+| Structural generated validation | partially supported | `TASK-0051` | Reader and object validation should share compiled content-model rules. |
+| Datatype validation | partially supported | `TASK-0050` | Needs full lexical/value/facet coverage. |
+| Identity constraints | diagnostic | `TASK-0054` | Requires document-scope validation context. |
+| W3C XML Schema 1.0 suite intake | blocked/planned | `TASK-0055` | Must be pinned, classified, and locally repeatable. |
+| Full XSD 1.0 readiness claim | not implemented yet | `TASK-0056` | Only after matrix evidence passes. |
+
+## Explicit non-goals
+
+XSD 1.1, XML 1.1, XML Canonicalization, XML Signature canonical forms, lexical prefix preservation,
+DTD/entity identity preservation, and code-to-schema generation are not part of this program.

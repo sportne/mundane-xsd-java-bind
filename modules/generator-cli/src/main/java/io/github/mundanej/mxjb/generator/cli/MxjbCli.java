@@ -26,9 +26,10 @@ public final class MxjbCli {
         --output <dir>                     Generated Java source output directory.
         --profile <profile-token>
                                            Generator compatibility profile.
-                                           Supported: XP-DATA-10, XP-DATA-10-CHOICE,
+                                           Executable: XP-DATA-10, XP-DATA-10-CHOICE,
                                            XP-VALIDATION-10-BASIC, XP-XSD10-COMPOSED,
                                            XP-XSD10-SEMANTIC, XP-XSD10-DOCUMENT.
+                                           Planned: XP-XSD10-FULL.
         --default-package <package>        Package for schemas without a namespace.
         --namespace-package <ns=package>   Namespace to Java package mapping. May be repeated.
         --local-root <path>                Additional local schema resolver root.

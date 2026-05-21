@@ -13,7 +13,7 @@ Validation is a first-class generated-code concern.
 | Simple restrictions | Practical facets: enum, length, range, pattern where feasible. | Complete facets, list/union. |
 | Identity constraints | Validation-ready only. | `xs:key`, `xs:keyref`, `xs:unique`. |
 | Defaults/fixed | Limited or validation-ready only. | Full schema semantics. |
-| XSD 1.1 assertions | Out of scope initially. | Optional XPath-backed profile. |
+| Identity constraints | Out of scope initially. | Planned XSD 1.0 document-scope validation phase. |
 
 ## Diagnostics principles
 
@@ -40,7 +40,7 @@ named simple-type restrictions over the existing supported scalar mappings, with
 Facet checks run in generated object validation and XML validation after reader lexical conversion
 succeeds. Unsupported facets, list/union, derivation chains, anonymous simple types,
 broader whitespace normalization, full date/time semantics, identity constraints, defaults/fixed,
-and XSD 1.1 assertions remain future-profile work with explicit diagnostics.
+and identity constraints remain future full-XSD-1.0 work with explicit diagnostics.
 
 ## `TASK-0027` through `TASK-0029` composed-schema validation
 
@@ -70,7 +70,7 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
 - `TASK-0034` verifies deterministic semantic object diagnostics, location-aware XML diagnostics
   for nil-content and fixed-value reader failures, substitution branch value recursion, and
   explicit schema diagnostics for unsupported validation categories.
-- Identity constraints, wildcards, mixed content, XSD 1.1 assertions, and full XSD 1.0 validation
+- Identity constraints, wildcards, mixed content, and full XSD 1.0 validation
   semantics remain future-profile work with explicit diagnostics.
 
 ## `TASK-0037` document wildcard validation
@@ -86,4 +86,4 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   fragments without claiming formal XML Canonicalization.
 - `xs:anyAttribute`, `processContents="lax"` or `"strict"`, identity constraints, comments,
   processing instructions, entity-reference semantics, wildcards outside accepted sequences, mixed
-  choices, XSD 1.1 assertions, and full XSD 1.0 validation remain schema diagnostics.
+  choices, and full XSD 1.0 validation remain schema diagnostics.

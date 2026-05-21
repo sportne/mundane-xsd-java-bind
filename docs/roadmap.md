@@ -27,12 +27,11 @@ Deliver CLI and Gradle plugin generation for supported data-structure schemas wi
 ## Future phases
 
 Future phases must be opened through new task gates after the accepted `0.6.0` hardening closeout.
-Likely candidates include full simple type semantics beyond `XP-VALIDATION-10-BASIC`, full
-derivation semantics, broader substitution-group behavior, wildcard and mixed-content shapes beyond
-the accepted `XP-XSD10-DOCUMENT` subset, identity constraints, XSD 1.1 assertions, XML 1.1
-compatibility, streaming optimization, broader external-suite intake, benchmark thresholds, and a
-real signed publication workflow.
+The next product program is `XP-XSD10-FULL`: complete XML Schema 1.0 support for the binding
+generator through `TASK-0049` through `TASK-0056`, starting from the feature matrix in
+`docs/verification/xsd10-full-feature-matrix.md`. Other candidates include streaming optimization,
+broader external-suite automation, benchmark thresholds, and a real signed publication workflow.
 
-The project does not currently claim full XSD 1.0 conformance, XSD 1.1 support, W3C XML
-Canonicalization, XML Signature canonical forms, lexical prefix preservation, hard performance
-guarantees, artifact publication, or a release tag.
+The project does not currently claim full XSD 1.0 conformance, XSD 1.1 support, XML 1.1 support,
+W3C XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, hard
+performance guarantees, artifact publication, or a release tag.

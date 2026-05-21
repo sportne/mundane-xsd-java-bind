@@ -14,6 +14,4 @@ T-CONF-UNSUPPORTED-ANY-ATTRIBUTE	XP-XSD10-DOCUMENT	unsupported-diagnostic	unsupp
 T-CONF-UNSUPPORTED-WILDCARD-STRICT	XP-XSD10-DOCUMENT	unsupported-diagnostic	unsupported/wildcard-strict.xsd	-	generator-diagnostic	SCHEMA_IR_INVALID_COMPONENT	xs:any processContents strict remains unsupported.
 T-CONF-UNSUPPORTED-MIXED-CHOICE	XP-XSD10-DOCUMENT	unsupported-diagnostic	unsupported/mixed-choice.xsd	-	generator-diagnostic	SCHEMA_IR_INVALID_COMPONENT,SCHEMA_IR_INVALID_COMPONENT	mixed xs:choice remains unsupported.
 T-CONF-UNSUPPORTED-IDENTITY-CONSTRAINT	XP-XSD10-DOCUMENT	unsupported-diagnostic	unsupported/identity-constraint.xsd	-	generator-diagnostic	SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT	identity constraints remain unsupported.
-T-CONF-UNSUPPORTED-XSD11-ASSERT	XP-XSD10-DOCUMENT	unsupported-diagnostic	unsupported/xsd11-assert.xsd	-	generator-diagnostic	SCHEMA_FRONTEND_UNSUPPORTED_CONSTRUCT	XSD 1.1 assertions remain unsupported.
-T-CONF-FUTURE-XSD11-ASSERTIONS	XP-XSD11-ASSERT	future-study	-	-	research-only	-	Future XSD 1.1 assertion intake requires a separately approved profile and parser policy.
 T-CONF-BLOCKED-W3C-SUITE-SNAPSHOT	XP-XSD10-FULL	blocked	-	-	storage-policy	-	Broad W3C suite vendoring is blocked pending license storage and maintenance review.

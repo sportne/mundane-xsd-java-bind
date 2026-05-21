@@ -10,9 +10,7 @@
 | `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening, `TASK-0028` adds accepted named list/union simple types, and `TASK-0029` adds accepted initial derivation flattening. | 3 |
 | `XP-XSD10-SEMANTIC` | XSD 1.0 semantic expansion | Opt-in `0.4.0` profile composing `XP-XSD10-COMPOSED` with accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution-group behavior, and expanded generated validation for those accepted semantic paths from `TASK-0032` through `TASK-0034`. | 4 |
 | `XP-XSD10-DOCUMENT` | Document-oriented and open content | Opt-in `0.5.0` profile composing `XP-XSD10-SEMANTIC`; `TASK-0037` adds accepted direct `xs:any` wildcard retention, `TASK-0038` adds accepted mixed-content ordering, and `TASK-0039` verifies stable project serialization policy. | 5 |
-| `XP-XSD10-FULL` | Full XSD 1.0 | Substitution groups, full derivation semantics, wildcards, identity constraints, nillable, default/fixed, mixed content. | Future |
-| `XP-XSD11-ASSERT` | XSD 1.1 assertions | XSD 1.1 features including assertions and conditional alternatives. | Future |
-| `XP-XML11` | XML 1.1 | XML 1.1 parsing/serialization compatibility. | Future |
+| `XP-XSD10-FULL` | Full XSD 1.0 | Planned full XML Schema 1.0 support for this binding generator, tracked by `docs/verification/xsd10-full-feature-matrix.md`; the public token exists but generation is intentionally rejected until implementation gates accept it. | Planned |
 | `XP-INTEROP` | Interoperability | Round-trip and validation comparison with existing XML tooling. | Ongoing |
 
 ## Java/runtime profiles
@@ -115,8 +113,8 @@ Optional or repeated nillable fields, nillable attributes, complex/list/union de
 ambiguous nil/default/fixed combinations, abstract substitution heads, repeated substitution
 groups, nested substitution groups, substitution cycles, blocking/final semantics, full
 polymorphism, abstract complex types, wildcards, mixed content, identity constraints, full datatype
-semantics, full derivation semantics, XSD 1.1, artifact publication, and full XSD 1.0 conformance
-remain out of scope with explicit diagnostics.
+semantics, full derivation semantics, artifact publication, and full XSD 1.0 conformance remain out
+of scope with explicit diagnostics.
 
 ## `0.5.0` Document-Oriented Baseline
 
@@ -150,8 +148,8 @@ Wildcards in choices, attributes, substitution branches, and unsupported group/d
 cases remain out of scope. `xs:anyAttribute`, `processContents="lax"` or `"strict"`, unsupported
 namespace constraints, mixed choices, comments or processing instruction preservation,
 entity-reference semantics, DOM-backed binding, identity constraints, full datatype semantics, full
-derivation semantics, XSD 1.1, artifact publication, and full XSD 1.0 conformance remain out of
-scope with explicit diagnostics.
+derivation semantics, artifact publication, and full XSD 1.0 conformance remain out of scope with
+explicit diagnostics.
 
 ## `0.6.0` Hardening Readiness Baseline
 
@@ -165,9 +163,24 @@ validation. `TASK-0046` reconciles these evidence lanes as final readiness evide
 The accepted `0.6.0` posture keeps `qualityGate` JVM-focused and leaves benchmark, Native Image,
 and publication dry-run lanes explicit and opt-in. It does not add product behavior, dependency
 metadata, signing, remote publication, release tags, full XSD 1.0 conformance, XSD 1.1 support,
-XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, or hard
-performance guarantees.
+XML 1.1 support, XML Canonicalization, XML Signature canonical forms, lexical prefix preservation,
+or hard performance guarantees.
 
-Recommended future-profile gates should start from accepted ADR/task cards for broader XSD 1.0
-conformance, identity constraints, full derivation/substitution semantics, broader wildcard/mixed
-content, XSD 1.1 assertions, XML 1.1 compatibility, or a real publication workflow.
+## `XP-XSD10-FULL` Planning Baseline
+
+`TASK-0048` opens the full XML Schema 1.0 program without making the profile executable. The public
+`GeneratorProfile.XP_XSD10_FULL` token exists so API, CLI, docs, and future task cards can refer to
+one stable target; `CoreGenerator` still rejects that profile until implementation tasks accept
+support. The planned sequence is:
+
+- `TASK-0049`: complete XSD 1.0 frontend and component model.
+- `TASK-0050`: complete datatype and facet engine.
+- `TASK-0051`: full content-model compiler.
+- `TASK-0052`: full attributes and wildcards.
+- `TASK-0053`: full derivation, substitution, and dynamic typing.
+- `TASK-0054`: identity constraints and document-level validation.
+- `TASK-0055`: full-suite conformance harness.
+- `TASK-0056`: final full XSD 1.0 readiness review.
+
+XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. A real publication
+workflow remains separate release-engineering work.

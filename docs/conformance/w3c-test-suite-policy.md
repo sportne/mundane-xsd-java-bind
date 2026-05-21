@@ -6,7 +6,8 @@ W3C XML and XML Schema test suites are reference material for conformance strate
 
 - Use suite metadata to classify tests by feature/profile.
 - Include only tests mapped to current or future profile goals.
-- Do not claim full XSD 1.0 or XSD 1.1 conformance until the matrix supports that claim.
+- Do not claim full XSD 1.0 conformance until the matrix supports that claim.
+- Do not use XSD 1.1 or XML 1.1 fixtures; they are outside the project target.
 - Unsupported-feature tests should validate explicit diagnostics.
 
 ## Storage policy

@@ -59,7 +59,7 @@ Release readiness for `0.6.0` requires:
   hard performance guarantees;
 - selected Native Image conformance evidence from `TASK-0044`;
 - local publication dry-run or equivalent artifact metadata validation in `TASK-0045`;
-- release notes that name unsupported features and avoid full XSD 1.0, XSD 1.1, XML
+- release notes that name unsupported features and avoid full XSD 1.0, XSD 1.1, XML 1.1, XML
   Canonicalization, cryptographic canonical XML, or untested performance claims.
 
 `TASK-0045` adds the local release-engineering dry-run lane:

@@ -7,7 +7,7 @@
 | `ADR-0003` | Runtime dependency boundary | accepted |
 | `ADR-0004` | Generated code uses no runtime reflection | accepted |
 | `ADR-0005` | Internal XML event abstraction | accepted |
-| `ADR-0006` | XSD 1.0 first, XSD 1.1 future | accepted |
+| `ADR-0006` | XSD 1.0 profile gates | accepted |
 | `ADR-0007` | Validation phasing | accepted |
 | `ADR-0008` | Generated model style | accepted |
 | `ADR-0009` | Namespace-to-package mapping | accepted |

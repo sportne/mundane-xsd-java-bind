@@ -44,6 +44,8 @@ Supported properties and methods:
   nillable/default/fixed, direct substitution-group, and generated semantic validation behavior;
   the document profile adds accepted direct `xs:any` wildcard/open-content retention, accepted
   mixed-content sequence models, and stable project XML serialization policy evidence.
+  `XP-XSD10-FULL` is a planned public token, but generation intentionally rejects it until the full
+  XSD 1.0 implementation gates accept support.
 - `defaultPackage`: fallback package for namespaces without an explicit mapping.
 - `namespacePackage(String, String)`: namespace-to-Java-package mapping.
 - `localRoot(Object)`: local schema root used by the resolver and declared as a task input.

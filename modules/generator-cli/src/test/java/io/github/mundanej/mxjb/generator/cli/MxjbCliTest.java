@@ -24,7 +24,30 @@ final class MxjbCliTest {
     assertTrue(result.out().contains("mxjb generate --schema <path> --output <dir>"));
     assertTrue(result.out().contains("XP-XSD10-SEMANTIC"));
     assertTrue(result.out().contains("XP-XSD10-DOCUMENT"));
+    assertTrue(result.out().contains("XP-XSD10-FULL"));
     assertEquals("", result.err());
+  }
+
+  @Test
+  void fullXsd10ProfileTokenIsPlannedButNotYetExecutable() throws IOException {
+    Path schema = writeSchema("purchase-order.xsd", purchaseOrderSchema());
+    Path output = tempDirectory.resolve("full-generated");
+
+    CliResult result =
+        run(
+            "generate",
+            "--schema",
+            schema.toString(),
+            "--output",
+            output.toString(),
+            "--profile",
+            "XP-XSD10-FULL",
+            "--namespace-package",
+            "urn:purchase=com.example.purchase");
+
+    assertEquals(1, result.exitCode());
+    assertTrue(result.err().contains("Unsupported generator profile XP_XSD10_FULL"));
+    assertFalse(Files.exists(output));
   }
 
   @Test

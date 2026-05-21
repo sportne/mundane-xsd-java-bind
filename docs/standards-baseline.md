@@ -15,11 +15,12 @@
 
 | Standard / API | Project role |
 |---|---|
-| XML 1.1 | Future compatibility profile. |
-| XML Schema 1.1 | Future/experimental profile, isolated behind profile gates. |
-| XPath | Test-oracle language and possible future assertion support. |
+| XPath | Test-oracle language and XSD 1.0 identity-constraint selector/field subset reference. |
 | SAX/StAX/DOM | Reference concepts and optional tooling/adapters, not generated-code architecture. |
 | JAXB/Jakarta XML Binding | Ecosystem reference, not an API clone target. |
+
+XML 1.1 and XML Schema 1.1 are not project targets. The full-standard program is limited to XML
+1.0 plus XML Schema 1.0.
 
 ## Standards-control requirements
 

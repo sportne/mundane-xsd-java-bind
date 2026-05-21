@@ -1,4 +1,4 @@
-# ADR-0006: XSD 1.0 first, XSD 1.1 future
+# ADR-0006: XSD 1.0 profile gates
 
 Status: accepted
 Date: 2026-05-16
@@ -9,7 +9,8 @@ Date: 2026-05-16
 
 ## Decision
 
-Implement the XSD 1.0 data-structure profile first. XSD 1.1 features are future-profile gated.
+Implement XSD 1.0 through explicit compatibility profiles, starting with practical data-structure
+binding and widening only through accepted task gates. XSD 1.1 is not a project target.
 
 ## Consequences
 

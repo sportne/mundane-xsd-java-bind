@@ -14,14 +14,14 @@ Expected behavior: verify and document the `0.6.0` hardening and release maturit
 Tests to add/update: documentation command checks where available; final quality, conformance, interop, benchmark, Native Image, publication dry-run, and security evidence only
 Documentation to update: all user-facing and contributor-facing docs affected by `0.6.0`
 Commands to run: `./gradlew clean validateDesignControlPack qualityGate`, documented interop/conformance commands, documented benchmark command, documented native conformance command, documented publication dry-run, `git diff --check`
-Acceptance criteria: `0.6.0` maturity claims match evidence; release process is documented and dry-run evidence exists; interop remains an ongoing verification lane; benchmark claims remain advisory unless proven stable; future XSD 1.1 work remains gated by ADR
+Acceptance criteria: `0.6.0` maturity claims match evidence; release process is documented and dry-run evidence exists; interop remains an ongoing verification lane; benchmark claims remain advisory unless proven stable; broader standards work remains gated by ADR/task card
 Rollback notes: revert readiness-review docs and release metadata from this task
 
 ## Accepted Planning Scope
 
 - Reconcile evidence from `TASK-0042` through `TASK-0045` across README, compatibility profiles,
   conformance matrix, verification docs, release docs, traceability, and handoff.
-- Confirm unsupported feature lists still exclude full XSD 1.0, XSD 1.1, XML Canonicalization,
+- Confirm unsupported feature lists still exclude full XSD 1.0, XML 1.1, XSD 1.1, XML Canonicalization,
   unimplemented wildcard/mixed variants, identity constraints, and unproven performance claims.
 - Confirm no release tag or real artifact publication is claimed unless separately authorized.
 - Advance handoff only after final quality, conformance/interop, benchmark, Native Image, release
@@ -43,7 +43,7 @@ Rollback notes: revert readiness-review docs and release metadata from this task
 - Confirmed supported profile claims remain limited to `XP-DATA-10`, `XP-DATA-10-CHOICE`,
   `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`, `XP-XSD10-SEMANTIC`, and
   `XP-XSD10-DOCUMENT`.
-- Preserved explicit non-claims for full XSD 1.0 conformance, XSD 1.1, XML Canonicalization,
+- Preserved explicit non-claims for full XSD 1.0 conformance, XML 1.1, XSD 1.1, XML Canonicalization,
   XML Signature canonical forms, lexical prefix preservation, hard performance guarantees, real
   publication, signing, remote staging, version bumps, and release tags.
 - Verified `REQ-QA-002` as the final `0.6.0` hardening QA/readiness requirement without changing

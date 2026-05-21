@@ -42,7 +42,7 @@ Evidence remains selected and local. Full XSD 1.0 conformance is not claimed.
 - No release tag is created.
 - No signing keys, credentials, or remote staging repositories are configured.
 - Full XSD 1.0 conformance is not claimed.
-- XSD 1.1 support is not claimed.
+- XSD 1.1 and XML 1.1 support are not claimed and are not project targets.
 - XML Canonicalization is not claimed.
 - XML Signature canonical forms, lexical prefix preservation, comments, processing instructions,
   DTD retention, and entity-reference identity are not claimed.
@@ -55,7 +55,7 @@ Unsupported feature claims remain explicit for `xs:anyAttribute`, wildcard `proc
 or `"strict"`, unsupported wildcard namespace constraints, wildcard choices, mixed choices,
 complex mixed derivation edge cases, identity constraints, full datatype semantics, full derivation
 semantics, DOM-backed binding, parser-handle retention, comments/PI preservation, DTD/entity
-identity, and XSD 1.1.
+identity, XSD 1.1, and XML 1.1.
 
 ## Rollback
 

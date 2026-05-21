@@ -9,7 +9,8 @@ Date: 2026-05-16
 
 ## Decision
 
-Use XML 1.0, Namespaces in XML 1.0, XML Schema 1.0 Structures/Datatypes, XML Infoset, XML Base, and xml:id as the primary design baseline. XML 1.1 and XSD 1.1 remain future profiles.
+Use XML 1.0, Namespaces in XML 1.0, XML Schema 1.0 Structures/Datatypes, XML Infoset, XML Base,
+and xml:id as the primary design baseline. XML 1.1 and XSD 1.1 are not project targets.
 
 ## Consequences
 

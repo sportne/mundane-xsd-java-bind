@@ -171,3 +171,27 @@ is `TASK-0042` through `TASK-0046`.
   stable JVM correctness gate, treats benchmark output as advisory, records local Native Image
   toolchain blockers when present, and keeps publication dry-run evidence separate from real
   release publication.
+
+## `XP-XSD10-FULL` verification plan
+
+`TASK-0048` defines the full XML Schema 1.0 feature matrix and task sequence without making the
+profile executable. The planned verification sequence is:
+
+- `TASK-0049`: frontend and component-model tests for every remaining XSD 1.0 declaration,
+  reference, symbol space, schema default, and deterministic unsupported binding diagnostic.
+- `TASK-0050`: datatype and facet unit tests, generated reader/writer lexical tests, generated
+  validator tests, and selected JDK XML Schema comparison fixtures for all XSD 1.0 built-ins and
+  facets.
+- `TASK-0051`: compiled content-model unit tests plus generated reader/validator agreement tests
+  for nested particles, repeated groups, `xs:all`, and UPA diagnostics.
+- `TASK-0052`: attribute and wildcard tests for `xs:anyAttribute`, namespace-constraint algebra,
+  `processContents`, prohibited attributes, defaults/fixed values, and generated serialization.
+- `TASK-0053`: derivation, substitution, abstract type, block/final, and `xsi:type` read/write/
+  validate tests.
+- `TASK-0054`: identity-constraint selector/field XPath tests and document-scope generated
+  validator tests for `xs:unique`, `xs:key`, and `xs:keyref`.
+- `TASK-0055`: pinned W3C XML Schema 1.0 suite classification and repeatable local execution.
+- `TASK-0056`: final support-claim reconciliation. `XP-XSD10-FULL` may be advertised as executable
+  only after this evidence passes.
+
+XSD 1.1 and XML 1.1 are outside this verification plan.

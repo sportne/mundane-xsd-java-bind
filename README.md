@@ -1,140 +1,70 @@
 # mundane XSD Java Binding
 
-**Status:** Design-Control Pack v0.1 with the first supported `XP-DATA-10` generator vertical slice,
-accepted `0.2.0` Practical Data Contracts readiness evidence, accepted `0.3.0`
-`XP-XSD10-COMPOSED` readiness evidence, accepted `0.4.0` `XP-XSD10-SEMANTIC`
-readiness evidence, accepted `0.5.0` `XP-XSD10-DOCUMENT` document/open-content readiness evidence,
-and accepted `0.6.0` hardening/readiness evidence through selected conformance, benchmark, Native
-Image, and release dry-run lanes. The repository includes generated model,
-reader, writer, validator, runtime-core, optional JDK XML adapters, a public generator API, a CLI
-`generate` command, a Gradle plugin for the accepted subsets, representative round-trip examples,
-Native Image smoke coverage, and local publication dry-run validation.
+`mundane XSD Java Binding` generates Java 21 model, XML reader, XML writer, and validator code from
+selected XML Schema 1.0 profiles. Generated code is explicit, deterministic, reflection-free, and
+designed to work well with GraalVM Native Image.
 
-`mundane XSD Java Binding` is a schema-to-code generator and runtime architecture for Java. It is conceptually adjacent to JAXB/Jakarta XML Binding, but it is deliberately designed as a modern, explicit, generated-code system with strong engineering controls and GraalVM Native Image friendliness from the beginning.
+This is a schema-to-code project. It is not a code-to-schema tool and it is not a general-purpose
+XML Schema validator independent of generated bindings.
 
-## Development model
+## Supported today
 
-This project is largely coding-agent driven. Human maintainers set the direction, review the design-control documents, and approve implementation gates; coding agents are expected to do much of the scaffold, documentation, build, and eventually implementation work under the rules in `AGENT.md`.
+The current executable profiles are:
 
-That workflow is intentional, so the repository is structured to be explicit about requirements, architecture, verification, build behavior, and task handoffs. Contributor-facing documentation is part of the product, not an afterthought.
+- `XP-DATA-10`: elements, complex types, attributes, nested elements, sequences, optional/repeated
+  elements, namespaces, include/import, generated read/write/validate, CLI, Gradle plugin, and
+  representative round trips.
+- `XP-DATA-10-CHOICE`: accepted local singleton `xs:choice` particles.
+- `XP-VALIDATION-10-BASIC`: accepted named simple restrictions for enumeration, string length,
+  numeric inclusive ranges, and string pattern facets.
+- `XP-XSD10-COMPOSED`: accepted named model groups, attribute groups, named list/union simple
+  types, and initial derivation flattening.
+- `XP-XSD10-SEMANTIC`: accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution
+  groups, and expanded generated validation for those paths.
+- `XP-XSD10-DOCUMENT`: accepted direct `xs:any` wildcard/open-content retention, accepted
+  `mixed="true"` sequence content, retained `XmlFragment` values, and stable project serialization
+  policy.
 
-## Project mission
+The planned full XML Schema 1.0 target is `XP-XSD10-FULL`. The public profile token exists for
+planning, but generation intentionally rejects it until the follow-on implementation tasks complete.
+The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 
-Generate Java 21 model, XML reader, XML writer, and validation code from XML Schema documents. Generated code must be explicit, statically analyzable, readable, deterministic, and suitable for Native Image without runtime reflection-based binding.
+## Not supported
 
-## Hard constraints
+- Full XML Schema 1.0 conformance is not claimed yet.
+- XSD 1.1 and XML 1.1 are not project targets.
+- XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
+  retention, DTD/entity identity preservation, and DOM-backed binding are not supported.
+- Real artifact publication, signing, release tags, and hard performance guarantees are not claimed
+  by this repository state.
 
-- Schema-to-code only.
-- No code-to-schema generation.
-- Avoid annotation-based runtime behavior.
-- Prefer generated serializers/deserializers over reflection.
-- Runtime core and generated code must not require third-party dependencies.
-- Dependencies are allowed in the generator, build infrastructure, tests, and tooling.
-- Design, requirements, architecture, verification, and infrastructure must be accepted before product implementation begins.
-
-## Implemented `XP-DATA-10` slice
-
-The first implementation phase supports schemas that primarily define XML data-structure types:
-
-- simple elements
-- complex types
-- attributes
-- nested elements
-- sequences
-- optional and repeated elements
-- imports/includes
-- namespaces
-- generated Java model types
-- generated XML writer/marshaller
-- generated XML reader/unmarshaller
-- basic generated validation for required content, sequence order, cardinality, and common scalar lexical values
-- round-trip tests
-- CLI and Gradle plugin generation entry points
-- Native Image smoke tests
-
-Opt-in `0.2.0` profiles now cover the accepted local singleton `xs:choice` subset and practical
-named simple-type facets for enumeration, string length, numeric inclusive range, and string
-pattern validation.
-
-The opt-in `0.3.0` `XP-XSD10-COMPOSED` profile composes the accepted `XP-DATA-10`,
-`XP-DATA-10-CHOICE`, and `XP-VALIDATION-10-BASIC` behavior with accepted named model group and
-attribute-group flattening, named list/union simple types, and initial derivation flattening.
-Generated models keep explicit code shapes: flattened group and extension fields in deterministic
-order, required singleton list values as immutable `List<T>`, and union values as lexical `String`.
-
-The opt-in `0.4.0` `XP-XSD10-SEMANTIC` profile adds accepted `nillable`, scalar `default`,
-scalar `fixed`, direct substitution-group semantics, and expanded generated validation for those
-accepted semantic paths. Required singleton nillable elements bind as `Optional<T>`, where
-`Optional.empty()` represents explicit `xsi:nil`; defaulted/fixed scalar attributes are read as
-effective model values; accepted substitution head references bind as sealed branch models that
-preserve actual XML element names; generated readers, writers, and validators remain explicit and
-reflection-free.
-
-The opt-in `0.5.0` `XP-XSD10-DOCUMENT` profile adds accepted direct `xs:any`
-wildcard/open-content support inside sequences with explicit `processContents="skip"`, accepted
-`mixed="true"` complex types with sequence content, and stable project XML serialization policy
-evidence. Accepted wildcard fields bind as immutable `List<XmlFragment>` values; generated readers
-retain expanded names, attributes, text, and nested element fragments, while writers and validators
-handle those fragments without DOM or reflection. Accepted mixed types expose generated content-list
-models that preserve non-whitespace text, known elements, and wildcard fragments in source order;
-whitespace-only mixed text is dropped.
-
-The accepted `0.6.0` hardening slice adds no new schema behavior. It records selected local
-conformance/interop fixture classification, advisory generated-binding benchmark baselines,
-selected Native Image conformance wiring, publication dry-run readiness, and final documentation
-reconciliation. These lanes are evidence for release maturity only; they do not create a release
-tag, publish artifacts, sign artifacts, authorize remote staging, or turn advisory benchmark output
-into a performance guarantee.
-
-Full simple type semantics, repeated or optional list-valued XML fields, full derivation semantics,
-full substitution group semantics, wildcard shapes beyond the accepted direct `xs:any` subset,
-`xs:anyAttribute`, `processContents="lax"` or `"strict"`, wildcard choices, mixed choices,
-comments or processing instruction retention, entity-reference identity, lexical prefix
-preservation, XML Canonicalization, XML Signature canonical forms, identity constraints, full
-XSD 1.0 conformance, and XSD 1.1 remain future-profile work.
-
-## Repository entry points
-
-- `DESIGN_CONTROL_PACK_v0.1.md` — pack manifest and acceptance checklist.
-- `AGENT.md` — binding rules for coding agents.
-- `docs/charter.md` — project charter.
-- `docs/build/README.md` — contributor-facing build, offline, and toolchain notes.
-- `docs/requirements/` — requirements taxonomy and phase-one requirements.
-- `docs/architecture/` — architecture and module boundaries.
-- `docs/verification/` — verification and validation strategy.
-- `docs/adr/` — initial architectural decisions.
-- `docs/agent/handoff.md` — next-step task sequence for coding agents.
-
-## Build note
-
-This project is configured for Gradle 9.5.1 with Groovy DSL. The standard Gradle wrapper scripts and `gradle/wrapper/gradle-wrapper.jar` are committed. Start with `docs/build/README.md`; for fully offline builds, provision the Gradle distribution and local Maven repository as described in `docs/build/offline-build.md`.
-
-Common commands after hydrating the wrapper and dependencies:
+## Common commands
 
 ```bash
 ./gradlew help
-./gradlew projects
 ./gradlew validateDesignControlPack
 ./gradlew qualityGate
+./gradlew :modules:generator-core:generatedCodeSmoke
+./gradlew :modules:conformance-tests:check
+```
+
+Native Image and publication dry-run lanes are explicit opt-in evidence commands:
+
+```bash
 ./gradlew nativeSmoke
-./gradlew printPublishedArtifacts
+./gradlew nativeConformance
 ./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun
 ```
 
-`nativeSmoke` requires a GraalVM installation with `native-image`; the documented local path for
-the current environment is in `docs/verification/native-image-test-plan.md`.
+`nativeSmoke` and `nativeConformance` require `native-image` on `PATH`.
 
-`publicationDryRun` stages candidate Maven artifacts under `build/staging-repository` and validates
-metadata without publishing remotely, signing artifacts, creating a release tag, or committing a
-version bump.
-
-Generate Java sources for an approved schema subset with:
+## CLI example
 
 ```bash
 ./gradlew :modules:generator-cli:run --args="generate --schema ${PWD}/examples/purchase-order/src/main/resources/schema/purchase-order.xsd --output ${PWD}/build/generated/mxjb-readme"
 ```
 
-Gradle builds can use the plugin id `io.github.mundanej.mxjb` and configure explicit schema inputs:
+## Gradle plugin example
 
 ```groovy
 plugins {
@@ -148,4 +78,14 @@ mxjb {
 }
 ```
 
-Build conventions live in `build-logic/` as composable Gradle convention plugins. Published code modules live under `modules/`; non-published examples live under `examples/`.
+## Repository map
+
+- `modules/generator-api`: public generator API.
+- `modules/generator-core`: schema compiler, binding planner, and generated source emitters.
+- `modules/generator-cli`: command-line entry point.
+- `modules/generator-gradle-plugin`: Gradle plugin.
+- `modules/runtime-core`: dependency-free runtime interfaces and values used by generated code.
+- `modules/runtime-jdkxml`: optional JDK XML adapter implementation.
+- `modules/conformance-tests`: selected local conformance, interop, benchmark, and Native Image
+  evidence lanes.
+- `docs/`: requirements, architecture, verification, infrastructure, ADRs, and task handoff.

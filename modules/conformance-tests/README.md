@@ -32,11 +32,11 @@ Covered behavior:
   `XP-XSD10-SEMANTIC` semantic, and accepted `XP-XSD10-DOCUMENT` wildcard, mixed-content, and
   serialization-policy fixtures compared with JDK XML Schema validation where practical.
 - Selected unsupported-diagnostic schemas for `xs:anyAttribute`, wildcard
-  `processContents="strict"`, mixed `xs:choice`, identity constraints, and XSD 1.1 assertions.
+  `processContents="strict"`, mixed `xs:choice`, and identity constraints.
 
 Unsupported or future-profile constructs such as full simple-type facets beyond
 `XP-VALIDATION-10-BASIC`, full derivation semantics, wildcard behavior beyond accepted direct
-`xs:any`, mixed-content shapes beyond accepted direct sequences, identity constraints, and XSD 1.1
+`xs:any`, mixed-content shapes beyond accepted direct sequences, identity constraints, and full XSD 1.0
 are outside this harness until their task cards are accepted.
 
 ## Contributor notes

@@ -36,8 +36,7 @@ final class SelectedConformanceFixtureManifestTest {
           "XP-XSD10-COMPOSED",
           "XP-XSD10-SEMANTIC",
           "XP-XSD10-DOCUMENT",
-          "XP-XSD10-FULL",
-          "XP-XSD11-ASSERT");
+          "XP-XSD10-FULL");
 
   @TempDir private Path tempDirectory;
 
