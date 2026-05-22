@@ -4,7 +4,7 @@
 
 | Profile | Name | Meaning | Phase |
 |---|---|---|---|
-| `XP-DATA-10` | XSD 1.0 data-structure subset | Simple elements, complex types, attributes, nested elements, sequences, optional/repeated elements, namespaces, includes/imports, generated model/reader/writer/basic structural validation, and lexical conversion for the currently supported scalar types. | 1 |
+| `XP-DATA-10` | XSD 1.0 data-structure subset | Simple elements, complex types, attributes, nested elements, sequences, optional/repeated elements, namespaces, includes/imports, generated model/reader/writer/basic structural validation, and lexical conversion through the shared XSD 1.0 datatype engine for accepted scalar positions. | 1 |
 | `XP-DATA-10-CHOICE` | Data subset with choices | Opt-in `0.2.0` extension for local singleton `xs:choice` particles with local or referenced supported element branches, generated sealed choice model types, reader/writer support, and explicit diagnostics for out-of-scope model-group shapes. | 2 |
 | `XP-VALIDATION-10-BASIC` | Basic generated validation | Opt-in `0.2.0` extension for named simple-type restrictions using accepted enumeration, string length, numeric inclusive range, and string pattern facets over already supported scalar bases. | 2 |
 | `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening, `TASK-0028` adds accepted named list/union simple types, and `TASK-0029` adds accepted initial derivation flattening. | 3 |
@@ -51,7 +51,7 @@ branches whose resolved types are already supported by `XP-DATA-10`.
 The `XP-VALIDATION-10-BASIC` implementation scope is limited to named `xs:simpleType` restrictions
 over `xs:string`, `xs:boolean`, `xs:int`, `xs:integer`, `xs:long`, and `xs:decimal`, with accepted
 enumeration, string length, numeric inclusive range, and string pattern facets. Full model groups,
-list/union simple types, derivation chains, full datatype semantics, and `XP-XSD10-FULL` remain
+list/union simple type composition, derivation chains, and `XP-XSD10-FULL` execution remain
 future work.
 
 ## `0.3.0` Readiness Baseline
@@ -85,6 +85,15 @@ nested list/union composition, `simpleContent`, complex restriction, mixed conte
 substitution groups, identity constraints, defaults/fixed semantics, and full XSD 1.0 conformance
 remain out of scope with explicit diagnostics.
 
+`TASK-0050` broadens the datatype engine used by existing executable profiles without making
+`XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
+1.0 primitive and derived built-ins to exact Java/runtime values where needed, including temporal
+values, duration, binary values, anyURI, QName/NOTATION, float/double special values, bounded
+numeric families, and list-valued built-ins such as `NMTOKENS`, `IDREFS`, and `ENTITIES`.
+Generated readers, writers, and validators use the same dependency-free runtime datatype engine;
+content-model, full derivation, attribute wildcard, and identity-constraint support remain future
+tasks.
+
 ## `0.4.0` Semantic Baseline
 
 `TASK-0031` accepted planned opt-in profile `XP-XSD10-SEMANTIC`; `TASK-0032` added the public
@@ -112,9 +121,9 @@ accepted semantic paths.
 Optional or repeated nillable fields, nillable attributes, complex/list/union defaults,
 ambiguous nil/default/fixed combinations, abstract substitution heads, repeated substitution
 groups, nested substitution groups, substitution cycles, blocking/final semantics, full
-polymorphism, abstract complex types, wildcards, mixed content, identity constraints, full datatype
-semantics, full derivation semantics, artifact publication, and full XSD 1.0 conformance remain out
-of scope with explicit diagnostics.
+polymorphism, abstract complex types, wildcards, mixed content, identity constraints, full
+derivation semantics, artifact publication, and full XSD 1.0 conformance remain out of scope with
+explicit diagnostics.
 
 ## `0.5.0` Document-Oriented Baseline
 
@@ -147,8 +156,8 @@ metadata, a release tag, or a publication claim.
 Wildcards in choices, attributes, substitution branches, and unsupported group/derivation edge
 cases remain out of scope. `xs:anyAttribute`, `processContents="lax"` or `"strict"`, unsupported
 namespace constraints, mixed choices, comments or processing instruction preservation,
-entity-reference semantics, DOM-backed binding, identity constraints, full datatype semantics, full
-derivation semantics, artifact publication, and full XSD 1.0 conformance remain out of scope with
+entity-reference semantics, DOM-backed binding, identity constraints, full derivation semantics,
+artifact publication, and full XSD 1.0 conformance remain out of scope with
 explicit diagnostics.
 
 ## `0.6.0` Hardening Readiness Baseline
@@ -177,7 +186,8 @@ support. The planned sequence is:
   defaults, annotations, notations, direct and transitive chameleon include namespace adoption with
   conflict diagnostics, remaining symbol spaces, and deterministic pre-binding diagnostics for
   known-but-later XSD 1.0 constructs.
-- `TASK-0050`: complete datatype and facet engine.
+- accepted in `TASK-0050`: complete XSD 1.0 datatype and facet engine for accepted schema shapes,
+  while keeping `XP-XSD10-FULL` non-executable.
 - `TASK-0051`: full content-model compiler.
 - `TASK-0052`: full attributes and wildcards.
 - `TASK-0053`: full derivation, substitution, and dynamic typing.

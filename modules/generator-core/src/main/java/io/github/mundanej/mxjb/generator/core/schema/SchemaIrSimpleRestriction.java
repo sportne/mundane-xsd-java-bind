@@ -13,6 +13,11 @@ public record SchemaIrSimpleRestriction(
     Integer maxLength,
     String minInclusive,
     String maxInclusive,
+    String minExclusive,
+    String maxExclusive,
+    Integer totalDigits,
+    Integer fractionDigits,
+    String whiteSpace,
     List<String> patterns) {
   public SchemaIrSimpleRestriction {
     Objects.requireNonNull(base, "base");
@@ -29,6 +34,11 @@ public record SchemaIrSimpleRestriction(
             valueText("maxLength", maxLength),
             valueText("minInclusive", minInclusive),
             valueText("maxInclusive", maxInclusive),
+            valueText("minExclusive", minExclusive),
+            valueText("maxExclusive", maxExclusive),
+            valueText("totalDigits", totalDigits),
+            valueText("fractionDigits", fractionDigits),
+            valueText("whiteSpace", whiteSpace),
             listText("pattern", patterns))
         .filter(value -> !value.isEmpty())
         .collect(Collectors.joining(" "));

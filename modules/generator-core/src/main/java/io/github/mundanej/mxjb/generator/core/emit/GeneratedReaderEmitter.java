@@ -9,6 +9,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingResult;
 import io.github.mundanej.mxjb.generator.core.bind.BindingRootElement;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
+import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
@@ -107,10 +108,7 @@ public final class GeneratedReaderEmitter {
 
   private boolean isSupportedTypeReference(BindingTypeReference reference, ModelIndex index) {
     if ("scalar".equals(reference.kind())) {
-      return switch (reference.name()) {
-        case "string", "boolean", "int", "integer", "long", "decimal" -> true;
-        default -> false;
-      };
+      return XmlSchemaBuiltIns.isSupported(reference.name());
     }
     if ("list".equals(reference.kind())) {
       return reference.itemType() != null && isSupportedTypeReference(reference.itemType(), index);
@@ -779,11 +777,7 @@ public final class GeneratedReaderEmitter {
                 + escape(field.semantics().defaultValue())
                 + "\")");
       }
-      return "read"
-          + readMethodSuffix(field.type())
-          + "Element(input, "
-          + nameConstant(field.xmlName())
-          + ")";
+      return readElementValueExpression(field.type(), nameConstant(field.xmlName()));
     }
 
     private String readNillableValueExpression(BindingField field) {
@@ -809,11 +803,7 @@ public final class GeneratedReaderEmitter {
       if (nestedType != null) {
         return helperName(nestedType) + "(input, " + nameConstant(branch.xmlName()) + ")";
       }
-      return "read"
-          + readMethodSuffix(branch.type())
-          + "Element(input, "
-          + nameConstant(branch.xmlName())
-          + ")";
+      return readElementValueExpression(branch.type(), nameConstant(branch.xmlName()));
     }
 
     private String readContentBranchValueExpression(BindingContentBranch branch) {
@@ -824,10 +814,35 @@ public final class GeneratedReaderEmitter {
       if (nestedType != null) {
         return helperName(nestedType) + "(input, " + nameConstant(branch.xmlName()) + ")";
       }
-      return "read"
-          + readMethodSuffix(branch.type())
-          + "Element(input, "
-          + nameConstant(branch.xmlName())
+      return readElementValueExpression(branch.type(), nameConstant(branch.xmlName()));
+    }
+
+    private String readElementValueExpression(BindingTypeReference reference, String nameConstant) {
+      if ("union".equals(reference.kind()) || "string".equals(reference.name())) {
+        return parseExpression(reference, "readTextElement(input, " + nameConstant + ")");
+      }
+      if ("list".equals(reference.kind())) {
+        return "readDatatypeListElement(input, "
+            + nameConstant
+            + ", \""
+            + escape(reference.itemType().name())
+            + "\", "
+            + scalarClassLiteral(reference.itemType())
+            + ")";
+      }
+      if (XmlSchemaBuiltIns.isListValued(reference.name())) {
+        return "readDatatypeListElement(input, "
+            + nameConstant
+            + ", \""
+            + escape(listBuiltInItemType(reference.name()))
+            + "\", String.class)";
+      }
+      return "readDatatypeElement(input, "
+          + nameConstant
+          + ", \""
+          + escape(reference.name())
+          + "\", "
+          + scalarClassLiteral(reference)
           + ")";
     }
 
@@ -1103,6 +1118,70 @@ public final class GeneratedReaderEmitter {
           .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
           .append("    return readTextElement(input, name);\n")
           .append("  }\n\n")
+          .append("  private static <T> T readDatatypeElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
+          .append("      String datatype,\n")
+          .append("      Class<T> javaType)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    expectStart(input, name);\n")
+          .append("    StringBuilder text = new StringBuilder();\n")
+          .append("    while (input.next()) {\n")
+          .append(
+              "      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT) {\n")
+          .append("        text.append(input.text());\n")
+          .append(
+              "      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {\n")
+          .append("        if (!name.equals(input.name())) {\n")
+          .append(
+              "          throw readException(input, \"MXJB-GR-007\", \"Mismatched text element end.\");\n")
+          .append("        }\n")
+          .append("        T value =\n")
+          .append("            javaType.cast(\n")
+          .append("                io.github.mundanej.mxjb.runtime.XmlDatatypes.parse(\n")
+          .append("                    datatype, text.toString(), input, input.location()));\n")
+          .append("        input.next();\n")
+          .append("        return value;\n")
+          .append("      } else {\n")
+          .append(
+              "        throw readException(input, \"MXJB-GR-007\", \"Expected XML text content.\");\n")
+          .append("      }\n")
+          .append("    }\n")
+          .append(
+              "    throw readException(input, \"MXJB-GR-007\", \"Unclosed XML text element.\");\n")
+          .append("  }\n\n")
+          .append("  private static <T> java.util.List<T> readDatatypeListElement(\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
+          .append("      String itemDatatype,\n")
+          .append("      Class<T> javaType)\n")
+          .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
+          .append("    expectStart(input, name);\n")
+          .append("    StringBuilder text = new StringBuilder();\n")
+          .append("    while (input.next()) {\n")
+          .append(
+              "      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT) {\n")
+          .append("        text.append(input.text());\n")
+          .append(
+              "      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {\n")
+          .append("        if (!name.equals(input.name())) {\n")
+          .append(
+              "          throw readException(input, \"MXJB-GR-007\", \"Mismatched text element end.\");\n")
+          .append("        }\n")
+          .append("        java.util.List<T> value =\n")
+          .append("            io.github.mundanej.mxjb.runtime.XmlDatatypes.parseList(\n")
+          .append(
+              "                itemDatatype, text.toString(), input, input.location(), javaType);\n")
+          .append("        input.next();\n")
+          .append("        return value;\n")
+          .append("      } else {\n")
+          .append(
+              "        throw readException(input, \"MXJB-GR-007\", \"Expected XML text content.\");\n")
+          .append("      }\n")
+          .append("    }\n")
+          .append(
+              "    throw readException(input, \"MXJB-GR-007\", \"Unclosed XML text element.\");\n")
+          .append("  }\n\n")
           .append("  private static Boolean readBooleanElement(\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlName name)\n")
@@ -1332,22 +1411,86 @@ public final class GeneratedReaderEmitter {
 
     private String parseExpression(BindingTypeReference reference, String valueExpression) {
       if ("list".equals(reference.kind())) {
-        return "parse"
-            + scalarMethodSuffix(reference.itemType().name())
-            + "List("
+        return "io.github.mundanej.mxjb.runtime.XmlDatatypes.parseList(\""
+            + escape(reference.itemType().name())
+            + "\", "
             + valueExpression
-            + ", input.location())";
+            + ", input, input.location(), "
+            + scalarClassLiteral(reference.itemType())
+            + ")";
       }
       if ("union".equals(reference.kind())) {
         return valueExpression;
       }
+      if (XmlSchemaBuiltIns.isListValued(reference.name())) {
+        return "io.github.mundanej.mxjb.runtime.XmlDatatypes.parseList(\""
+            + escape(listBuiltInItemType(reference.name()))
+            + "\", "
+            + valueExpression
+            + ", input, input.location(), String.class)";
+      }
+      if ("string".equals(reference.name())) {
+        return valueExpression;
+      }
+      return "("
+          + scalarType(reference)
+          + ") io.github.mundanej.mxjb.runtime.XmlDatatypes.parse(\""
+          + escape(reference.name())
+          + "\", "
+          + valueExpression
+          + ", input, input.location())";
+    }
+
+    private String listBuiltInItemType(String name) {
+      return switch (name) {
+        case "NMTOKENS" -> "NMTOKEN";
+        case "IDREFS" -> "IDREF";
+        case "ENTITIES" -> "ENTITY";
+        default -> "string";
+      };
+    }
+
+    private String scalarClassLiteral(BindingTypeReference reference) {
       return switch (reference.name()) {
-        case "boolean" -> "parseBoolean(" + valueExpression + ", input.location())";
-        case "int" -> "parseInt(" + valueExpression + ", input.location())";
-        case "integer" -> "parseInteger(" + valueExpression + ", input.location())";
-        case "long" -> "parseLong(" + valueExpression + ", input.location())";
-        case "decimal" -> "parseDecimal(" + valueExpression + ", input.location())";
-        default -> valueExpression;
+        case "string",
+            "normalizedString",
+            "token",
+            "language",
+            "Name",
+            "NCName",
+            "NMTOKEN",
+            "ID",
+            "IDREF",
+            "ENTITY" ->
+            "String.class";
+        case "boolean" -> "Boolean.class";
+        case "decimal" -> "java.math.BigDecimal.class";
+        case "float" -> "Float.class";
+        case "double" -> "Double.class";
+        case "integer",
+            "nonPositiveInteger",
+            "negativeInteger",
+            "nonNegativeInteger",
+            "positiveInteger",
+            "unsignedLong" ->
+            "java.math.BigInteger.class";
+        case "long", "unsignedInt" -> "Long.class";
+        case "int", "unsignedShort" -> "Integer.class";
+        case "short", "unsignedByte" -> "Short.class";
+        case "byte" -> "Byte.class";
+        case "duration" -> "io.github.mundanej.mxjb.runtime.XmlDuration.class";
+        case "dateTime" -> "io.github.mundanej.mxjb.runtime.XmlDateTime.class";
+        case "date" -> "io.github.mundanej.mxjb.runtime.XmlDate.class";
+        case "time" -> "io.github.mundanej.mxjb.runtime.XmlTime.class";
+        case "gYear" -> "io.github.mundanej.mxjb.runtime.XmlGYear.class";
+        case "gYearMonth" -> "io.github.mundanej.mxjb.runtime.XmlGYearMonth.class";
+        case "gMonth" -> "io.github.mundanej.mxjb.runtime.XmlGMonth.class";
+        case "gMonthDay" -> "io.github.mundanej.mxjb.runtime.XmlGMonthDay.class";
+        case "gDay" -> "io.github.mundanej.mxjb.runtime.XmlGDay.class";
+        case "hexBinary", "base64Binary" -> "io.github.mundanej.mxjb.runtime.XmlBinary.class";
+        case "anyURI" -> "io.github.mundanej.mxjb.runtime.XmlAnyUri.class";
+        case "QName", "NOTATION" -> "io.github.mundanej.mxjb.runtime.XmlQName.class";
+        default -> "Object.class";
       };
     }
 
@@ -1453,27 +1596,6 @@ public final class GeneratedReaderEmitter {
       return false;
     }
 
-    private String readMethodSuffix(BindingTypeReference reference) {
-      if ("list".equals(reference.kind())) {
-        return scalarMethodSuffix(reference.itemType().name()) + "List";
-      }
-      if ("union".equals(reference.kind())) {
-        return "String";
-      }
-      return scalarMethodSuffix(reference.name());
-    }
-
-    private String scalarMethodSuffix(String scalarName) {
-      return switch (scalarName) {
-        case "boolean" -> "Boolean";
-        case "int" -> "Int";
-        case "integer" -> "Integer";
-        case "long" -> "Long";
-        case "decimal" -> "Decimal";
-        default -> "String";
-      };
-    }
-
     private String localType(BindingField field) {
       if ("choice".equals(field.type().kind())) {
         return field.type().name();
@@ -1495,13 +1617,32 @@ public final class GeneratedReaderEmitter {
     }
 
     private String scalarType(BindingTypeReference reference) {
-      return switch (reference.name()) {
-        case "boolean" -> "Boolean";
-        case "int" -> "Integer";
-        case "integer" -> "java.math.BigInteger";
-        case "long" -> "Long";
-        case "decimal" -> "java.math.BigDecimal";
-        default -> "String";
+      return qualifiedScalarType(reference.name());
+    }
+
+    private String qualifiedScalarType(String scalar) {
+      String javaType = XmlSchemaBuiltIns.javaType(scalar);
+      if (javaType == null) {
+        return "String";
+      }
+      return switch (javaType) {
+        case "List<String>" -> "java.util.List<String>";
+        case "BigInteger" -> "java.math.BigInteger";
+        case "BigDecimal" -> "java.math.BigDecimal";
+        case "XmlDuration",
+            "XmlDateTime",
+            "XmlDate",
+            "XmlTime",
+            "XmlGYear",
+            "XmlGYearMonth",
+            "XmlGMonth",
+            "XmlGMonthDay",
+            "XmlGDay",
+            "XmlBinary",
+            "XmlAnyUri",
+            "XmlQName" ->
+            "io.github.mundanej.mxjb.runtime." + javaType;
+        default -> javaType;
       };
     }
 

@@ -66,6 +66,12 @@ final class StaxXmlEventReader implements XmlEventReader {
   }
 
   @Override
+  public String namespaceUriForPrefix(String prefix) {
+    String namespaceUri = reader.getNamespaceURI(prefix);
+    return namespaceUri == null ? null : namespaceUri;
+  }
+
+  @Override
   public boolean next() throws XmlReadException {
     try {
       while (reader.hasNext()) {

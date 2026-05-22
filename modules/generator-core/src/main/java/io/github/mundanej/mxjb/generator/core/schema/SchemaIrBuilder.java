@@ -132,6 +132,11 @@ public final class SchemaIrBuilder {
               MAX_LENGTH,
               MIN_INCLUSIVE,
               MAX_INCLUSIVE,
+              MIN_EXCLUSIVE,
+              MAX_EXCLUSIVE,
+              TOTAL_DIGITS,
+              FRACTION_DIGITS,
+              WHITE_SPACE,
               PATTERN,
               LIST,
               UNION,
@@ -1357,6 +1362,16 @@ public final class SchemaIrBuilder {
           "xs:minInclusive must be less than or equal to xs:maxInclusive.");
       return null;
     }
+    if (restrictionState.totalDigits != null
+        && restrictionState.fractionDigits != null
+        && restrictionState.fractionDigits > restrictionState.totalDigits) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:fractionDigits must be less than or equal to xs:totalDigits.");
+      return null;
+    }
     return restrictionState.toRestriction();
   }
 
@@ -1380,6 +1395,13 @@ public final class SchemaIrBuilder {
     Integer maxLength = mergeMaxLength(base, derived);
     String minInclusive = mergeMinInclusive(base, derived);
     String maxInclusive = mergeMaxInclusive(base, derived);
+    String minExclusive =
+        derived.minExclusive() == null ? base.minExclusive() : derived.minExclusive();
+    String maxExclusive =
+        derived.maxExclusive() == null ? base.maxExclusive() : derived.maxExclusive();
+    Integer totalDigits = mergeMinimum(base.totalDigits(), derived.totalDigits());
+    Integer fractionDigits = mergeMinimum(base.fractionDigits(), derived.fractionDigits());
+    String whiteSpace = derived.whiteSpace() == null ? base.whiteSpace() : derived.whiteSpace();
     List<String> patterns = new ArrayList<>(base.patterns());
     patterns.addAll(derived.patterns());
     if (state.diagnostics.size() == diagnosticsBeforeMerge
@@ -1426,6 +1448,11 @@ public final class SchemaIrBuilder {
         maxLength,
         minInclusive,
         maxInclusive,
+        minExclusive,
+        maxExclusive,
+        totalDigits,
+        fractionDigits,
+        whiteSpace,
         patterns);
   }
 
@@ -1526,6 +1553,16 @@ public final class SchemaIrBuilder {
         : derived.maxInclusive();
   }
 
+  private Integer mergeMinimum(Integer base, Integer derived) {
+    if (base == null) {
+      return derived;
+    }
+    if (derived == null) {
+      return base;
+    }
+    return Math.min(base, derived);
+  }
+
   private SchemaIrSimpleType normalizeNamedSimpleType(
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
     String localName = node.attributes().get("name");
@@ -1584,20 +1621,32 @@ public final class SchemaIrBuilder {
     switch (node.kind()) {
       case ENUMERATION -> addEnumeration(document, node, restriction, state);
       case LENGTH ->
-          restriction.length =
-              singleLengthFacet(document, node, restriction.length, restriction.base, state);
+          restriction.length = singleLengthFacet(document, node, restriction.length, state);
       case MIN_LENGTH ->
-          restriction.minLength =
-              singleLengthFacet(document, node, restriction.minLength, restriction.base, state);
+          restriction.minLength = singleLengthFacet(document, node, restriction.minLength, state);
       case MAX_LENGTH ->
-          restriction.maxLength =
-              singleLengthFacet(document, node, restriction.maxLength, restriction.base, state);
+          restriction.maxLength = singleLengthFacet(document, node, restriction.maxLength, state);
       case MIN_INCLUSIVE ->
           restriction.minInclusive =
               singleNumericFacet(document, node, restriction.minInclusive, restriction.base, state);
       case MAX_INCLUSIVE ->
           restriction.maxInclusive =
               singleNumericFacet(document, node, restriction.maxInclusive, restriction.base, state);
+      case MIN_EXCLUSIVE ->
+          restriction.minExclusive =
+              singleNumericFacet(document, node, restriction.minExclusive, restriction.base, state);
+      case MAX_EXCLUSIVE ->
+          restriction.maxExclusive =
+              singleNumericFacet(document, node, restriction.maxExclusive, restriction.base, state);
+      case TOTAL_DIGITS ->
+          restriction.totalDigits =
+              singleDigitsFacet(document, node, restriction.totalDigits, state);
+      case FRACTION_DIGITS ->
+          restriction.fractionDigits =
+              singleDigitsFacet(document, node, restriction.fractionDigits, state);
+      case WHITE_SPACE ->
+          restriction.whiteSpace =
+              singleWhiteSpaceFacet(document, node, restriction.whiteSpace, state);
       case PATTERN -> addPattern(document, node, restriction, state);
       default ->
           diagnostic(
@@ -1629,21 +1678,9 @@ public final class SchemaIrBuilder {
   }
 
   private Integer singleLengthFacet(
-      XsdSyntaxDocument document,
-      XsdSyntaxNode node,
-      Integer previous,
-      SchemaQName base,
-      BuildState state) {
+      XsdSyntaxDocument document, XsdSyntaxNode node, Integer previous, BuildState state) {
     String value = facetValue(document, node, state);
     if (value == null) {
-      return previous;
-    }
-    if (!"string".equals(base.localName())) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:" + node.kind().manifestName() + " is supported only for xs:string.");
       return previous;
     }
     if (previous != null) {
@@ -1707,6 +1744,61 @@ public final class SchemaIrBuilder {
     return value;
   }
 
+  private Integer singleDigitsFacet(
+      XsdSyntaxDocument document, XsdSyntaxNode node, Integer previous, BuildState state) {
+    String value = facetValue(document, node, state);
+    if (value == null) {
+      return previous;
+    }
+    if (previous != null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Duplicate xs:" + node.kind().manifestName() + " facet.");
+      return previous;
+    }
+    try {
+      int parsed = Integer.parseInt(value);
+      if (parsed <= 0) {
+        throw new NumberFormatException("non-positive");
+      }
+      return parsed;
+    } catch (NumberFormatException exception) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Invalid xs:" + node.kind().manifestName() + " value " + value + ".");
+      return previous;
+    }
+  }
+
+  private String singleWhiteSpaceFacet(
+      XsdSyntaxDocument document, XsdSyntaxNode node, String previous, BuildState state) {
+    String value = facetValue(document, node, state);
+    if (value == null) {
+      return previous;
+    }
+    if (previous != null) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Duplicate xs:whiteSpace facet.");
+      return previous;
+    }
+    if (!Set.of("preserve", "replace", "collapse").contains(value)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Invalid xs:whiteSpace value " + value + ".");
+      return previous;
+    }
+    return value;
+  }
+
   private void addPattern(
       XsdSyntaxDocument document,
       XsdSyntaxNode node,
@@ -1714,14 +1806,6 @@ public final class SchemaIrBuilder {
       BuildState state) {
     String value = facetValue(document, node, state);
     if (value == null) {
-      return;
-    }
-    if (!"string".equals(restriction.base.localName())) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:pattern is supported only for xs:string.");
       return;
     }
     try {
@@ -1752,13 +1836,73 @@ public final class SchemaIrBuilder {
 
   private boolean isSupportedRestrictionBase(SchemaQName base) {
     return base.isXmlSchemaBuiltIn()
-        && Set.of("string", "boolean", "int", "integer", "long", "decimal")
+        && Set.of(
+                "string",
+                "normalizedString",
+                "token",
+                "language",
+                "Name",
+                "NCName",
+                "ID",
+                "IDREF",
+                "IDREFS",
+                "ENTITY",
+                "ENTITIES",
+                "NMTOKEN",
+                "NMTOKENS",
+                "boolean",
+                "decimal",
+                "float",
+                "double",
+                "duration",
+                "dateTime",
+                "time",
+                "date",
+                "gYearMonth",
+                "gYear",
+                "gMonthDay",
+                "gDay",
+                "gMonth",
+                "hexBinary",
+                "base64Binary",
+                "anyURI",
+                "QName",
+                "NOTATION",
+                "integer",
+                "nonPositiveInteger",
+                "negativeInteger",
+                "long",
+                "int",
+                "short",
+                "byte",
+                "nonNegativeInteger",
+                "unsignedLong",
+                "unsignedInt",
+                "unsignedShort",
+                "unsignedByte",
+                "positiveInteger")
             .contains(base.localName());
   }
 
   private boolean isNumericBase(SchemaQName base) {
     return switch (base.localName()) {
-      case "int", "integer", "long", "decimal" -> true;
+      case "int",
+          "integer",
+          "long",
+          "decimal",
+          "short",
+          "byte",
+          "float",
+          "double",
+          "nonPositiveInteger",
+          "negativeInteger",
+          "nonNegativeInteger",
+          "unsignedLong",
+          "unsignedInt",
+          "unsignedShort",
+          "unsignedByte",
+          "positiveInteger" ->
+          true;
       default -> false;
     };
   }
@@ -1776,11 +1920,25 @@ public final class SchemaIrBuilder {
               || "1".equals(value);
         }
         case "int" -> Integer.parseInt(value);
+        case "short" -> Short.parseShort(value);
+        case "byte" -> Byte.parseByte(value);
         case "integer" -> new BigInteger(value);
+        case "nonPositiveInteger",
+            "negativeInteger",
+            "nonNegativeInteger",
+            "unsignedLong",
+            "positiveInteger" ->
+            new BigInteger(value);
         case "long" -> Long.parseLong(value);
+        case "unsignedInt" -> Long.parseLong(value);
+        case "unsignedShort" -> Integer.parseInt(value);
+        case "unsignedByte" -> Short.parseShort(value);
         case "decimal" -> new BigDecimal(value);
+        case "float" -> Float.parseFloat(value);
+        case "double" -> Double.parseDouble(value);
         default -> {
-          return false;
+          return isSupportedRestrictionBase(
+              new SchemaQName("http://www.w3.org/2001/XMLSchema", base));
         }
       }
       return true;
@@ -1986,6 +2144,11 @@ public final class SchemaIrBuilder {
           MAX_LENGTH,
           MIN_INCLUSIVE,
           MAX_INCLUSIVE,
+          MIN_EXCLUSIVE,
+          MAX_EXCLUSIVE,
+          TOTAL_DIGITS,
+          FRACTION_DIGITS,
+          WHITE_SPACE,
           PATTERN,
           LIST,
           UNION,
@@ -2056,6 +2219,11 @@ public final class SchemaIrBuilder {
     private Integer maxLength;
     private String minInclusive;
     private String maxInclusive;
+    private String minExclusive;
+    private String maxExclusive;
+    private Integer totalDigits;
+    private Integer fractionDigits;
+    private String whiteSpace;
 
     private SimpleRestrictionState(SchemaQName base) {
       this.base = base;
@@ -2063,7 +2231,19 @@ public final class SchemaIrBuilder {
 
     private SchemaIrSimpleRestriction toRestriction() {
       return new SchemaIrSimpleRestriction(
-          base, enumerations, length, minLength, maxLength, minInclusive, maxInclusive, patterns);
+          base,
+          enumerations,
+          length,
+          minLength,
+          maxLength,
+          minInclusive,
+          maxInclusive,
+          minExclusive,
+          maxExclusive,
+          totalDigits,
+          fractionDigits,
+          whiteSpace,
+          patterns);
     }
   }
 }

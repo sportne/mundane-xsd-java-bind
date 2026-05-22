@@ -10,6 +10,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
 import io.github.mundanej.mxjb.generator.core.bind.BindingResult;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
+import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import java.nio.file.Path;
@@ -17,21 +18,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /** Emits deterministic Java 21 model source from the internal binding model. */
 public final class GeneratedModelEmitter {
-  private static final Map<String, String> SCALAR_TYPES =
-      Map.of(
-          "string", "String",
-          "boolean", "Boolean",
-          "int", "Integer",
-          "integer", "BigInteger",
-          "long", "Long",
-          "decimal", "BigDecimal");
-
   public GeneratedModelEmissionResult emit(BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {
       return GeneratedModelEmissionResult.empty(bindingResult.diagnostics());
@@ -122,7 +113,7 @@ public final class GeneratedModelEmitter {
 
   private boolean isSupportedTypeReference(BindingTypeReference reference) {
     if ("scalar".equals(reference.kind())) {
-      return SCALAR_TYPES.containsKey(reference.name());
+      return XmlSchemaBuiltIns.isSupported(reference.name());
     }
     if ("list".equals(reference.kind())) {
       return reference.itemType() != null && isSupportedTypeReference(reference.itemType());
@@ -348,6 +339,10 @@ public final class GeneratedModelEmitter {
       if ("list".equals(cardinality) || "list".equals(field.type().kind())) {
         imports.add("java.util.List");
       }
+      if ("scalar".equals(field.type().kind())
+          && XmlSchemaBuiltIns.isListValued(field.type().name())) {
+        imports.add("java.util.List");
+      }
       if ("optional".equals(cardinality) || field.semantics().nillable()) {
         imports.add("java.util.Optional");
       }
@@ -386,7 +381,7 @@ public final class GeneratedModelEmitter {
 
   private String baseType(String currentPackage, BindingTypeReference reference) {
     if ("scalar".equals(reference.kind())) {
-      return SCALAR_TYPES.get(reference.name());
+      return XmlSchemaBuiltIns.javaType(reference.name());
     }
     if ("list".equals(reference.kind())) {
       return "List<" + baseType(currentPackage, reference.itemType()) + ">";
@@ -415,7 +410,9 @@ public final class GeneratedModelEmitter {
 
   private String constructorLine(BindingField field) {
     String fieldName = field.javaName();
-    if ("list".equals(field.type().kind())) {
+    if ("list".equals(field.type().kind())
+        || ("scalar".equals(field.type().kind())
+            && XmlSchemaBuiltIns.isListValued(field.type().name()))) {
       return "    "
           + fieldName
           + " = List.copyOf(Objects.requireNonNull("
@@ -438,25 +435,38 @@ public final class GeneratedModelEmitter {
   }
 
   private String choiceBranchConstructorLine(BindingChoiceBranch branch) {
-    if ("list".equals(branch.type().kind())) {
+    if ("list".equals(branch.type().kind())
+        || ("scalar".equals(branch.type().kind())
+            && XmlSchemaBuiltIns.isListValued(branch.type().name()))) {
       return "    value = List.copyOf(Objects.requireNonNull(value, \"value\"));\n";
     }
     return "    Objects.requireNonNull(value, \"value\");\n";
   }
 
   private String contentBranchConstructorLine(BindingContentBranch branch) {
-    if ("list".equals(branch.type().kind())) {
+    if ("list".equals(branch.type().kind())
+        || ("scalar".equals(branch.type().kind())
+            && XmlSchemaBuiltIns.isListValued(branch.type().name()))) {
       return "    value = List.copyOf(Objects.requireNonNull(value, \"value\"));\n";
     }
     return "    Objects.requireNonNull(value, \"value\");\n";
   }
 
   private void addScalarImports(Set<String> imports, BindingTypeReference reference) {
-    if ("scalar".equals(reference.kind()) && "integer".equals(reference.name())) {
+    if ("scalar".equals(reference.kind()) && XmlSchemaBuiltIns.isListValued(reference.name())) {
+      imports.add("java.util.List");
+    }
+    if ("scalar".equals(reference.kind())
+        && XmlSchemaBuiltIns.isBigIntegerValued(reference.name())) {
       imports.add("java.math.BigInteger");
     }
-    if ("scalar".equals(reference.kind()) && "decimal".equals(reference.name())) {
+    if ("scalar".equals(reference.kind())
+        && XmlSchemaBuiltIns.isBigDecimalValued(reference.name())) {
       imports.add("java.math.BigDecimal");
+    }
+    if ("scalar".equals(reference.kind()) && XmlSchemaBuiltIns.isRuntimeValued(reference.name())) {
+      imports.add(
+          "io.github.mundanej.mxjb.runtime." + XmlSchemaBuiltIns.javaType(reference.name()));
     }
     if ("list".equals(reference.kind())) {
       addScalarImports(imports, reference.itemType());

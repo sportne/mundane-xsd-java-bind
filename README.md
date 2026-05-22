@@ -25,6 +25,11 @@ The current executable profiles are:
   `mixed="true"` sequence content, retained `XmlFragment` values, and stable project serialization
   policy.
 
+Across the executable profiles, accepted scalar element and attribute positions use the shared XSD
+1.0 datatype engine: string, numeric, float/double, temporal, duration, binary, anyURI,
+QName/NOTATION, list-valued built-ins, and restriction facets are supported for the schema shapes
+the profiles already accept.
+
 The planned full XML Schema 1.0 target is `XP-XSD10-FULL`. The public profile token exists for
 planning, but generation intentionally rejects it until the follow-on implementation tasks complete.
 The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
@@ -32,6 +37,8 @@ The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 ## Not supported
 
 - Full XML Schema 1.0 conformance is not claimed yet.
+- Full content-model automata, full derivation/polymorphism, full attribute/wildcard algebra, and
+  identity constraints are still planned work.
 - XSD 1.1 and XML 1.1 are not project targets.
 - XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
   retention, DTD/entity identity preservation, and DOM-backed binding are not supported.

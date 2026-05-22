@@ -353,7 +353,7 @@ final class GeneratedModelEmitterTest {
                 type(
                     "com.example.orders",
                     "Order",
-                    List.of(field("element", "when", scalar("date"), required())))));
+                    List.of(field("element", "when", scalar("unsupported"), required())))));
 
     GeneratedModelEmissionResult result = new GeneratedModelEmitter().emit(model);
 

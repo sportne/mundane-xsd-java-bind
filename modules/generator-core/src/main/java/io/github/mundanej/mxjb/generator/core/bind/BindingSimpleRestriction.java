@@ -13,6 +13,11 @@ public record BindingSimpleRestriction(
     Integer maxLength,
     String minInclusive,
     String maxInclusive,
+    String minExclusive,
+    String maxExclusive,
+    Integer totalDigits,
+    Integer fractionDigits,
+    String whiteSpace,
     List<String> patterns) {
   public BindingSimpleRestriction {
     Objects.requireNonNull(baseScalar, "baseScalar");
@@ -27,6 +32,11 @@ public record BindingSimpleRestriction(
         || maxLength != null
         || minInclusive != null
         || maxInclusive != null
+        || minExclusive != null
+        || maxExclusive != null
+        || totalDigits != null
+        || fractionDigits != null
+        || whiteSpace != null
         || !patterns.isEmpty();
   }
 
@@ -41,6 +51,11 @@ public record BindingSimpleRestriction(
             valueText("maxLength", maxLength),
             valueText("minInclusive", minInclusive),
             valueText("maxInclusive", maxInclusive),
+            valueText("minExclusive", minExclusive),
+            valueText("maxExclusive", maxExclusive),
+            valueText("totalDigits", totalDigits),
+            valueText("fractionDigits", fractionDigits),
+            valueText("whiteSpace", whiteSpace),
             listText("pattern", patterns))
         .filter(value -> !value.isEmpty())
         .collect(Collectors.joining(","));

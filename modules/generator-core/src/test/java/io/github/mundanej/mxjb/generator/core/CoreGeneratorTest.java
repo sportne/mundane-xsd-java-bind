@@ -215,8 +215,6 @@ final class CoreGeneratorTest {
     String validator =
         Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
     assertTrue(validator.contains("MXJB-GV-005"));
-    assertTrue(validator.contains("MXJB-GV-006"));
-    assertTrue(validator.contains("MXJB-GV-007"));
     compileGeneratedSources(output, result.generatedSources());
   }
 
@@ -296,8 +294,8 @@ final class CoreGeneratorTest {
     assertTrue(order.contains("List<Integer> quantities"));
     assertTrue(order.contains("String status"));
     assertTrue(order.contains("List<Boolean> flags"));
-    assertTrue(writer.contains("Collectors.joining(\" \")"));
-    assertTrue(reader.contains("readIntListElement"));
+    assertTrue(writer.contains("XmlDatatypes.formatList(\"int\""));
+    assertTrue(reader.contains("readDatatypeListElement(input, NAME_"));
     assertTrue(validator.contains("MXJB-GV-008"));
     compileGeneratedSources(output, result.generatedSources());
   }
@@ -439,8 +437,8 @@ final class CoreGeneratorTest {
     assertTrue(order.contains("BigDecimal total"));
     assertTrue(order.indexOf("String id") < order.indexOf("BigDecimal total"));
     assertFalse(order.contains("extends"));
-    assertTrue(validator.contains("Value length is outside the accepted range."));
-    assertTrue(validator.contains("Pattern.matches"));
+    assertTrue(validator.contains("MXJB-GV-005"));
+    assertTrue(validator.contains("XmlDatatypes.matchesFacets"));
     compileGeneratedSources(output, result.generatedSources());
   }
 
@@ -806,7 +804,7 @@ final class CoreGeneratorTest {
               <xs:element name="order" type="tns:Order"/>
               <xs:complexType name="Order">
                 <xs:sequence>
-                  <xs:element name="date" type="xs:date"/>
+                  <xs:element name="date" type="xs:anyType"/>
                 </xs:sequence>
               </xs:complexType>
             </xs:schema>

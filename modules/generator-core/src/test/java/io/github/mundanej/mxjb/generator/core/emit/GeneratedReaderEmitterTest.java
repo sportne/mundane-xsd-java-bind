@@ -287,7 +287,7 @@ final class GeneratedReaderEmitterTest {
       assertEquals(
           new java.math.BigDecimal("19.95"), totalsClass.getMethod("amount").invoke(totals));
 
-      assertReadDiagnostic(readerClass, totalsInput("maybe"), "MXJB-GR-006");
+      assertReadDiagnostic(readerClass, totalsInput("maybe"), "MXJB-DT-001");
     }
   }
 
@@ -341,7 +341,7 @@ final class GeneratedReaderEmitterTest {
                         field(
                             "attribute", "owner", model("com.example.orders.Owner"), required(), 0),
                         field("attribute", "tag", scalar("string"), list(), 0),
-                        field("element", "date", scalar("date"), required(), 1))),
+                        field("element", "date", scalar("unsupported"), required(), 1))),
                 type("com.example.orders", "Owner", List.of())));
 
     GeneratedReaderEmissionResult result = new GeneratedReaderEmitter().emit(model);

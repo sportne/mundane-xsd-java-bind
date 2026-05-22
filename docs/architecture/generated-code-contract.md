@@ -33,7 +33,9 @@ The first generated-writer emitter supports root static XML writers for supporte
 - The public writer entry point is `public static void write(XmlOutput output, RootType value) throws XmlWriteException`.
 - Writer classes have private constructors, static `XmlName` constants, and private static helper methods for nested complex types.
 - Writers require non-null `output` and root `value`, write attributes immediately after `startElement`, write child elements in binding order, skip empty `Optional` values, and iterate repeated fields in list order.
-- Scalar lexical conversion uses the string value directly for `String` and `String.valueOf(...)` for non-string scalar values.
+- Scalar lexical conversion uses `XmlDatatypes.format(...)` and `XmlDatatypes.formatList(...)`
+  for supported XML Schema datatype values; QName output delegates prefix assignment to
+  `XmlOutput.qNameText(...)`.
 - Generated writer source uses fully qualified names for generated model types, `java.util.Objects`, and `runtime-core` `XmlName`, `XmlOutput`, and `XmlWriteException` to avoid import collisions with schema-derived model names.
 - Generated writer source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML reader behavior, validation behavior, or external resource access.
 
@@ -46,7 +48,10 @@ The first generated-reader emitter supports root static XML readers for supporte
 - Reader classes have private constructors, static `XmlName` constants, and private static helper methods for nested complex types.
 - Readers require non-null `input`, accept `START_DOCUMENT` or root `START_ELEMENT`, skip whitespace-only text between elements, match expanded names namespace-aware, and parse children in binding order.
 - Optional fields are produced as `Optional.empty()` when absent, repeated fields are copied into immutable lists through generated model construction, and missing/repeated/out-of-order content produces deterministic `XmlReadException` diagnostics.
-- Scalar lexical conversion covers `String`, `Boolean`, `Integer`, `BigInteger`, `Long`, and `BigDecimal`; accepted `XP-VALIDATION-10-BASIC` facets are emitted as explicit generated validator checks after lexical conversion.
+- Scalar lexical conversion uses the shared `XmlDatatypes` runtime engine for all supported XML
+  Schema 1.0 built-ins in accepted schema shapes. Generated QName element readers parse while the
+  element namespace context is still active; list-valued built-ins and named lists are copied into
+  immutable lists.
 - Generated reader source uses fully qualified names for generated model types, `java.util.Objects`, collection helpers, and `runtime-core` `XmlName`, `XmlEventReader`, `XmlDiagnostic`, `XmlDiagnosticSeverity`, and `XmlReadException` to avoid import collisions.
 - Generated reader source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, validation engine behavior, or external resource access.
 
@@ -58,6 +63,9 @@ The first generated-validator emitter supports basic validation for supported da
 - Validator classes expose `validate(RootType value)` for object validation and `validate(XmlEventReader input)` for location-aware XML validation through the generated peer reader.
 - Object validation checks required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, and nested model values in deterministic binding order; object diagnostics use `XmlLocation.UNKNOWN`.
 - XML validation preserves generated-reader diagnostics by converting `XmlReadException` diagnostics into `ValidationError` values before returning `ValidationResult.invalid(...)`.
+- Datatype and facet validation delegates to the shared runtime datatype engine while preserving
+  stable generated diagnostic categories for length, range, pattern, and general datatype facet
+  failures.
 - Generated validator source uses fully qualified names for generated model types and `runtime-core` validation/XML types to avoid import collisions.
 - Generated validator source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, dependency injection, or external resource access.
 

@@ -12,6 +12,7 @@ import io.github.mundanej.mxjb.runtime.XmlEventKind;
 import io.github.mundanej.mxjb.runtime.XmlEventReader;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
+import io.github.mundanej.mxjb.runtime.XmlQName;
 import io.github.mundanej.mxjb.runtime.XmlReadException;
 import io.github.mundanej.mxjb.runtime.XmlWriteException;
 import java.io.StringReader;
@@ -150,6 +151,29 @@ final class JdkXmlAdaptersTest {
     output.flush();
 
     assertEquals("<root xmlns:ns1=\"urn:attrs\" ns1:code=\"A-1\"></root>", xml.toString());
+  }
+
+  @Test
+  void eventReaderResolvesPrefixesAndOutputDeclaresQNameValueNamespaces()
+      throws XMLStreamException, XmlReadException, XmlWriteException {
+    XMLInputFactory factory = JdkXmlAdapters.secureInputFactory();
+    XmlEventReader reader =
+        JdkXmlAdapters.eventReader(
+            factory.createXMLStreamReader(
+                new StringReader("<root xmlns:ex=\"urn:example\">ex:value</root>")));
+
+    assertTrue(reader.next());
+    assertEquals("urn:example", reader.namespaceUriForPrefix("ex"));
+
+    StringWriter xml = new StringWriter();
+    XMLStreamWriter streamWriter = XMLOutputFactory.newFactory().createXMLStreamWriter(xml);
+    XmlOutput output = JdkXmlAdapters.output(streamWriter);
+    output.startElement(new XmlName("", "root"));
+    output.text(output.qNameText(new XmlQName("urn:example", "value")));
+    output.endElement(new XmlName("", "root"));
+    output.flush();
+
+    assertEquals("<root xmlns:ns1=\"urn:example\">ns1:value</root>", xml.toString());
   }
 
   @Test

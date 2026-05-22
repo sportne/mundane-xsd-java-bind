@@ -1,0 +1,23 @@
+<sample xmlns="urn:datatypes" xmlns:q="urn:qnames">
+  <code>a</code>
+  <decimalFacet>10.12</decimalFacet>
+  <booleanValue>1</booleanValue>
+  <floatValue>INF</floatValue>
+  <doubleValue>-INF</doubleValue>
+  <integerValue>12345678901234567890</integerValue>
+  <unsignedByteValue>255</unsignedByteValue>
+  <durationValue>P1Y2M3DT4H5M6.7S</durationValue>
+  <dateTimeValue>2025-05-21T10:15:30Z</dateTimeValue>
+  <dateValue>2025-05-21-05:00</dateValue>
+  <timeValue>10:15:30Z</timeValue>
+  <gYearValue>2025</gYearValue>
+  <gYearMonthValue>2025-05</gYearMonthValue>
+  <gMonthValue>--05</gMonthValue>
+  <gMonthDayValue>--05-21</gMonthDayValue>
+  <gDayValue>---21</gDayValue>
+  <hexValue>0A0B0C</hexValue>
+  <base64Value>AQIDBA==</base64Value>
+  <uriValue>https://example.test/orders/1?ok=true&amp;mode=test</uriValue>
+  <qnameValue>q:item</qnameValue>
+  <tokensValue>alpha beta-1 gamma.2</tokensValue>
+</sample>

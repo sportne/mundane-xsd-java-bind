@@ -95,7 +95,7 @@ final class GeneratedWriterEmitterTest {
             output.text(value.id());
             output.endElement(NAME_3);
             output.startElement(NAME_4);
-            output.text(String.valueOf(value.quantity()));
+            output.text(io.github.mundanej.mxjb.runtime.XmlDatatypes.format("int", value.quantity(), output));
             output.endElement(NAME_4);
             output.endElement(elementName);
           }
@@ -441,7 +441,7 @@ final class GeneratedWriterEmitterTest {
                     List.of(
                         field(
                             "attribute", "owner", model("com.example.orders.Owner"), required(), 0),
-                        field("element", "date", scalar("date"), required(), 1))),
+                        field("element", "date", scalar("unsupported"), required(), 1))),
                 type("com.example.orders", "Owner", List.of())));
 
     GeneratedWriterEmissionResult result = new GeneratedWriterEmitter().emit(model);

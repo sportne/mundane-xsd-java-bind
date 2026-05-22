@@ -33,9 +33,6 @@ import java.util.Set;
 
 /** Builds the deterministic binding model from normalized schema IR. */
 public final class BindingModelBuilder {
-  private static final Set<String> SUPPORTED_BUILT_INS =
-      Set.of("string", "boolean", "int", "integer", "long", "decimal");
-
   public BindingResult build(SchemaIrResult irResult) {
     return build(irResult, BindingConfiguration.defaults());
   }
@@ -526,7 +523,7 @@ public final class BindingModelBuilder {
       }
       SchemaQName name = reference.name();
       if (name.isXmlSchemaBuiltIn()) {
-        if (!SUPPORTED_BUILT_INS.contains(name.localName())) {
+        if (!XmlSchemaBuiltIns.isSupported(name.localName())) {
           diagnostic(
               DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
               "binding",
@@ -572,7 +569,7 @@ public final class BindingModelBuilder {
 
     private BindingTypeReference bindSimpleCompositionMember(SchemaQName name) {
       if (name.isXmlSchemaBuiltIn()) {
-        if (!SUPPORTED_BUILT_INS.contains(name.localName())) {
+        if (!XmlSchemaBuiltIns.isSupported(name.localName())) {
           diagnostic(
               DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
               "binding",
@@ -593,6 +590,29 @@ public final class BindingModelBuilder {
     }
 
     private BindingTypeReference bindRestrictedScalar(SchemaIrSimpleRestriction restriction) {
+      for (String enumeration : restriction.enumerations()) {
+        if (XmlSchemaBuiltIns.hasPrefixedQNameLexical(
+            restriction.base().localName(), enumeration)) {
+          diagnostic(
+              DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+              "binding",
+              "Prefixed QName enumeration facets require schema namespace context preservation.");
+        } else if (!XmlSchemaBuiltIns.isLexicallyValid(
+            restriction.base().localName(), enumeration)) {
+          diagnostic(
+              DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+              "binding",
+              "Invalid enumeration value "
+                  + enumeration
+                  + " for base "
+                  + restriction.base().toText()
+                  + ".");
+        }
+      }
+      validateRestrictionBound(restriction.base(), "minInclusive", restriction.minInclusive());
+      validateRestrictionBound(restriction.base(), "maxInclusive", restriction.maxInclusive());
+      validateRestrictionBound(restriction.base(), "minExclusive", restriction.minExclusive());
+      validateRestrictionBound(restriction.base(), "maxExclusive", restriction.maxExclusive());
       BindingSimpleRestriction bindingRestriction =
           new BindingSimpleRestriction(
               restriction.base().localName(),
@@ -602,8 +622,25 @@ public final class BindingModelBuilder {
               restriction.maxLength(),
               restriction.minInclusive(),
               restriction.maxInclusive(),
+              restriction.minExclusive(),
+              restriction.maxExclusive(),
+              restriction.totalDigits(),
+              restriction.fractionDigits(),
+              restriction.whiteSpace(),
               restriction.patterns());
       return BindingTypeReference.scalar(restriction.base().localName(), bindingRestriction);
+    }
+
+    private void validateRestrictionBound(SchemaQName base, String facetName, String value) {
+      if (value == null) {
+        return;
+      }
+      if (!XmlSchemaBuiltIns.isLexicallyValid(base.localName(), value)) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            "binding",
+            "Invalid " + facetName + " value " + value + " for base " + base.toText() + ".");
+      }
     }
 
     private void validateListSimpleTypeCardinality(
@@ -707,8 +744,23 @@ public final class BindingModelBuilder {
                 + " values support only scalar built-ins or restricted scalar aliases.");
         return;
       }
-      if (!isValidScalarLexical(bindingType.name(), value)
-          || !matchesRestriction(bindingType, value)) {
+      if (XmlSchemaBuiltIns.hasPrefixedQNameLexical(bindingType.name(), value)) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+            "binding",
+            kind
+                + " "
+                + name.toText()
+                + " has namespace-prefixed QName "
+                + label
+                + " value "
+                + value
+                + ", which requires schema namespace context preservation.");
+        return;
+      }
+      if (!XmlSchemaBuiltIns.isLexicallyValid(bindingType.name(), value)
+          || !XmlSchemaBuiltIns.matchesRestriction(
+              bindingType.name(), value, bindingType.restriction())) {
         diagnostic(
             DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
             "binding",
@@ -720,69 +772,6 @@ public final class BindingModelBuilder {
                 + " value "
                 + value
                 + ".");
-      }
-    }
-
-    private boolean matchesRestriction(BindingTypeReference type, String value) {
-      BindingSimpleRestriction restriction = type.restriction();
-      if (restriction == null || !restriction.hasRules()) {
-        return true;
-      }
-      if (!restriction.enumerations().isEmpty() && !restriction.enumerations().contains(value)) {
-        return false;
-      }
-      if (restriction.length() != null && value.length() != restriction.length()) {
-        return false;
-      }
-      if (restriction.minLength() != null && value.length() < restriction.minLength()) {
-        return false;
-      }
-      if (restriction.maxLength() != null && value.length() > restriction.maxLength()) {
-        return false;
-      }
-      if (restriction.minInclusive() != null
-          && new java.math.BigDecimal(value)
-                  .compareTo(new java.math.BigDecimal(restriction.minInclusive()))
-              < 0) {
-        return false;
-      }
-      if (restriction.maxInclusive() != null
-          && new java.math.BigDecimal(value)
-                  .compareTo(new java.math.BigDecimal(restriction.maxInclusive()))
-              > 0) {
-        return false;
-      }
-      for (String pattern : restriction.patterns()) {
-        if (!java.util.regex.Pattern.matches(pattern, value)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    private boolean isValidScalarLexical(String scalar, String value) {
-      try {
-        switch (scalar) {
-          case "string" -> {
-            return true;
-          }
-          case "boolean" -> {
-            return "true".equals(value)
-                || "false".equals(value)
-                || "0".equals(value)
-                || "1".equals(value);
-          }
-          case "int" -> Integer.parseInt(value);
-          case "integer" -> new java.math.BigInteger(value);
-          case "long" -> Long.parseLong(value);
-          case "decimal" -> new java.math.BigDecimal(value);
-          default -> {
-            return false;
-          }
-        }
-        return true;
-      } catch (NumberFormatException exception) {
-        return false;
       }
     }
 

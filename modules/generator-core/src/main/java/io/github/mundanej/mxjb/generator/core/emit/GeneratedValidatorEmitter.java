@@ -10,6 +10,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingRootElement;
 import io.github.mundanej.mxjb.generator.core.bind.BindingSimpleRestriction;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
+import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import java.nio.file.Path;
@@ -110,10 +111,7 @@ public final class GeneratedValidatorEmitter {
 
   private boolean isSupportedTypeReference(BindingTypeReference reference, ModelIndex index) {
     if ("scalar".equals(reference.kind())) {
-      return switch (reference.name()) {
-        case "string", "boolean", "int", "integer", "long", "decimal" -> true;
-        default -> false;
-      };
+      return XmlSchemaBuiltIns.isSupported(reference.name());
     }
     if ("list".equals(reference.kind())) {
       return reference.itemType() != null && isSupportedTypeReference(reference.itemType(), index);
@@ -645,6 +643,9 @@ public final class GeneratedValidatorEmitter {
       if (hasFacetRules(reference)) {
         return true;
       }
+      if ("scalar".equals(reference.kind()) && !"string".equals(reference.name())) {
+        return true;
+      }
       if ("list".equals(reference.kind())) {
         return true;
       }
@@ -667,6 +668,7 @@ public final class GeneratedValidatorEmitter {
             .append(
                 "    addError(errors, \"MXJB-GV-001\", \"Missing required value item.\", location);\n");
         source.append(indent).append("  } else {\n");
+        appendDatatypeValueValidation(source, reference.itemType(), "item", indent + "    ");
         appendFacetValidation(source, reference.itemType(), "item", indent + "    ");
         source.append(indent).append("  }\n");
         source.append(indent).append("}\n");
@@ -676,7 +678,34 @@ public final class GeneratedValidatorEmitter {
         appendUnionValidation(source, reference, accessor, indent);
         return;
       }
+      appendDatatypeValueValidation(source, reference, accessor, indent);
       appendFacetValidation(source, reference, accessor, indent);
+    }
+
+    private void appendDatatypeValueValidation(
+        StringBuilder source, BindingTypeReference reference, String accessor, String indent) {
+      if (!"scalar".equals(reference.kind()) || "string".equals(reference.name())) {
+        return;
+      }
+      appendFacetCheck(
+          source,
+          datatypeFacetExpression(
+              reference.name(),
+              accessor,
+              List.of(),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              List.of()),
+          "MXJB-GV-004",
+          "Value does not match datatype value space.",
+          indent);
     }
 
     private void appendUnionValidation(
@@ -705,97 +734,16 @@ public final class GeneratedValidatorEmitter {
     }
 
     private String lexicalMatchExpression(String scalar, String accessor) {
-      return switch (scalar) {
-        case "string" -> "true";
-        case "boolean" -> "parseBooleanOrNull(" + accessor + ") != null";
-        case "int" -> "parseIntOrNull(" + accessor + ") != null";
-        case "integer" -> "parseIntegerOrNull(" + accessor + ") != null";
-        case "long" -> "parseLongOrNull(" + accessor + ") != null";
-        case "decimal" -> "parseDecimalOrNull(" + accessor + ") != null";
-        default -> "false";
-      };
+      return "io.github.mundanej.mxjb.runtime.XmlDatatypes.isLexicallyValid(\""
+          + escape(scalar)
+          + "\", "
+          + accessor
+          + ")";
     }
 
     private String facetMatchExpression(BindingTypeReference reference, String accessor) {
       BindingSimpleRestriction restriction = reference.restriction();
-      List<String> predicates = new ArrayList<>();
-      if (!restriction.enumerations().isEmpty()) {
-        List<String> enumerationPredicates = new ArrayList<>();
-        for (String value : restriction.enumerations()) {
-          enumerationPredicates.add(
-              enumerationMatchExpression(restriction.baseScalar(), accessor, value));
-        }
-        predicates.add("(" + String.join(" || ", enumerationPredicates) + ")");
-      }
-      if (restriction.length() != null) {
-        predicates.add(accessor + ".length() == " + restriction.length());
-      }
-      if (restriction.minLength() != null) {
-        predicates.add(accessor + ".length() >= " + restriction.minLength());
-      }
-      if (restriction.maxLength() != null) {
-        predicates.add(accessor + ".length() <= " + restriction.maxLength());
-      }
-      if (restriction.minInclusive() != null) {
-        predicates.add(
-            parsedValueExpression(restriction.baseScalar(), accessor)
-                + ".compareTo("
-                + numericLiteral(restriction.baseScalar(), restriction.minInclusive())
-                + ") >= 0");
-      }
-      if (restriction.maxInclusive() != null) {
-        predicates.add(
-            parsedValueExpression(restriction.baseScalar(), accessor)
-                + ".compareTo("
-                + numericLiteral(restriction.baseScalar(), restriction.maxInclusive())
-                + ") <= 0");
-      }
-      for (String pattern : restriction.patterns()) {
-        predicates.add(
-            "java.util.regex.Pattern.matches(\"" + escape(pattern) + "\", " + accessor + ")");
-      }
-      return predicates.isEmpty() ? "true" : String.join(" && ", predicates);
-    }
-
-    private String enumerationMatchExpression(String scalar, String accessor, String value) {
-      return switch (scalar) {
-        case "string" -> "java.util.Objects.equals(" + accessor + ", \"" + escape(value) + "\")";
-        case "boolean" ->
-            "java.util.Objects.equals(parseBooleanOrNull("
-                + accessor
-                + "), "
-                + booleanLiteral(value)
-                + ")";
-        case "int" ->
-            "java.util.Objects.equals(parseIntOrNull("
-                + accessor
-                + "), Integer.valueOf("
-                + value
-                + "))";
-        case "long" ->
-            "java.util.Objects.equals(parseLongOrNull("
-                + accessor
-                + "), Long.valueOf("
-                + value
-                + "L))";
-        case "integer", "decimal" ->
-            parsedValueExpression(scalar, accessor)
-                + ".compareTo("
-                + numericLiteral(scalar, value)
-                + ") == 0";
-        default -> "false";
-      };
-    }
-
-    private String parsedValueExpression(String scalar, String accessor) {
-      return switch (scalar) {
-        case "boolean" -> "parseBooleanOrNull(" + accessor + ")";
-        case "int" -> "parseIntOrNull(" + accessor + ")";
-        case "integer" -> "parseIntegerOrNull(" + accessor + ")";
-        case "long" -> "parseLongOrNull(" + accessor + ")";
-        case "decimal" -> "parseDecimalOrNull(" + accessor + ")";
-        default -> accessor;
-      };
+      return facetHelperExpression(restriction, accessor);
     }
 
     private void appendFacetValidation(
@@ -804,10 +752,110 @@ public final class GeneratedValidatorEmitter {
       if (restriction == null || !restriction.hasRules()) {
         return;
       }
-      appendEnumerationValidation(source, restriction, accessor, indent);
-      appendLengthValidation(source, restriction, accessor, indent);
-      appendRangeValidation(source, restriction, accessor, indent);
-      appendPatternValidation(source, restriction, accessor, indent);
+      if (restriction.length() != null
+          || restriction.minLength() != null
+          || restriction.maxLength() != null) {
+        appendFacetCheck(
+            source,
+            datatypeFacetExpression(
+                restriction.baseScalar(),
+                accessor,
+                List.of(),
+                restriction.length(),
+                restriction.minLength(),
+                restriction.maxLength(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of()),
+            "MXJB-GV-005",
+            "Value length is outside the accepted range.",
+            indent);
+      }
+      if (!restriction.patterns().isEmpty()) {
+        appendFacetCheck(
+            source,
+            datatypeFacetExpression(
+                restriction.baseScalar(),
+                accessor,
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                restriction.patterns()),
+            "MXJB-GV-007",
+            "Value does not match required pattern.",
+            indent);
+      }
+      if (restriction.minInclusive() != null
+          || restriction.maxInclusive() != null
+          || restriction.minExclusive() != null
+          || restriction.maxExclusive() != null) {
+        appendFacetCheck(
+            source,
+            datatypeFacetExpression(
+                restriction.baseScalar(),
+                accessor,
+                List.of(),
+                null,
+                null,
+                null,
+                restriction.minInclusive(),
+                restriction.maxInclusive(),
+                restriction.minExclusive(),
+                restriction.maxExclusive(),
+                null,
+                null,
+                List.of()),
+            "MXJB-GV-006",
+            "Value is outside the accepted range.",
+            indent);
+      }
+      if (!restriction.enumerations().isEmpty()
+          || restriction.totalDigits() != null
+          || restriction.fractionDigits() != null) {
+        appendFacetCheck(
+            source,
+            datatypeFacetExpression(
+                restriction.baseScalar(),
+                accessor,
+                restriction.enumerations(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                restriction.totalDigits(),
+                restriction.fractionDigits(),
+                List.of()),
+            "MXJB-GV-004",
+            "Value does not satisfy datatype facets.",
+            indent);
+      }
+    }
+
+    private void appendFacetCheck(
+        StringBuilder source, String expression, String code, String message, String indent) {
+      source.append(indent).append("if (!").append(expression).append(") {\n");
+      source
+          .append(indent)
+          .append("  addError(errors, \"")
+          .append(code)
+          .append("\", \"")
+          .append(message)
+          .append("\", location);\n");
+      source.append(indent).append("}\n");
     }
 
     private void appendFixedValidation(
@@ -829,172 +877,13 @@ public final class GeneratedValidatorEmitter {
 
     private String fixedComparison(
         BindingTypeReference reference, String accessor, String fixedValue) {
-      return switch (reference.name()) {
-        case "string" ->
-            "java.util.Objects.equals(" + accessor + ", \"" + escape(fixedValue) + "\")";
-        case "boolean" ->
-            "java.util.Objects.equals(" + accessor + ", " + booleanLiteral(fixedValue) + ")";
-        case "int" ->
-            "java.util.Objects.equals(" + accessor + ", Integer.valueOf(" + fixedValue + "))";
-        case "long" ->
-            "java.util.Objects.equals(" + accessor + ", Long.valueOf(" + fixedValue + "L))";
-        case "integer" ->
-            accessor + ".compareTo(new java.math.BigInteger(\"" + escape(fixedValue) + "\")) == 0";
-        case "decimal" ->
-            accessor + ".compareTo(new java.math.BigDecimal(\"" + escape(fixedValue) + "\")) == 0";
-        default -> "false";
-      };
-    }
-
-    private void appendEnumerationValidation(
-        StringBuilder source,
-        BindingSimpleRestriction restriction,
-        String accessor,
-        String indent) {
-      if (restriction.enumerations().isEmpty()) {
-        return;
-      }
-      source.append(indent).append("if (!(");
-      for (int indexValue = 0; indexValue < restriction.enumerations().size(); indexValue++) {
-        if (indexValue > 0) {
-          source.append(" || ");
-        }
-        source.append(
-            enumerationComparison(
-                restriction.baseScalar(), accessor, restriction.enumerations().get(indexValue)));
-      }
-      source.append(")) {\n");
-      source
-          .append(indent)
-          .append(
-              "  addError(errors, \"MXJB-GV-004\", \"Value is not in the accepted enumeration.\", location);\n");
-      source.append(indent).append("}\n");
-    }
-
-    private String enumerationComparison(String scalar, String accessor, String value) {
-      return switch (scalar) {
-        case "string" -> "java.util.Objects.equals(" + accessor + ", \"" + escape(value) + "\")";
-        case "boolean" ->
-            "java.util.Objects.equals(" + accessor + ", " + booleanLiteral(value) + ")";
-        case "int" -> "java.util.Objects.equals(" + accessor + ", Integer.valueOf(" + value + "))";
-        case "long" -> "java.util.Objects.equals(" + accessor + ", Long.valueOf(" + value + "L))";
-        case "integer" ->
-            accessor + ".compareTo(new java.math.BigInteger(\"" + escape(value) + "\")) == 0";
-        case "decimal" ->
-            accessor + ".compareTo(new java.math.BigDecimal(\"" + escape(value) + "\")) == 0";
-        default -> "false";
-      };
-    }
-
-    private String booleanLiteral(String value) {
-      return ("true".equals(value) || "1".equals(value)) ? "Boolean.TRUE" : "Boolean.FALSE";
-    }
-
-    private void appendLengthValidation(
-        StringBuilder source,
-        BindingSimpleRestriction restriction,
-        String accessor,
-        String indent) {
-      if (restriction.length() != null) {
-        source
-            .append(indent)
-            .append("if (")
-            .append(accessor)
-            .append(".length() != ")
-            .append(restriction.length())
-            .append(") {\n")
-            .append(indent)
-            .append(
-                "  addError(errors, \"MXJB-GV-005\", \"Value length is outside the accepted range.\", location);\n")
-            .append(indent)
-            .append("}\n");
-      }
-      if (restriction.minLength() != null) {
-        source
-            .append(indent)
-            .append("if (")
-            .append(accessor)
-            .append(".length() < ")
-            .append(restriction.minLength())
-            .append(") {\n")
-            .append(indent)
-            .append(
-                "  addError(errors, \"MXJB-GV-005\", \"Value length is outside the accepted range.\", location);\n")
-            .append(indent)
-            .append("}\n");
-      }
-      if (restriction.maxLength() != null) {
-        source
-            .append(indent)
-            .append("if (")
-            .append(accessor)
-            .append(".length() > ")
-            .append(restriction.maxLength())
-            .append(") {\n")
-            .append(indent)
-            .append(
-                "  addError(errors, \"MXJB-GV-005\", \"Value length is outside the accepted range.\", location);\n")
-            .append(indent)
-            .append("}\n");
-      }
-    }
-
-    private void appendRangeValidation(
-        StringBuilder source,
-        BindingSimpleRestriction restriction,
-        String accessor,
-        String indent) {
-      if (restriction.minInclusive() != null) {
-        source.append(indent).append("if (").append(accessor).append(".compareTo(");
-        source.append(numericLiteral(restriction.baseScalar(), restriction.minInclusive()));
-        source.append(") < 0) {\n");
-        source
-            .append(indent)
-            .append(
-                "  addError(errors, \"MXJB-GV-006\", \"Value is outside the accepted range.\", location);\n");
-        source.append(indent).append("}\n");
-      }
-      if (restriction.maxInclusive() != null) {
-        source.append(indent).append("if (").append(accessor).append(".compareTo(");
-        source.append(numericLiteral(restriction.baseScalar(), restriction.maxInclusive()));
-        source.append(") > 0) {\n");
-        source
-            .append(indent)
-            .append(
-                "  addError(errors, \"MXJB-GV-006\", \"Value is outside the accepted range.\", location);\n");
-        source.append(indent).append("}\n");
-      }
-    }
-
-    private String numericLiteral(String scalar, String value) {
-      return switch (scalar) {
-        case "int" -> "Integer.valueOf(" + value + ")";
-        case "long" -> "Long.valueOf(" + value + "L)";
-        case "integer" -> "new java.math.BigInteger(\"" + escape(value) + "\")";
-        case "decimal" -> "new java.math.BigDecimal(\"" + escape(value) + "\")";
-        default -> throw new IllegalArgumentException("Unsupported numeric scalar " + scalar);
-      };
-    }
-
-    private void appendPatternValidation(
-        StringBuilder source,
-        BindingSimpleRestriction restriction,
-        String accessor,
-        String indent) {
-      for (String pattern : restriction.patterns()) {
-        source
-            .append(indent)
-            .append("if (!java.util.regex.Pattern.matches(\"")
-            .append(escape(pattern))
-            .append("\", ")
-            .append(accessor)
-            .append(")) {\n")
-            .append(indent)
-            .append(
-                "  addError(errors, \"MXJB-GV-007\", \"Value does not match the accepted pattern.\", location);\n")
-            .append(indent)
-            .append("}\n");
-      }
+      return "io.github.mundanej.mxjb.runtime.XmlDatatypes.matchesFacets(\""
+          + escape(reference.name())
+          + "\", "
+          + accessor
+          + ", java.util.List.of(\""
+          + escape(fixedValue)
+          + "\"), null, null, null, null, null, null, null, null, null, java.util.List.of())";
     }
 
     private String scalarTypeText(BindingTypeReference reference) {
@@ -1004,15 +893,110 @@ public final class GeneratedValidatorEmitter {
       if ("list".equals(reference.kind())) {
         return "java.util.List<" + scalarTypeText(reference.itemType()) + ">";
       }
-      return switch (reference.name()) {
-        case "string" -> "String";
-        case "boolean" -> "Boolean";
-        case "int" -> "Integer";
-        case "integer" -> "java.math.BigInteger";
-        case "long" -> "Long";
-        case "decimal" -> "java.math.BigDecimal";
-        default -> throw new IllegalArgumentException("Unsupported scalar " + reference.name());
+      return qualifiedScalarType(reference.name());
+    }
+
+    private String facetHelperExpression(BindingSimpleRestriction restriction, String accessor) {
+      return datatypeFacetExpression(
+          restriction.baseScalar(),
+          accessor,
+          restriction.enumerations(),
+          restriction.length(),
+          restriction.minLength(),
+          restriction.maxLength(),
+          restriction.minInclusive(),
+          restriction.maxInclusive(),
+          restriction.minExclusive(),
+          restriction.maxExclusive(),
+          restriction.totalDigits(),
+          restriction.fractionDigits(),
+          restriction.patterns());
+    }
+
+    private String datatypeFacetExpression(
+        String baseScalar,
+        String accessor,
+        List<String> enumerations,
+        Integer length,
+        Integer minLength,
+        Integer maxLength,
+        String minInclusive,
+        String maxInclusive,
+        String minExclusive,
+        String maxExclusive,
+        Integer totalDigits,
+        Integer fractionDigits,
+        List<String> patterns) {
+      return "io.github.mundanej.mxjb.runtime.XmlDatatypes.matchesFacets(\""
+          + escape(baseScalar)
+          + "\", "
+          + accessor
+          + ", "
+          + stringListExpression(enumerations)
+          + ", "
+          + integerLiteral(length)
+          + ", "
+          + integerLiteral(minLength)
+          + ", "
+          + integerLiteral(maxLength)
+          + ", "
+          + stringLiteral(minInclusive)
+          + ", "
+          + stringLiteral(maxInclusive)
+          + ", "
+          + stringLiteral(minExclusive)
+          + ", "
+          + stringLiteral(maxExclusive)
+          + ", "
+          + integerLiteral(totalDigits)
+          + ", "
+          + integerLiteral(fractionDigits)
+          + ", "
+          + stringListExpression(patterns)
+          + ")";
+    }
+
+    private String qualifiedScalarType(String scalar) {
+      String javaType = XmlSchemaBuiltIns.javaType(scalar);
+      if (javaType == null) {
+        return "String";
+      }
+      return switch (javaType) {
+        case "List<String>" -> "java.util.List<String>";
+        case "BigInteger" -> "java.math.BigInteger";
+        case "BigDecimal" -> "java.math.BigDecimal";
+        case "XmlDuration",
+            "XmlDateTime",
+            "XmlDate",
+            "XmlTime",
+            "XmlGYear",
+            "XmlGYearMonth",
+            "XmlGMonth",
+            "XmlGMonthDay",
+            "XmlGDay",
+            "XmlBinary",
+            "XmlAnyUri",
+            "XmlQName" ->
+            "io.github.mundanej.mxjb.runtime." + javaType;
+        default -> javaType;
       };
+    }
+
+    private String stringListExpression(List<String> values) {
+      if (values.isEmpty()) {
+        return "java.util.List.of()";
+      }
+      return values.stream()
+          .map(this::stringLiteral)
+          .collect(java.util.stream.Collectors.joining(", ", "java.util.List.of(", ")"));
+    }
+
+    private String stringLiteral(String value) {
+      return value == null ? "null" : "\"" + escape(value) + "\"";
+    }
+
+    private String integerLiteral(Integer value) {
+      return value == null ? "null" : value.toString();
     }
 
     private void appendSharedHelpers(StringBuilder source) {

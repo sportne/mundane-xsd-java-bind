@@ -55,17 +55,17 @@ traceability artifact, not a support claim. Status values:
 
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
-| Primitive string/boolean/decimal/integer family | partially supported | `TASK-0050` | Complete lexical spaces, whiteSpace, and bounds. |
-| Primitive float/double | not implemented yet | `TASK-0050` | Include NaN/INF lexical handling. |
-| Primitive duration/dateTime/time/date/g* types | not implemented yet | `TASK-0050` | Add exact runtime value types where Java lacks one. |
-| Primitive hexBinary/base64Binary | not implemented yet | `TASK-0050` | Add stable byte value representation and lexical checks. |
-| Primitive anyURI | not implemented yet | `TASK-0050` | Define lexical/value policy. |
-| Primitive QName/NOTATION | not implemented yet | `TASK-0050` | Requires namespace-context-aware lexical conversion. |
-| Derived string types | partially supported | `TASK-0050` | normalizedString, token, language, Name, NCName, ID, IDREF, ENTITY, NMTOKEN families. |
-| Derived numeric types | partially supported | `TASK-0050` | long/int/short/byte, unsigned types, positive/negative variants. |
-| Restriction facets | partially supported | `TASK-0050` | Complete length, min/max length, pattern, enumeration, whiteSpace, bounds, totalDigits, fractionDigits. |
-| `xs:list` | partially supported | `TASK-0050`, `TASK-0053` | Needs optional/repeated fields, anonymous item types, and nested composition rules. |
-| `xs:union` | partially supported | `TASK-0050`, `TASK-0053` | Needs anonymous members, nested unions, and full member validation. |
+| Primitive string/boolean/decimal/integer family | supported for accepted schema shapes | `TASK-0050` | Runtime lexical conversion, generated mapping, writer output, and validator facets are verified. |
+| Primitive float/double | supported for accepted schema shapes | `TASK-0050` | Includes `NaN`, `INF`, and `-INF` lexical handling. |
+| Primitive duration/dateTime/time/date/g* types | supported for accepted schema shapes | `TASK-0050` | Project-owned immutable runtime values retain lexical timezone-presence semantics. |
+| Primitive hexBinary/base64Binary | supported for accepted schema shapes | `TASK-0050` | `XmlBinary` retains immutable bytes and emits stable hex/base64 lexical forms. |
+| Primitive anyURI | supported for accepted schema shapes | `TASK-0050` | `XmlAnyUri` preserves the accepted lexical URI value. |
+| Primitive QName/NOTATION | supported for accepted schema shapes | `TASK-0050` | QName values use expanded-name equality; generated element parsing preserves namespace context before advancing. |
+| Derived string types | supported for accepted schema shapes | `TASK-0050` | normalizedString, token, language, Name, NCName, ID, IDREF, ENTITY, NMTOKEN families plus list-valued built-ins. |
+| Derived numeric types | supported for accepted schema shapes | `TASK-0050` | long/int/short/byte, unsigned types, positive/negative variants map to exact Java numeric types where safe. |
+| Restriction facets | supported for accepted schema shapes | `TASK-0050` | length, min/max length, pattern, enumeration, whiteSpace metadata, inclusive/exclusive bounds, totalDigits, and fractionDigits. |
+| `xs:list` | partially supported | `TASK-0050`, `TASK-0053` | Named list item datatypes use the full datatype engine; optional/repeated fields, anonymous item types, and nested composition rules remain future. |
+| `xs:union` | partially supported | `TASK-0050`, `TASK-0053` | Named union members use the full datatype engine; anonymous members, nested unions, and richer generated value shapes remain future. |
 
 ## Derivation and dynamic typing
 
@@ -86,7 +86,7 @@ traceability artifact, not a support claim. Status values:
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
 | Structural generated validation | partially supported | `TASK-0051` | Reader and object validation should share compiled content-model rules. |
-| Datatype validation | partially supported | `TASK-0050` | Needs full lexical/value/facet coverage. |
+| Datatype validation | supported for accepted schema shapes | `TASK-0050` | Full built-in lexical/value/facet coverage is verified for the currently executable schema shapes. |
 | Identity constraints | diagnostic | `TASK-0054` | Requires document-scope validation context. |
 | W3C XML Schema 1.0 suite intake | blocked/planned | `TASK-0055` | Must be pinned, classified, and locally repeatable. |
 | Full XSD 1.0 readiness claim | not implemented yet | `TASK-0056` | Only after matrix evidence passes. |

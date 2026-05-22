@@ -181,9 +181,9 @@ profile executable. The planned verification sequence is:
   notations, direct/transitive chameleon includes with ambiguity/conflict diagnostics, remaining
   planning symbol spaces, and deterministic pre-binding diagnostics for known-but-later XSD 1.0
   constructs.
-- `TASK-0050`: datatype and facet unit tests, generated reader/writer lexical tests, generated
-  validator tests, and selected JDK XML Schema comparison fixtures for all XSD 1.0 built-ins and
-  facets.
+- `TASK-0050`: accepted datatype and facet unit tests, generated reader/writer lexical tests,
+  generated validator tests, and selected JDK XML Schema comparison fixtures for all XSD 1.0
+  built-ins and facets in currently accepted schema shapes.
 - `TASK-0051`: compiled content-model unit tests plus generated reader/validator agreement tests
   for nested particles, repeated groups, `xs:all`, and UPA diagnostics.
 - `TASK-0052`: attribute and wildcard tests for `xs:anyAttribute`, namespace-constraint algebra,

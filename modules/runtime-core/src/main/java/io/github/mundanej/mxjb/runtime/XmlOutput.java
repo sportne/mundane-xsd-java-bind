@@ -12,6 +12,10 @@ public interface XmlOutput {
 
   void text(String value) throws XmlWriteException;
 
+  default String qNameText(XmlQName value) throws XmlWriteException {
+    return value.lexicalName();
+  }
+
   void endElement(XmlName name) throws XmlWriteException;
 
   void flush() throws XmlWriteException;

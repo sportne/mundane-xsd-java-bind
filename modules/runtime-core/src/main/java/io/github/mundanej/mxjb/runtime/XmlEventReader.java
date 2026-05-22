@@ -16,5 +16,9 @@ public interface XmlEventReader {
 
   XmlLocation location();
 
+  default String namespaceUriForPrefix(String prefix) {
+    return null;
+  }
+
   boolean next() throws XmlReadException;
 }

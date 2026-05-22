@@ -257,6 +257,11 @@ public final class XsdSyntaxParser {
           "maxLength",
           "minInclusive",
           "maxInclusive",
+          "minExclusive",
+          "maxExclusive",
+          "totalDigits",
+          "fractionDigits",
+          "whiteSpace",
           "pattern" ->
           true;
       default -> false;
@@ -348,6 +353,11 @@ public final class XsdSyntaxParser {
       case "maxLength" -> XsdSyntaxKind.MAX_LENGTH;
       case "minInclusive" -> XsdSyntaxKind.MIN_INCLUSIVE;
       case "maxInclusive" -> XsdSyntaxKind.MAX_INCLUSIVE;
+      case "minExclusive" -> XsdSyntaxKind.MIN_EXCLUSIVE;
+      case "maxExclusive" -> XsdSyntaxKind.MAX_EXCLUSIVE;
+      case "totalDigits" -> XsdSyntaxKind.TOTAL_DIGITS;
+      case "fractionDigits" -> XsdSyntaxKind.FRACTION_DIGITS;
+      case "whiteSpace" -> XsdSyntaxKind.WHITE_SPACE;
       case "pattern" -> XsdSyntaxKind.PATTERN;
       case "list" -> XsdSyntaxKind.LIST;
       case "union" -> XsdSyntaxKind.UNION;
@@ -418,7 +428,18 @@ public final class XsdSyntaxParser {
       case SIMPLE_CONTENT -> {
         // No accepted attributes for this out-of-scope construct.
       }
-      case ENUMERATION, LENGTH, MIN_LENGTH, MAX_LENGTH, MIN_INCLUSIVE, MAX_INCLUSIVE, PATTERN ->
+      case ENUMERATION,
+          LENGTH,
+          MIN_LENGTH,
+          MAX_LENGTH,
+          MIN_INCLUSIVE,
+          MAX_INCLUSIVE,
+          MIN_EXCLUSIVE,
+          MAX_EXCLUSIVE,
+          TOTAL_DIGITS,
+          FRACTION_DIGITS,
+          WHITE_SPACE,
+          PATTERN ->
           addIfPresent(attributes, "value", reader.getAttributeValue(null, "value"));
       case ATTRIBUTE -> {
         addIfPresent(attributes, "name", reader.getAttributeValue(null, "name"));

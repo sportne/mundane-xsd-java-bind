@@ -259,6 +259,51 @@ final class GeneratedValidatorEmitterTest {
   }
 
   @Test
+  void generatedValidatorReportsDatatypeValueSpaceErrorsWithoutExplicitFacets()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("sample", model("com.example.orders.Sample"))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Sample",
+                    List.of(
+                        field("element", "name", scalar("NCName"), required(), 1),
+                        field("element", "small", scalar("unsignedByte"), required(), 2),
+                        field("element", "tokens", scalar("NMTOKENS"), required(), 3)))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> sampleClass = compiledSources.load("com.example.orders.Sample");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.SampleXmlValidator");
+      Object valid =
+          sampleClass
+              .getConstructor(String.class, Short.class, List.class)
+              .newInstance("name", (short) 255, List.of("A", "B"));
+      Object invalid =
+          sampleClass
+              .getConstructor(String.class, Short.class, List.class)
+              .newInstance("p:name", (short) 300, List.of(""));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", sampleClass).invoke(null, valid);
+      ValidationResult invalidResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", sampleClass).invoke(null, invalid);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-004", "MXJB-GV-004", "MXJB-GV-004"), codes(invalidResult));
+    }
+  }
+
+  @Test
   void generatedValidatorRecursesIntoChoiceModelBranches()
       throws IOException,
           ClassNotFoundException,
@@ -307,7 +352,7 @@ final class GeneratedValidatorEmitterTest {
       assertXmlValidationDiagnostic(validatorClass, missingRequiredElementInput(), "MXJB-GR-004");
       assertXmlValidationDiagnostic(validatorClass, repeatedSingletonInput(), "MXJB-GR-005");
       assertXmlValidationDiagnostic(validatorClass, outOfOrderInput(), "MXJB-GR-002");
-      assertXmlValidationDiagnostic(validatorClass, invalidScalarInput(), "MXJB-GR-006");
+      assertXmlValidationDiagnostic(validatorClass, invalidScalarInput(), "MXJB-DT-001");
     }
   }
 
@@ -345,7 +390,7 @@ final class GeneratedValidatorEmitterTest {
       assertEquals(List.of("MXJB-GV-004", "MXJB-GV-009"), codes(invalidResult));
       assertEquals(
           List.of(
-              "Value is not in the accepted enumeration.", "Value does not match the fixed value."),
+              "Value does not satisfy datatype facets.", "Value does not match the fixed value."),
           invalidResult.errors().stream().map(ValidationError::message).toList());
       assertEquals(XmlLocation.UNKNOWN, invalidResult.errors().getFirst().location());
     }
@@ -455,7 +500,7 @@ final class GeneratedValidatorEmitterTest {
                         field(
                             "attribute", "owner", model("com.example.orders.Owner"), required(), 0),
                         field("attribute", "tag", scalar("string"), list(), 0),
-                        field("element", "date", scalar("date"), required(), 1))),
+                        field("element", "date", scalar("unsupported"), required(), 1))),
                 type("com.example.orders", "Owner", List.of())));
 
     GeneratedValidatorEmissionResult result = new GeneratedValidatorEmitter().emit(model);
@@ -813,7 +858,19 @@ final class GeneratedValidatorEmitterTest {
         "scalar",
         "string",
         new BindingSimpleRestriction(
-            "string", List.of(), null, minLength, maxLength, null, null, List.of(pattern)));
+            "string",
+            List.of(),
+            null,
+            minLength,
+            maxLength,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of(pattern)));
   }
 
   private BindingTypeReference fixedLengthString(int length) {
@@ -821,7 +878,8 @@ final class GeneratedValidatorEmitterTest {
         "scalar",
         "string",
         new BindingSimpleRestriction(
-            "string", List.of(), length, null, null, null, null, List.of()));
+            "string", List.of(), length, null, null, null, null, null, null, null, null, null,
+            List.of()));
   }
 
   private BindingTypeReference restrictedStatus() {
@@ -829,7 +887,19 @@ final class GeneratedValidatorEmitterTest {
         "scalar",
         "string",
         new BindingSimpleRestriction(
-            "string", List.of("NEW", "CLOSED"), null, null, null, null, null, List.of()));
+            "string",
+            List.of("NEW", "CLOSED"),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of()));
   }
 
   private BindingTypeReference restrictedInt(String minInclusive, String maxInclusive) {
@@ -837,7 +907,19 @@ final class GeneratedValidatorEmitterTest {
         "scalar",
         "int",
         new BindingSimpleRestriction(
-            "int", List.of(), null, null, null, minInclusive, maxInclusive, List.of()));
+            "int",
+            List.of(),
+            null,
+            null,
+            null,
+            minInclusive,
+            maxInclusive,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of()));
   }
 
   private BindingTypeReference model(String name) {

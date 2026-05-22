@@ -185,8 +185,15 @@ final class SchemaIrBuilderTest {
                 </xs:simpleType>
                 <xs:simpleType name="Priority">
                   <xs:restriction base="xs:int">
-                    <xs:minInclusive value="1"/>
-                    <xs:maxInclusive value="9"/>
+                    <xs:minExclusive value="0"/>
+                    <xs:maxExclusive value="10"/>
+                    <xs:totalDigits value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="Tokenized">
+                  <xs:restriction base="xs:token">
+                    <xs:whiteSpace value="collapse"/>
+                    <xs:enumeration value="READY"/>
                   </xs:restriction>
                 </xs:simpleType>
                 """));
@@ -200,7 +207,8 @@ final class SchemaIrBuilderTest {
     assertTrue(irText.contains("minLength=3 maxLength=8 pattern=[A-Z0-9]+"));
     assertTrue(
         irText.contains(
-            "simpleType {urn:orders}Priority restriction base=xs:int minInclusive=1 maxInclusive=9"));
+            "simpleType {urn:orders}Priority restriction base=xs:int minExclusive=0 maxExclusive=10 totalDigits=1"));
+    assertTrue(irText.contains("whiteSpace=collapse"));
   }
 
   @Test
@@ -326,7 +334,7 @@ final class SchemaIrBuilderTest {
                   <xs:list itemType="xs:string"/>
                 </xs:simpleType>
                 <xs:simpleType name="BadUnion">
-                  <xs:union memberTypes="xs:date tns:OtherList"/>
+                  <xs:union memberTypes="xs:anyType tns:OtherList"/>
                 </xs:simpleType>
                 """));
 
@@ -353,7 +361,7 @@ final class SchemaIrBuilderTest {
                   </xs:restriction>
                 </xs:simpleType>
                 <xs:simpleType name="UnsupportedBase">
-                  <xs:restriction base="xs:date">
+                  <xs:restriction base="xs:anyType">
                     <xs:enumeration value="2026-05-17"/>
                   </xs:restriction>
                 </xs:simpleType>

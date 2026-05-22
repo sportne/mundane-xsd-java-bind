@@ -9,8 +9,8 @@ Validation is a first-class generated-code concern.
 | Well-formedness | Delegated to XML event source. | Same unless custom parser is introduced. |
 | Namespace correctness | Required for supported constructs. | Expanded edge cases. |
 | Structural content model | Required for supported sequences/cardinality. | Full model groups and derivation. |
-| Simple lexical conversion | Common built-ins. | Full XSD datatype system. |
-| Simple restrictions | Practical facets: enum, length, range, pattern where feasible. | Complete facets, list/union. |
+| Simple lexical conversion | Full XSD 1.0 built-ins for accepted schema shapes. | Broader schema shapes through later full-XSD gates. |
+| Simple restrictions | XSD 1.0 facets for accepted schema shapes. | Integration with full derivation/content-model semantics. |
 | Identity constraints | Validation-ready only. | `xs:key`, `xs:keyref`, `xs:unique`. |
 | Defaults/fixed | Limited or validation-ready only. | Full schema semantics. |
 | Identity constraints | Out of scope initially. | Planned XSD 1.0 document-scope validation phase. |
@@ -28,7 +28,7 @@ Generated readers now report deterministic `XmlReadException` diagnostics for ro
 
 ## `TASK-0016` generated validation baseline
 
-Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, nested model aggregation, accepted `XP-VALIDATION-10-BASIC` simple restriction facets, and accepted `XP-XSD10-SEMANTIC` fixed-value checks with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, then applies object validation, preserving reader diagnostics when lexical conversion, nil-content, or fixed-value checks fail. Identity constraints and expanded datatype validation remain future validation phases.
+Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, nested model aggregation, accepted simple restriction facets, and accepted `XP-XSD10-SEMANTIC` fixed-value checks with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, then applies object validation, preserving reader diagnostics when lexical conversion, nil-content, or fixed-value checks fail. Identity constraints remain a future validation phase.
 
 ## `TASK-0024` facet validation scope
 
@@ -56,6 +56,20 @@ The `XP-XSD10-COMPOSED` validation behavior remains generated and explicit.
   binding order; accepted simple restriction derivation chains validate merged facet metadata.
 - Unsupported composition, list/union, and derivation cases remain schema diagnostics rather than
   partial generated validation behavior.
+
+## `TASK-0050` datatype and facet engine
+
+`TASK-0050` replaces the narrow scalar conversion baseline with a shared dependency-free XSD 1.0
+datatype engine used by generated readers, writers, and validators for accepted schema shapes.
+Runtime-core owns exact values for XML Schema datatypes that Java cannot represent directly,
+including duration, date/time fragments, binary values, anyURI, and QName/NOTATION.
+
+Generated validation enforces enumeration, pattern, length/minLength/maxLength, inclusive and
+exclusive bounds, totalDigits, and fractionDigits through the shared datatype engine while keeping
+stable generated diagnostic categories. QName parsing uses the active XML namespace context, and
+generated writers emit QName lexical values through `XmlOutput` so adapters can declare deterministic
+prefixes. Full content-model automata, full derivation, attribute wildcards, identity constraints,
+and `XP-XSD10-FULL` execution remain future gates.
 
 ## `TASK-0032` semantic validation
 

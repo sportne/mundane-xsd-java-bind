@@ -5,6 +5,7 @@ import io.github.mundanej.mxjb.runtime.XmlDiagnosticSeverity;
 import io.github.mundanej.mxjb.runtime.XmlLocation;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
+import io.github.mundanej.mxjb.runtime.XmlQName;
 import io.github.mundanej.mxjb.runtime.XmlWriteException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -87,6 +88,21 @@ final class StaxXmlOutput implements XmlOutput {
       writer.writeCharacters(value);
     } catch (XMLStreamException exception) {
       throw writeException("MXJB-JDKXML-W-005", "JDK XML writer failed to write text.", exception);
+    }
+  }
+
+  @Override
+  public String qNameText(XmlQName value) throws XmlWriteException {
+    if (value.namespaceUri().isEmpty()) {
+      return value.localName();
+    }
+    try {
+      String prefix = prefixFor(value.namespaceUri());
+      declareNamespace(prefix, value.namespaceUri());
+      return prefix + ":" + value.localName();
+    } catch (XMLStreamException exception) {
+      throw writeException(
+          "MXJB-JDKXML-W-008", "JDK XML writer failed to declare QName namespace.", exception);
     }
   }
 

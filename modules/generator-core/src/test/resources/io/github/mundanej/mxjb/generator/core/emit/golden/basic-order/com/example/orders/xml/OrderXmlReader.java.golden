@@ -72,7 +72,7 @@ public final class OrderXmlReader {
         if (id != null) {
           throw readException(input, "MXJB-GR-005", "Repeated XML element {urn:orders}id.");
         }
-        id = readStringElement(input, NAME_3);
+        id = readTextElement(input, NAME_3);
       } else if (NAME_4.equals(input.name())) {
         if (2 < lastElementOrder) {
           throw readException(input, "MXJB-GR-002", "Out-of-order XML element {urn:orders}note.");
@@ -81,7 +81,7 @@ public final class OrderXmlReader {
         if (note.isPresent()) {
           throw readException(input, "MXJB-GR-005", "Repeated XML element {urn:orders}note.");
         }
-        note = java.util.Optional.of(readStringElement(input, NAME_4));
+        note = java.util.Optional.of(readTextElement(input, NAME_4));
       } else if (NAME_5.equals(input.name())) {
         if (3 < lastElementOrder) {
           throw readException(input, "MXJB-GR-002", "Out-of-order XML element {urn:orders}line.");
@@ -132,7 +132,7 @@ public final class OrderXmlReader {
         if (sku != null) {
           throw readException(input, "MXJB-GR-005", "Repeated XML element {urn:orders}sku.");
         }
-        sku = readStringElement(input, NAME_6);
+        sku = readTextElement(input, NAME_6);
       } else {
         throw readException(input, "MXJB-GR-002", "Unexpected XML element.");
       }
@@ -222,6 +222,61 @@ public final class OrderXmlReader {
       io.github.mundanej.mxjb.runtime.XmlName name)
       throws io.github.mundanej.mxjb.runtime.XmlReadException {
     return readTextElement(input, name);
+  }
+
+  private static <T> T readDatatypeElement(
+      io.github.mundanej.mxjb.runtime.XmlEventReader input,
+      io.github.mundanej.mxjb.runtime.XmlName name,
+      String datatype,
+      Class<T> javaType)
+      throws io.github.mundanej.mxjb.runtime.XmlReadException {
+    expectStart(input, name);
+    StringBuilder text = new StringBuilder();
+    while (input.next()) {
+      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT) {
+        text.append(input.text());
+      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {
+        if (!name.equals(input.name())) {
+          throw readException(input, "MXJB-GR-007", "Mismatched text element end.");
+        }
+        T value =
+            javaType.cast(
+                io.github.mundanej.mxjb.runtime.XmlDatatypes.parse(
+                    datatype, text.toString(), input, input.location()));
+        input.next();
+        return value;
+      } else {
+        throw readException(input, "MXJB-GR-007", "Expected XML text content.");
+      }
+    }
+    throw readException(input, "MXJB-GR-007", "Unclosed XML text element.");
+  }
+
+  private static <T> java.util.List<T> readDatatypeListElement(
+      io.github.mundanej.mxjb.runtime.XmlEventReader input,
+      io.github.mundanej.mxjb.runtime.XmlName name,
+      String itemDatatype,
+      Class<T> javaType)
+      throws io.github.mundanej.mxjb.runtime.XmlReadException {
+    expectStart(input, name);
+    StringBuilder text = new StringBuilder();
+    while (input.next()) {
+      if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT) {
+        text.append(input.text());
+      } else if (input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.END_ELEMENT) {
+        if (!name.equals(input.name())) {
+          throw readException(input, "MXJB-GR-007", "Mismatched text element end.");
+        }
+        java.util.List<T> value =
+            io.github.mundanej.mxjb.runtime.XmlDatatypes.parseList(
+                itemDatatype, text.toString(), input, input.location(), javaType);
+        input.next();
+        return value;
+      } else {
+        throw readException(input, "MXJB-GR-007", "Expected XML text content.");
+      }
+    }
+    throw readException(input, "MXJB-GR-007", "Unclosed XML text element.");
   }
 
   private static Boolean readBooleanElement(

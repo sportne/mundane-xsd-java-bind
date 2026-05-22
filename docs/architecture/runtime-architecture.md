@@ -10,6 +10,11 @@ Active public concepts:
 - `XmlAttribute`: retained fragment attribute with expanded name and lexical value.
 - `XmlFragment`, `XmlFragmentContent`, `XmlFragmentText`, and `XmlFragmentElement`: immutable
   retained unknown XML element fragments for accepted wildcard/open-content fields.
+- `XmlDuration`, `XmlDateTime`, `XmlDate`, `XmlTime`, `XmlGYear`, `XmlGYearMonth`, `XmlGMonth`,
+  `XmlGMonthDay`, `XmlGDay`, `XmlBinary`, `XmlAnyUri`, and `XmlQName`: exact XML Schema datatype
+  values used where Java standard types do not preserve project semantics.
+- `XmlDatatypes`: dependency-free XML Schema lexical conversion, list conversion, formatting, and
+  facet helper engine for generated code.
 - `XmlLocation`: line/column/system ID where available.
 - `XmlDiagnostic`: structured error/warning data with stable code, message, severity, and location.
 - `XmlReadException` and `XmlWriteException`: checked exceptions that retain an `XmlDiagnostic`.
@@ -17,7 +22,9 @@ Active public concepts:
 - `XmlOutput`: project-owned writer abstraction.
 - `ValidationError` and `ValidationResult`.
 
-`runtime-core` remains dependency-free and parser-neutral. It defines generated-code-facing values and interfaces only; it does not parse XML, adapt JDK XML APIs, generate code, or validate documents by itself.
+`runtime-core` remains dependency-free and parser-neutral. It defines generated-code-facing values,
+datatype conversion helpers, and interfaces only; it does not parse XML documents, adapt JDK XML
+APIs, generate code, or validate schema documents by itself.
 
 Generated writer source emitted by `TASK-0012` targets `XmlOutput` and `XmlName` directly. Concrete XML serialization, namespace prefix assignment, and adapter behavior remain outside `runtime-core`; generated writers operate only on expanded names and scalar text values.
 

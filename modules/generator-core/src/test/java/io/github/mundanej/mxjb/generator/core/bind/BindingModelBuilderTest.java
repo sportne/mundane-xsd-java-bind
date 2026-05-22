@@ -81,6 +81,157 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsXsd10DatatypeBuiltInsAndNewFacetMetadata() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:datatypes",
+            """
+                <xs:simpleType name="SmallCode">
+                  <xs:restriction base="xs:unsignedShort">
+                    <xs:minExclusive value="10"/>
+                    <xs:maxExclusive value="100"/>
+                    <xs:totalDigits value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="Values">
+                  <xs:sequence>
+                    <xs:element name="when" type="xs:dateTime"/>
+                    <xs:element name="duration" type="xs:duration"/>
+                    <xs:element name="payload" type="xs:base64Binary"/>
+                    <xs:element name="name" type="xs:QName"/>
+                    <xs:element name="refs" type="xs:IDREFS"/>
+                    <xs:element name="code" type="tns:SmallCode"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:element name="values" type="tns:Values"/>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertFalse(result.hasErrors());
+    String text = result.model().toText();
+    assertTrue(text.contains("element when xml={urn:datatypes}when type=scalar:dateTime"));
+    assertTrue(text.contains("element duration xml={urn:datatypes}duration type=scalar:duration"));
+    assertTrue(
+        text.contains("element payload xml={urn:datatypes}payload type=scalar:base64Binary"));
+    assertTrue(text.contains("element name xml={urn:datatypes}name type=scalar:QName"));
+    assertTrue(text.contains("element refs xml={urn:datatypes}refs type=scalar:IDREFS"));
+    assertTrue(text.contains("facets[minExclusive=10,maxExclusive=100,totalDigits=2]"));
+  }
+
+  @Test
+  void rejectsInvalidDatatypeDefaultAndFixedValuesBeforeEmission() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:datatypes",
+            """
+                <xs:simpleType name="SmallDecimal">
+                  <xs:restriction base="xs:decimal">
+                    <xs:minExclusive value="10"/>
+                    <xs:totalDigits value="3"/>
+                    <xs:fractionDigits value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="Values">
+                  <xs:sequence>
+                    <xs:element name="badDate" type="xs:date" default="2026-02-30"/>
+                    <xs:element name="badUnsigned" type="xs:unsignedByte" default="300"/>
+                    <xs:element name="badFacet" type="tns:SmallDecimal" fixed="10.25"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:element name="values" type="tns:Values"/>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL),
+        diagnosticCodes(result));
+    assertTrue(
+        result.diagnostics().stream()
+            .allMatch(diagnostic -> diagnostic.message().contains("unsupported lexical")));
+  }
+
+  @Test
+  void rejectsPrefixedQNameDefaultsAndEnumerationsBeforeEmission() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:datatypes",
+            """
+                <xs:simpleType name="KnownName">
+                  <xs:restriction base="xs:QName">
+                    <xs:enumeration value="p:allowed"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="Values">
+                  <xs:sequence>
+                    <xs:element name="name" type="tns:KnownName"/>
+                    <xs:element name="other" type="xs:QName" default="p:other"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:element name="values" type="tns:Values"/>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
+            DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE),
+        diagnosticCodes(result));
+    assertTrue(
+        result.diagnostics().stream()
+            .allMatch(diagnostic -> diagnostic.message().contains("namespace")));
+  }
+
+  @Test
+  void rejectsInvalidDatatypeFacetValuesBeforeEmission() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:datatypes",
+            """
+                <xs:simpleType name="BadDateEnum">
+                  <xs:restriction base="xs:date">
+                    <xs:enumeration value="2026-02-30"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:simpleType name="BadUnsignedBound">
+                  <xs:restriction base="xs:unsignedByte">
+                    <xs:minInclusive value="300"/>
+                  </xs:restriction>
+                </xs:simpleType>
+                <xs:complexType name="Values">
+                  <xs:sequence>
+                    <xs:element name="badDate" type="tns:BadDateEnum"/>
+                    <xs:element name="badBound" type="tns:BadUnsignedBound"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:element name="values" type="tns:Values"/>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL),
+        diagnosticCodes(result));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(diagnostic -> diagnostic.message().contains("Invalid enumeration value")));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(diagnostic -> diagnostic.message().contains("Invalid minInclusive value")));
+  }
+
+  @Test
   void derivesUrnPackagesFromDefaultPackageAndNamespaceTokens() throws IOException {
     write(
         "main.xsd",
@@ -499,7 +650,7 @@ final class BindingModelBuilderTest {
 
   @Test
   void reportsUnsupportedBuiltInScalarTypesWithoutPartialModel() throws IOException {
-    write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:date\"/>"));
+    write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:anyType\"/>"));
 
     BindingResult result = bind("main.xsd");
 

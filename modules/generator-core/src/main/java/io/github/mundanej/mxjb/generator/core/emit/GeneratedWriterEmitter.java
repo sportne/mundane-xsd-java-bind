@@ -9,6 +9,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingResult;
 import io.github.mundanej.mxjb.generator.core.bind.BindingRootElement;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
+import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
@@ -104,10 +105,7 @@ public final class GeneratedWriterEmitter {
 
   private boolean isSupportedTypeReference(BindingTypeReference reference, ModelIndex index) {
     if ("scalar".equals(reference.kind())) {
-      return switch (reference.name()) {
-        case "string", "boolean", "int", "integer", "long", "decimal" -> true;
-        default -> false;
-      };
+      return XmlSchemaBuiltIns.isSupported(reference.name());
     }
     if ("list".equals(reference.kind())) {
       return reference.itemType() != null && isSupportedTypeReference(reference.itemType(), index);
@@ -441,15 +439,20 @@ public final class GeneratedWriterEmitter {
         return valueExpression;
       }
       if ("list".equals(reference.kind())) {
-        return valueExpression
-            + ".stream().map(item -> "
-            + scalarText(reference.itemType(), "item")
-            + ").collect(java.util.stream.Collectors.joining(\" \"))";
+        return "io.github.mundanej.mxjb.runtime.XmlDatatypes.formatList(\""
+            + escape(reference.itemType().name())
+            + "\", "
+            + valueExpression
+            + ", output)";
       }
       if ("union".equals(reference.kind())) {
         return valueExpression;
       }
-      return "String.valueOf(" + valueExpression + ")";
+      return "io.github.mundanej.mxjb.runtime.XmlDatatypes.format(\""
+          + escape(reference.name())
+          + "\", "
+          + valueExpression
+          + ", output)";
     }
 
     private void appendFragmentHelpers(StringBuilder source) {
@@ -499,13 +502,32 @@ public final class GeneratedWriterEmitter {
     }
 
     private String scalarType(BindingTypeReference reference) {
-      return switch (reference.name()) {
-        case "boolean" -> "Boolean";
-        case "int" -> "Integer";
-        case "integer" -> "java.math.BigInteger";
-        case "long" -> "Long";
-        case "decimal" -> "java.math.BigDecimal";
-        default -> "String";
+      return qualifiedScalarType(reference.name());
+    }
+
+    private String qualifiedScalarType(String scalar) {
+      String javaType = XmlSchemaBuiltIns.javaType(scalar);
+      if (javaType == null) {
+        return "String";
+      }
+      return switch (javaType) {
+        case "List<String>" -> "java.util.List<String>";
+        case "BigInteger" -> "java.math.BigInteger";
+        case "BigDecimal" -> "java.math.BigDecimal";
+        case "XmlDuration",
+            "XmlDateTime",
+            "XmlDate",
+            "XmlTime",
+            "XmlGYear",
+            "XmlGYearMonth",
+            "XmlGMonth",
+            "XmlGMonthDay",
+            "XmlGDay",
+            "XmlBinary",
+            "XmlAnyUri",
+            "XmlQName" ->
+            "io.github.mundanej.mxjb.runtime." + javaType;
+        default -> javaType;
       };
     }
 

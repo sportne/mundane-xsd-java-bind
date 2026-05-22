@@ -1,0 +1,50 @@
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:dt="urn:datatypes"
+    targetNamespace="urn:datatypes"
+    elementFormDefault="qualified">
+  <xs:simpleType name="CodeType">
+    <xs:restriction base="xs:token">
+      <xs:minLength value="2"/>
+      <xs:maxLength value="8"/>
+      <xs:pattern value="[A-Z0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="DecimalFacetType">
+    <xs:restriction base="xs:decimal">
+      <xs:minExclusive value="1.0"/>
+      <xs:maxExclusive value="10.0"/>
+      <xs:totalDigits value="3"/>
+      <xs:fractionDigits value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="sample">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="code" type="dt:CodeType"/>
+        <xs:element name="decimalFacet" type="dt:DecimalFacetType"/>
+        <xs:element name="booleanValue" type="xs:boolean"/>
+        <xs:element name="floatValue" type="xs:float"/>
+        <xs:element name="doubleValue" type="xs:double"/>
+        <xs:element name="integerValue" type="xs:integer"/>
+        <xs:element name="unsignedByteValue" type="xs:unsignedByte"/>
+        <xs:element name="durationValue" type="xs:duration"/>
+        <xs:element name="dateTimeValue" type="xs:dateTime"/>
+        <xs:element name="dateValue" type="xs:date"/>
+        <xs:element name="timeValue" type="xs:time"/>
+        <xs:element name="gYearValue" type="xs:gYear"/>
+        <xs:element name="gYearMonthValue" type="xs:gYearMonth"/>
+        <xs:element name="gMonthValue" type="xs:gMonth"/>
+        <xs:element name="gMonthDayValue" type="xs:gMonthDay"/>
+        <xs:element name="gDayValue" type="xs:gDay"/>
+        <xs:element name="hexValue" type="xs:hexBinary"/>
+        <xs:element name="base64Value" type="xs:base64Binary"/>
+        <xs:element name="uriValue" type="xs:anyURI"/>
+        <xs:element name="qnameValue" type="xs:QName"/>
+        <xs:element name="tokensValue" type="xs:NMTOKENS"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
