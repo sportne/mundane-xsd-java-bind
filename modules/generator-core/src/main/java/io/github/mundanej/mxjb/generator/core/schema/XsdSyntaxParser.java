@@ -446,6 +446,7 @@ public final class XsdSyntaxParser {
         addIfPresent(attributes, "ref", reader.getAttributeValue(null, "ref"));
         addIfPresent(attributes, "type", reader.getAttributeValue(null, "type"));
         addIfPresent(attributes, "use", reader.getAttributeValue(null, "use"));
+        addIfPresent(attributes, "form", reader.getAttributeValue(null, "form"));
         addIfPresent(attributes, "default", reader.getAttributeValue(null, "default"));
         addIfPresent(attributes, "fixed", reader.getAttributeValue(null, "fixed"));
       }

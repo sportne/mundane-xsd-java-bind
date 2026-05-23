@@ -118,6 +118,9 @@ public final class GeneratedWriterEmitter {
     if ("fragment".equals(reference.kind())) {
       return "io.github.mundanej.mxjb.runtime.XmlFragment".equals(reference.name());
     }
+    if ("xmlAttribute".equals(reference.kind())) {
+      return "io.github.mundanej.mxjb.runtime.XmlAttribute".equals(reference.name());
+    }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
@@ -125,6 +128,7 @@ public final class GeneratedWriterEmitter {
   private boolean isSupportedFieldKind(String kind) {
     return "element".equals(kind)
         || "attribute".equals(kind)
+        || "anyAttribute".equals(kind)
         || "choice".equals(kind)
         || "wildcard".equals(kind)
         || "content".equals(kind);
@@ -250,6 +254,9 @@ public final class GeneratedWriterEmitter {
       for (BindingField field : attributes(type)) {
         appendFieldWrite(source, field);
       }
+      for (BindingField field : anyAttributes(type)) {
+        appendFieldWrite(source, field);
+      }
       for (BindingField field : contentFields(type)) {
         appendFieldWrite(source, field);
       }
@@ -348,6 +355,16 @@ public final class GeneratedWriterEmitter {
             .append("writeFragment(output, ")
             .append(valueExpression)
             .append(");\n");
+        return;
+      }
+      if ("anyAttribute".equals(field.kind())) {
+        source
+            .append(indent)
+            .append("output.attribute(")
+            .append(valueExpression)
+            .append(".name(), ")
+            .append(valueExpression)
+            .append(".value());\n");
         return;
       }
       String name = nameConstant(field.xmlName());
@@ -498,6 +515,9 @@ public final class GeneratedWriterEmitter {
       if ("fragment".equals(field.type().kind())) {
         return "io.github.mundanej.mxjb.runtime.XmlFragment";
       }
+      if ("xmlAttribute".equals(field.type().kind())) {
+        return "io.github.mundanej.mxjb.runtime.XmlAttribute";
+      }
       return scalarType(field.type());
     }
 
@@ -534,6 +554,13 @@ public final class GeneratedWriterEmitter {
     private List<BindingField> attributes(BindingType type) {
       return type.fields().stream()
           .filter(field -> "attribute".equals(field.kind()))
+          .sorted(Comparator.comparingInt(BindingField::order))
+          .toList();
+    }
+
+    private List<BindingField> anyAttributes(BindingType type) {
+      return type.fields().stream()
+          .filter(field -> "anyAttribute".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
     }

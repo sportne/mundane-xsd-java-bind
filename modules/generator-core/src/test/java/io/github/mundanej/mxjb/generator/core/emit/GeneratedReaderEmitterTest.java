@@ -267,6 +267,51 @@ final class GeneratedReaderEmitterTest {
   }
 
   @Test
+  void generatedReaderCapturesAnyAttributesAndRejectsProhibitedMatches()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(
+                        field(
+                            "attribute",
+                            new SchemaQName("", "id"),
+                            "id",
+                            scalar("string"),
+                            required(),
+                            0),
+                        anyAttributeField()))));
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+      Object order =
+          readerClass
+              .getMethod("read", XmlEventReader.class)
+              .invoke(null, anyAttributeInput(false));
+
+      Object attributes = orderClass.getMethod("wildcardAttributes").invoke(order);
+      assertInstanceOf(List.class, attributes);
+      assertEquals(1, ((List<?>) attributes).size());
+      assertReadDiagnostic(readerClass, anyAttributeInput(true), "MXJB-GR-003");
+    }
+  }
+
+  @Test
   void generatedReaderReportsDeterministicDiagnostics()
       throws IOException, ClassNotFoundException, NoSuchMethodException {
     BindingModel model = orderModel();
@@ -601,6 +646,18 @@ final class GeneratedReaderEmitterTest {
         event(XmlEventKind.END_DOCUMENT, null));
   }
 
+  private EventXmlReader anyAttributeInput(boolean prohibited) {
+    Map<XmlName, String> attributes =
+        prohibited
+            ? Map.of(new XmlName("", "id"), "A-1", new XmlName("", "blocked"), "no")
+            : Map.of(new XmlName("", "id"), "A-1", new XmlName("urn:extension", "flag"), "yes");
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order"), attributes),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
   private EventXmlReader wrongRootNamespaceInput() {
     return reader(
         event(XmlEventKind.START_DOCUMENT, null),
@@ -779,6 +836,22 @@ final class GeneratedReaderEmitterTest {
         1,
         false,
         choice);
+  }
+
+  private BindingField anyAttributeField() {
+    return new BindingField(
+        "anyAttribute",
+        new SchemaQName("", "@*"),
+        "wildcardAttributes",
+        new BindingTypeReference("xmlAttribute", "io.github.mundanej.mxjb.runtime.XmlAttribute"),
+        list(),
+        0,
+        false,
+        new io.github.mundanej.mxjb.generator.core.bind.BindingWildcard(
+            new io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace(
+                "any", List.of()),
+            "lax",
+            List.of(new SchemaQName("", "blocked"))));
   }
 
   private BindingTypeReference scalar(String name) {

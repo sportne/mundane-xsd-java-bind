@@ -150,6 +150,16 @@ The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and ge
   wildcard fragments emit `XmlFragment.attributes()` and `XmlFragment.content()` in stored list
   order. Namespace prefix assignment and escaping are adapter responsibilities. The project does
   not claim W3C XML Canonicalization or cryptographic canonical XML compatibility.
+- `TASK-0052` adds accepted `xs:anyAttribute` binding as a collision-safe immutable
+  `List<XmlAttribute>` field, normally named `wildcardAttributes`. Generated readers reject
+  prohibited declared attributes before wildcard capture, capture matching wildcard attributes in
+  source order, and keep rejecting unexpected attributes outside the effective wildcard namespace
+  constraint. Generated writers emit declared attributes first and wildcard attributes in list
+  order. Generated validators check non-null wildcard lists/items, namespace constraints, and
+  prohibited/excluded attribute names.
+- `TASK-0052` carries `processContents` metadata for retained element and attribute wildcards and
+  defaults omitted values to XSD 1.0 `strict`. Full schema-known deep validation for `lax`/`strict`
+  wildcards and wildcard choice branch generation remain future tasks.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, DOM-backed
   binding, and external resource access.

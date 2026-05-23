@@ -43,7 +43,8 @@ import org.xml.sax.SAXException;
 
 final class XpXsd10DocumentConformanceTest {
   // Selected fixture manifest IDs:
-  // T-CONF-XP-XSD10-DOCUMENT-WILDCARD, T-CONF-XP-XSD10-DOCUMENT-MIXED.
+  // T-CONF-XP-XSD10-DOCUMENT-WILDCARD, T-CONF-XP-XSD10-DOCUMENT-MIXED,
+  // T-CONF-XP-XSD10-DOCUMENT-ANY-ATTRIBUTE.
 
   @TempDir private Path tempDirectory;
 
@@ -126,6 +127,46 @@ final class XpXsd10DocumentConformanceTest {
       assertTrue(serialized.indexOf("between") < serialized.indexOf("note"));
       assertTrue(serialized.indexOf("note") < serialized.indexOf("done"));
       assertTrue(serialized.indexOf("done") < serialized.indexOf("after"));
+    }
+  }
+
+  @Test
+  void anyAttributeFixturesMatchJdkSchemaValidationAndGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-document/any-attribute-order.xsd");
+    String validXml = resource("/xp-xsd10-document/any-attribute-valid.xml");
+    String invalidXml = resource("/xp-xsd10-document/any-attribute-invalid.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidXml))));
+
+    try (CompiledGeneratedDocumentBindings bindings =
+        generateAndCompileDocumentBindings("/xp-xsd10-document/any-attribute-order.xsd")) {
+      Class<?> orderClass = bindings.load("com.example.document.Order");
+      Class<?> readerClass = bindings.load("com.example.document.xml.OrderXmlReader");
+      Class<?> writerClass = bindings.load("com.example.document.xml.OrderXmlWriter");
+      Class<?> validatorClass = bindings.load("com.example.document.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      Object wildcardAttributes = orderClass.getMethod("wildcardAttributes").invoke(order);
+      assertTrue(wildcardAttributes instanceof List<?>);
+      assertEquals(1, ((List<?>) wildcardAttributes).size());
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult invalidResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(invalidXml));
+      String serialized = writeWithGeneratedWriter(writerClass, orderClass, order);
+
+      assertTrue(validResult.isValid());
+      assertFalse(invalidResult.isValid());
+      assertTrue(serialized.contains("flag=\"yes\""));
     }
   }
 

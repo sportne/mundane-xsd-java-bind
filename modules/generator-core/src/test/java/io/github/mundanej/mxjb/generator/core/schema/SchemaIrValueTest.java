@@ -86,6 +86,7 @@ final class SchemaIrValueTest {
     assertTrue(
         sequence
             .toText("  ")
-            .contains("wildcard namespace=other:urn:test cardinality=0..unbounded"));
+            .contains(
+                "wildcard namespace=other:urn:test processContents=strict cardinality=0..unbounded"));
   }
 }

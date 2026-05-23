@@ -122,6 +122,9 @@ public final class GeneratedModelEmitter {
     if ("fragment".equals(reference.kind())) {
       return "io.github.mundanej.mxjb.runtime.XmlFragment".equals(reference.name());
     }
+    if ("xmlAttribute".equals(reference.kind())) {
+      return "io.github.mundanej.mxjb.runtime.XmlAttribute".equals(reference.name());
+    }
     return "model".equals(reference.kind()) || "choice".equals(reference.kind());
   }
 
@@ -346,6 +349,9 @@ public final class GeneratedModelEmitter {
       if ("fragment".equals(field.type().kind())) {
         imports.add("io.github.mundanej.mxjb.runtime.XmlFragment");
       }
+      if ("xmlAttribute".equals(field.type().kind())) {
+        imports.add("io.github.mundanej.mxjb.runtime.XmlAttribute");
+      }
       addScalarImports(imports, field.type());
     }
     if (!type.fields().isEmpty()) {
@@ -388,6 +394,9 @@ public final class GeneratedModelEmitter {
     }
     if ("fragment".equals(reference.kind())) {
       return "XmlFragment";
+    }
+    if ("xmlAttribute".equals(reference.kind())) {
+      return "XmlAttribute";
     }
     BindingJavaName name = javaName(reference.name());
     if (currentPackage.equals(name.packageName())) {

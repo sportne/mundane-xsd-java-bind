@@ -51,7 +51,7 @@ final class BindingModelBuilderTest {
                   type com.example.schemas.orders.v1.Order shape=record schema={http://schemas.example.com/orders/v1}Order
                     element id xml={http://schemas.example.com/orders/v1}id type=scalar:string cardinality=required 1..1 order=1 required=true
                     element line xml={http://schemas.example.com/orders/v1}line type=scalar:int cardinality=list 0..unbounded order=2 required=false
-                    attribute version xml={http://schemas.example.com/orders/v1}version type=scalar:string cardinality=required 1..1 order=0 required=true
+                    attribute version xml=version type=scalar:string cardinality=required 1..1 order=0 required=true
                     validation
                       rule element id required 1..1
                       rule element line list 0..unbounded
@@ -510,8 +510,7 @@ final class BindingModelBuilderTest {
         bindingText.contains("element total xml={urn:orders}total type=scalar:decimal"),
         bindingText);
     assertTrue(
-        bindingText.contains("attribute version xml={urn:orders}version type=scalar:string"),
-        bindingText);
+        bindingText.contains("attribute version xml=version type=scalar:string"), bindingText);
     assertTrue(
         bindingText.contains(
             "element id xml={urn:orders}id type=scalar:string cardinality=required 1..1 order=1"),
@@ -640,11 +639,11 @@ final class BindingModelBuilderTest {
         bindingText);
     assertTrue(
         bindingText.contains(
-            "attribute version xml={urn:orders}version type=scalar:string cardinality=required 1..1 order=0"),
+            "attribute version xml=version type=scalar:string cardinality=required 1..1 order=0"),
         bindingText);
     assertTrue(
         bindingText.contains(
-            "attribute region xml={urn:orders}region type=scalar:string cardinality=required 1..1 order=0"),
+            "attribute region xml=region type=scalar:string cardinality=required 1..1 order=0"),
         bindingText);
   }
 
@@ -800,7 +799,11 @@ final class BindingModelBuilderTest {
             .contains(
                 "wildcard wildcardContent xml=* type=fragment:"
                     + "io.github.mundanej.mxjb.runtime.XmlFragment cardinality=list 0..unbounded"));
-    assertTrue(result.model().toText().contains("wildcard namespace=other:urn:orders"));
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains("wildcard namespace=other:urn:orders processContents=skip"));
   }
 
   @Test
@@ -838,6 +841,34 @@ final class BindingModelBuilderTest {
     assertTrue(result.model().toText().contains("branch text text xml=#text type=scalar:string"));
     assertTrue(
         result.model().toText().contains("branch wildcard wildcardContent xml=* type=fragment:"));
+  }
+
+  @Test
+  void bindsAnyAttributeAsXmlAttributeListAndProhibitedExclusion() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="blocked" type="xs:string" use="prohibited"/>
+                  <xs:anyAttribute namespace="##any" processContents="lax"/>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String text = result.model().toText();
+    assertTrue(
+        text.contains(
+            "anyAttribute wildcardAttributes xml=@* type=xmlAttribute:"
+                + "io.github.mundanej.mxjb.runtime.XmlAttribute cardinality=list 0..unbounded"),
+        text);
+    assertTrue(text.contains("wildcard namespace=any processContents=lax"), text);
+    assertFalse(text.contains("attribute blocked xml="), text);
   }
 
   private BindingResult bind(String primarySchema) {

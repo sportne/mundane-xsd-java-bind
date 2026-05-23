@@ -52,6 +52,10 @@ public record BindingTypeReference(
     return new BindingTypeReference("fragment", "io.github.mundanej.mxjb.runtime.XmlFragment");
   }
 
+  static BindingTypeReference xmlAttribute() {
+    return new BindingTypeReference("xmlAttribute", "io.github.mundanej.mxjb.runtime.XmlAttribute");
+  }
+
   public String toText() {
     if ("list".equals(kind)) {
       return "list:" + itemType.toText();

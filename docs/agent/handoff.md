@@ -62,8 +62,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 49. `TASK-0049`: Complete XSD 1.0 frontend and component model. Completed and accepted.
 50. `TASK-0050`: Complete XSD 1.0 datatype and facet engine. Completed and accepted.
 51. `TASK-0051`: Expand accepted XSD 1.0 content-model support toward the full compiler. Completed and accepted.
-52. `TASK-0052`: Implement full XSD 1.0 attributes and wildcards. Next implementation gate.
-53. `TASK-0053`: Implement full XSD 1.0 derivation, substitution, and dynamic typing. Draft.
+52. `TASK-0052`: Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. Completed and accepted.
+53. `TASK-0053`: Implement full XSD 1.0 derivation, substitution, and dynamic typing. Next implementation gate.
 54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Draft.
 55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Draft.
 56. `TASK-0056`: Full XSD 1.0 readiness review. Draft.
@@ -114,7 +114,10 @@ has accepted the content-model compiler expansion for legal `xs:all`, nested sin
 single-particle repeated/optional groups with composed cardinality, repeated generated choices, and
 deterministic diagnostics for non-flattenable repeated/optional multi-particle groups and optional
 `xs:all` groups with required children.
-`TASK-0052` is the next implementation gate.
+`TASK-0052` has accepted attribute and wildcard expansion for local/global attribute namespace
+qualification, `use="prohibited"`, retained `xs:anyAttribute` values, wildcard namespace-token
+handling, and `processContents` metadata while keeping strict/lax schema-known deep validation and
+derivation interactions for later gates. `TASK-0053` is the next implementation gate.
 
 ## Draft completion backlog
 
@@ -175,19 +178,19 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0049` | XSD 1.0 full | accepted | Complete XSD 1.0 frontend and component model. |
 | `TASK-0050` | XSD 1.0 full | accepted | Complete XSD 1.0 datatype and facet engine. |
 | `TASK-0051` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 content-model support toward the full compiler. |
-| `TASK-0052` | XSD 1.0 full | next | Implement full XSD 1.0 attributes and wildcards. |
-| `TASK-0053` | XSD 1.0 full | draft | Implement full XSD 1.0 derivation, substitution, and dynamic typing. |
+| `TASK-0052` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. |
+| `TASK-0053` | XSD 1.0 full | next | Implement full XSD 1.0 derivation, substitution, and dynamic typing. |
 | `TASK-0054` | XSD 1.0 full | draft | Implement XSD 1.0 identity constraints and document-level validation. |
 | `TASK-0055` | XSD 1.0 full | draft | Add full XSD 1.0 conformance-suite intake. |
 | `TASK-0056` | XSD 1.0 full | draft | Full XSD 1.0 readiness review. |
 
 ## Current implementation gate
 
-`TASK-0052` is the next implementation gate after the accepted `TASK-0051` content-model work. It
-must implement full XSD 1.0 attributes and wildcards before derivation, identity-constraint, or
-conformance-suite work begins. Future product behavior, dependency changes, release publication,
-signing, tags, benchmark thresholds, or broader schema support still require an accepted task card
-or ADR.
+`TASK-0053` is the next implementation gate after the accepted `TASK-0052` attribute/wildcard work.
+It must implement full XSD 1.0 derivation, substitution, and dynamic typing before
+identity-constraint or conformance-suite work begins. Future product behavior, dependency changes,
+release publication, signing, tags, benchmark thresholds, or broader schema support still require an
+accepted task card or ADR.
 
 Any future work must preserve:
 
@@ -263,12 +266,12 @@ Any future work must preserve:
   interop, and explicit non-claims for W3C XML Canonicalization or cryptographic canonical XML.
   `TASK-0040` accepted the `0.5.0` document/open-content readiness review, confirmed support
   claims, conformance/interop evidence, Native Image smoke coverage, release posture, and
-  unsupported-document limitations.
-  `xs:anyAttribute`,
-  `processContents="lax"` or `"strict"`, wildcard choices, substitution-branch wildcards,
-  unsupported namespace constraints, DOM-backed binding, parser-handle retention, comments/PI
-  preservation, entity-reference semantics, identity constraints, full derivation semantics, release
-  tags, and publication claims remain out of scope.
+  unsupported-document limitations. `TASK-0052` later added retained `xs:anyAttribute` support,
+  broader wildcard namespace-token handling, and `processContents` metadata for accepted shapes.
+  Full strict/lax schema-known wildcard validation, wildcard choices, substitution-branch
+  wildcards, DOM-backed binding, parser-handle retention, comments/PI preservation,
+  entity-reference semantics, identity constraints, full derivation semantics, release tags, and
+  publication claims remain out of scope.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
 - `TASK-0041` accepted `0.6.0` as a hardening and release maturity slice. The accepted sequence is
   `TASK-0042` selected conformance/interop expansion, `TASK-0043` benchmark baselines,

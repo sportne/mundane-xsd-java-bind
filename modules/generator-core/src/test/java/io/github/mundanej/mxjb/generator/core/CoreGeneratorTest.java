@@ -737,6 +737,35 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void documentProfileGeneratesAnyAttributeSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("any-attribute-order.xsd", anyAttributeOrderSchema());
+    Path output = tempDirectory.resolve("any-attribute-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_DOCUMENT,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String reader = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlReader.java"));
+    String writer = Files.readString(output.resolve("com/acme/orders/xml/OrderXmlWriter.java"));
+    String validator =
+        Files.readString(output.resolve("com/acme/orders/xml/OrderXmlValidator.java"));
+    assertTrue(order.contains("List<XmlAttribute> wildcardAttributes"));
+    assertTrue(reader.contains("new io.github.mundanej.mxjb.runtime.XmlAttribute"));
+    assertTrue(writer.contains("output.attribute(wildcardAttributesValue.name()"));
+    assertTrue(validator.contains("validateWildcardAttribute(item"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
   void documentProfileGeneratesMixedContentSourcesAndCompilesThem() throws IOException {
     Path schema = writeSchema("mixed-document-order.xsd", mixedDocumentOrderSchema());
     Path output = tempDirectory.resolve("mixed-document-generated");
@@ -770,7 +799,8 @@ final class CoreGeneratorTest {
   }
 
   @Test
-  void documentProfileRejectsUnsupportedWildcardWithoutWritingSources() throws IOException {
+  void documentProfileRejectsInvalidWildcardProcessContentsWithoutWritingSources()
+      throws IOException {
     Path schema = writeSchema("bad-document-order.xsd", documentOrderSchema(true));
     Path output = tempDirectory.resolve("bad-document-generated");
 
@@ -789,7 +819,7 @@ final class CoreGeneratorTest {
     assertFalse(result.successful());
     assertTrue(
         result.diagnostics().stream()
-            .anyMatch(diagnostic -> diagnostic.message().contains("processContents=\"skip\"")));
+            .anyMatch(diagnostic -> diagnostic.message().contains("invalid processContents")));
     assertFalse(Files.exists(output));
   }
 
@@ -1354,7 +1384,7 @@ final class CoreGeneratorTest {
   }
 
   private String documentOrderSchema(boolean unsupportedProcessContents) {
-    String processContents = unsupportedProcessContents ? "strict" : "skip";
+    String processContents = unsupportedProcessContents ? "invalid" : "skip";
     return """
         <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
             xmlns:tns="urn:orders"
@@ -1371,6 +1401,22 @@ final class CoreGeneratorTest {
         </xs:schema>
         """
         .replace("PROCESS_CONTENTS", processContents);
+  }
+
+  private String anyAttributeOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders"
+            elementFormDefault="qualified">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order">
+            <xs:attribute name="id" type="xs:string" use="required"/>
+            <xs:attribute name="blocked" type="xs:string" use="prohibited"/>
+            <xs:anyAttribute namespace="##any" processContents="lax"/>
+          </xs:complexType>
+        </xs:schema>
+        """;
   }
 
   private String mixedDocumentOrderSchema() {

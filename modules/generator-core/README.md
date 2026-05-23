@@ -17,15 +17,17 @@ named list/union simple types, and initial derivation flattening slices only. Fu
 composition remains future profile work. The semantic profile covers accepted
 nillable/default/fixed behavior, direct substitution groups, and expanded generated validation for
 those accepted semantic paths only. The document profile currently covers accepted direct
-`xs:any` particles in sequences with retained `XmlFragment` wildcard fields, accepted mixed-content
-sequence types, and verified stable project serialization policy. It does not claim W3C XML
-Canonicalization or cryptographic canonical XML compatibility.
+`xs:any` particles in sequences with retained `XmlFragment` wildcard fields, retained
+`xs:anyAttribute` fields as immutable `List<XmlAttribute>` values, accepted mixed-content sequence
+types, and verified stable project serialization policy. It does not claim W3C XML Canonicalization
+or cryptographic canonical XML compatibility.
 
 `TASK-0051` adds content-model coverage for required `xs:all`, all-optional `xs:all`, repeated
 element-only choices, nested singleton sequences, and single-particle repeated/optional group refs
 in the currently executable profiles. `XP-XSD10-FULL` is the planned full XML Schema 1.0 target,
-but this module still rejects it before generation until the remaining wildcard, derivation,
-identity-constraint, conformance, and readiness work is accepted.
+but this module still rejects it before generation until the remaining strict/lax wildcard
+schema-known validation, derivation, identity-constraint, conformance, and readiness work is
+accepted.
 
 ## Contributor notes
 

@@ -124,6 +124,9 @@ public final class GeneratedValidatorEmitter {
     if ("fragment".equals(reference.kind())) {
       return "io.github.mundanej.mxjb.runtime.XmlFragment".equals(reference.name());
     }
+    if ("xmlAttribute".equals(reference.kind())) {
+      return "io.github.mundanej.mxjb.runtime.XmlAttribute".equals(reference.name());
+    }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
@@ -131,6 +134,7 @@ public final class GeneratedValidatorEmitter {
   private boolean isSupportedFieldKind(String kind) {
     return "element".equals(kind)
         || "attribute".equals(kind)
+        || "anyAttribute".equals(kind)
         || "choice".equals(kind)
         || "wildcard".equals(kind)
         || "content".equals(kind);
@@ -276,6 +280,10 @@ public final class GeneratedValidatorEmitter {
       }
       if ("content".equals(field.kind())) {
         appendContentValidation(source, field, accessor);
+        return;
+      }
+      if ("anyAttribute".equals(field.kind())) {
+        appendAnyAttributeValidation(source, field, accessor);
         return;
       }
       String shape = field.cardinality().shape();
@@ -701,6 +709,42 @@ public final class GeneratedValidatorEmitter {
           .append("    }\n");
     }
 
+    private void appendAnyAttributeValidation(
+        StringBuilder source, BindingField field, String accessor) {
+      source.append("    if (").append(accessor).append(" == null) {\n");
+      source
+          .append("      addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("    } else {\n");
+      source
+          .append("      for (io.github.mundanej.mxjb.runtime.XmlAttribute item : ")
+          .append(accessor)
+          .append(") {\n");
+      source
+          .append("        validateWildcardAttribute(item, \"")
+          .append(escape(field.wildcard().namespaceConstraint().kind()))
+          .append("\", java.util.Set.of(")
+          .append(
+              field.wildcard().namespaceConstraint().namespaces().stream()
+                  .map(value -> "\"" + escape(value) + "\"")
+                  .collect(java.util.stream.Collectors.joining(", ")))
+          .append("), java.util.Set.of(")
+          .append(
+              field.wildcard().excludedNames().stream()
+                  .map(
+                      name ->
+                          "new io.github.mundanej.mxjb.runtime.XmlName(\""
+                              + escape(name.namespace())
+                              + "\", \""
+                              + escape(name.localName())
+                              + "\")")
+                  .collect(java.util.stream.Collectors.joining(", ")))
+          .append("), location, errors);\n");
+      source.append("      }\n");
+      source.append("    }\n");
+    }
+
     private boolean hasFacetRules(BindingTypeReference reference) {
       return reference.restriction() != null && reference.restriction().hasRules();
     }
@@ -1117,6 +1161,29 @@ public final class GeneratedValidatorEmitter {
             .append("      }\n")
             .append("    }\n")
             .append("  }\n\n")
+            .append("  private static void validateWildcardAttribute(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlAttribute attribute,\n")
+            .append("      String wildcardKind,\n")
+            .append("      java.util.Set<String> namespaces,\n")
+            .append("      java.util.Set<io.github.mundanej.mxjb.runtime.XmlName> excludedNames,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
+            .append(
+                "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+            .append("    if (attribute == null || attribute.name() == null) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-001\", \"Missing required wildcard attribute.\", location);\n")
+            .append("      return;\n")
+            .append("    }\n")
+            .append("    if (excludedNames.contains(attribute.name())) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-009\", \"Prohibited XML attribute.\", location);\n")
+            .append("    }\n")
+            .append("    if (!wildcardMatches(attribute.name(), wildcardKind, namespaces)) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-009\", "
+                    + "\"Wildcard attribute namespace is not accepted.\", location);\n")
+            .append("    }\n")
+            .append("  }\n\n")
             .append("  private static boolean wildcardMatches(\n")
             .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
             .append("      String kind,\n")
@@ -1181,7 +1248,9 @@ public final class GeneratedValidatorEmitter {
       if (!visited.add(type.javaName().qualifiedName())) {
         return false;
       }
-      if (type.fields().stream().anyMatch(field -> "wildcard".equals(field.kind()))) {
+      if (type.fields().stream()
+          .anyMatch(
+              field -> "wildcard".equals(field.kind()) || "anyAttribute".equals(field.kind()))) {
         return true;
       }
       for (BindingField field :

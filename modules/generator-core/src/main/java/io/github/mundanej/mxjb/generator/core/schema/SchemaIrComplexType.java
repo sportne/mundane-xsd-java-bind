@@ -8,9 +8,19 @@ import java.util.stream.Collectors;
 public record SchemaIrComplexType(
     SchemaQName name,
     List<SchemaIrAttribute> attributes,
+    SchemaIrAnyAttribute anyAttribute,
     List<SchemaIrSequence> sequences,
     boolean mixed,
     boolean anonymous) {
+  public SchemaIrComplexType(
+      SchemaQName name,
+      List<SchemaIrAttribute> attributes,
+      List<SchemaIrSequence> sequences,
+      boolean mixed,
+      boolean anonymous) {
+    this(name, attributes, null, sequences, mixed, anonymous);
+  }
+
   public SchemaIrComplexType {
     if (!anonymous) {
       Objects.requireNonNull(name, "name");
@@ -33,7 +43,8 @@ public record SchemaIrComplexType(
         attributes.stream()
             .map(attribute -> attribute.toText(indent + "  "))
             .collect(Collectors.joining("\n"));
-    return java.util.stream.Stream.of(line, sequenceText, attributeText)
+    String anyAttributeText = anyAttribute == null ? "" : anyAttribute.toText(indent + "  ");
+    return java.util.stream.Stream.of(line, sequenceText, attributeText, anyAttributeText)
         .filter(value -> !value.isEmpty())
         .collect(Collectors.joining("\n"));
   }

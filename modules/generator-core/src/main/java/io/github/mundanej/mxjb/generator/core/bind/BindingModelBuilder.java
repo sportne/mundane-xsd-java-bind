@@ -4,6 +4,7 @@ import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaCardinality;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrAll;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrAnyAttribute;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrAttribute;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrChoice;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrComplexType;
@@ -222,7 +223,13 @@ public final class BindingModelBuilder {
           }
         }
       }
+      List<SchemaQName> prohibitedAttributes = new ArrayList<>();
       for (SchemaIrAttribute attribute : complexType.attributes()) {
+        if ("prohibited".equals(attribute.use())) {
+          prohibitedAttributes.add(attribute.name());
+          validationRules.add("prohibited-attribute " + attribute.name().toText());
+          continue;
+        }
         SchemaIrAttribute declaration =
             attribute.reference() ? globalAttributes.get(attribute.name()) : attribute;
         SchemaIrTypeReference type = declaration == null ? attribute.type() : declaration.type();
@@ -247,12 +254,37 @@ public final class BindingModelBuilder {
                 semantics));
         validationRules.add("attribute " + fieldName + " use=" + attribute.use());
       }
+      if (complexType.anyAttribute() != null) {
+        BindingField field =
+            bindAnyAttributeField(complexType.anyAttribute(), prohibitedAttributes, usedFieldNames);
+        fields.add(field);
+        validationRules.add("anyAttribute " + field.javaName());
+      }
       return new BindingType(
           javaName,
           complexType.name(),
           "record",
           fields,
           new BindingValidationPlan(validationRules));
+    }
+
+    private BindingField bindAnyAttributeField(
+        SchemaIrAnyAttribute anyAttribute,
+        List<SchemaQName> prohibitedAttributes,
+        Set<String> usedFieldNames) {
+      String fieldName = JavaNames.unique("wildcardAttributes", usedFieldNames);
+      return new BindingField(
+          "anyAttribute",
+          new SchemaQName("", "@*"),
+          fieldName,
+          BindingTypeReference.xmlAttribute(),
+          new BindingCardinality("list", 0, "unbounded"),
+          0,
+          false,
+          new BindingWildcard(
+              anyAttribute.namespaceConstraint(),
+              anyAttribute.processContents(),
+              prohibitedAttributes));
     }
 
     private BindingField bindElementField(
@@ -371,7 +403,7 @@ public final class BindingModelBuilder {
           new BindingCardinality(
               "list", wildcard.cardinality().minOccurs(), wildcard.cardinality().maxOccurs()),
           order,
-          new BindingWildcard(wildcard.namespaceConstraint()));
+          new BindingWildcard(wildcard.namespaceConstraint(), wildcard.processContents()));
     }
 
     private BindingField bindWildcardField(
@@ -388,7 +420,7 @@ public final class BindingModelBuilder {
           cardinality,
           order,
           wildcard.cardinality().minOccurs() > 0,
-          new BindingWildcard(wildcard.namespaceConstraint()));
+          new BindingWildcard(wildcard.namespaceConstraint(), wildcard.processContents()));
     }
 
     private BindingField bindSubstitutionField(

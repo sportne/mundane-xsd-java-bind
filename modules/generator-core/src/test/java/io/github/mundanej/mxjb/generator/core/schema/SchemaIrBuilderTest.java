@@ -68,7 +68,7 @@ final class SchemaIrBuilderTest {
                     sequence cardinality=1..1
                       element {urn:orders}id type=xs:string cardinality=1..1
                       element {urn:orders}line type={urn:orders}Line cardinality=0..unbounded
-                    attribute {urn:orders}version type=xs:string use=required
+                    attribute version type=xs:string use=required
                   complexType {urn:orders}Line
                     sequence cardinality=1..1
                       element {urn:orders}sku type=xs:string cardinality=1..1
@@ -522,8 +522,7 @@ final class SchemaIrBuilderTest {
     assertTrue(irText.contains("choice cardinality=0..1"), irText);
     assertTrue(
         irText.contains("element {urn:orders}total type=xs:decimal cardinality=1..1"), irText);
-    assertTrue(
-        irText.contains("attribute {urn:orders}version type=xs:string use=required"), irText);
+    assertTrue(irText.contains("attribute version type=xs:string use=required"), irText);
   }
 
   @Test
@@ -559,7 +558,7 @@ final class SchemaIrBuilderTest {
     assertEquals(
         List.of(
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE,
             DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE),
         diagnosticCodes(result));
   }
@@ -773,9 +772,7 @@ final class SchemaIrBuilderTest {
     assertTrue(irText.contains("complexType {urn:orders}Order"), irText);
     assertTrue(
         irText.indexOf("element {urn:orders}id") < irText.indexOf("element {urn:orders}total"));
-    assertTrue(
-        irText.indexOf("attribute {urn:orders}version")
-            < irText.indexOf("attribute {urn:orders}region"));
+    assertTrue(irText.indexOf("attribute version") < irText.indexOf("attribute region"));
   }
 
   @Test
@@ -1001,17 +998,11 @@ final class SchemaIrBuilderTest {
 
     assertEquals(
         List.of(
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
         diagnosticCodes(result));
     assertTrue(
         result.diagnostics().stream()
             .anyMatch(diagnostic -> diagnostic.message().contains("Global xs:redefine")));
-    assertTrue(
-        result.diagnostics().stream()
-            .anyMatch(
-                diagnostic -> diagnostic.message().contains("Unsupported child anyAttribute")));
     assertTrue(
         result.diagnostics().stream()
             .anyMatch(diagnostic -> diagnostic.message().contains("xs:key is not supported")));
@@ -1365,7 +1356,8 @@ final class SchemaIrBuilderTest {
         result
             .model()
             .toText()
-            .contains("wildcard namespace=other:urn:orders cardinality=0..unbounded"));
+            .contains(
+                "wildcard namespace=other:urn:orders processContents=skip cardinality=0..unbounded"));
   }
 
   @Test
@@ -1391,7 +1383,8 @@ final class SchemaIrBuilderTest {
         result
             .model()
             .toText()
-            .contains("wildcard namespace=other:urn:orders cardinality=0..unbounded"));
+            .contains(
+                "wildcard namespace=other:urn:orders processContents=skip cardinality=0..unbounded"));
   }
 
   @Test
@@ -1417,7 +1410,7 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
-  void rejectsWildcardWithoutExplicitSkipProcessContents() throws IOException {
+  void acceptsWildcardDefaultAndStrictProcessContents() throws IOException {
     write(
         "main.xsd",
         schema(
@@ -1437,11 +1430,87 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = new SchemaIrBuilder().build(syntaxResult);
 
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    assertTrue(result.model().toText().contains("processContents=strict"));
+  }
+
+  @Test
+  void normalizesAnyAttributeAndAttributeFormDefaults() throws IOException {
+    write(
+        "main.xsd",
+        """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders"
+            attributeFormDefault="qualified">
+          <xs:complexType name="Order">
+            <xs:attribute name="qualifiedByDefault" type="xs:string"/>
+            <xs:attribute name="local" type="xs:string" form="unqualified"/>
+            <xs:anyAttribute namespace="##local ##targetNamespace" processContents="lax"/>
+          </xs:complexType>
+        </xs:schema>
+        """);
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String text = result.model().toText();
+    assertTrue(text.contains("attribute {urn:orders}qualifiedByDefault type=xs:string"));
+    assertTrue(text.contains("attribute local type=xs:string"));
+    assertTrue(text.contains("anyAttribute namespace=explicit:,urn:orders processContents=lax"));
+  }
+
+  @Test
+  void composesAnyAttributeAcrossAttributeGroups() throws IOException {
+    write(
+        "main.xsd",
+        """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:attributeGroup name="ExternalAttributes">
+            <xs:anyAttribute namespace="urn:external" processContents="skip"/>
+          </xs:attributeGroup>
+          <xs:complexType name="Order">
+            <xs:attributeGroup ref="tns:ExternalAttributes"/>
+            <xs:anyAttribute namespace="##targetNamespace" processContents="lax"/>
+          </xs:complexType>
+        </xs:schema>
+        """);
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains(
+                "anyAttribute namespace=explicit:urn:external,urn:orders processContents=lax"));
+  }
+
+  @Test
+  void reportsInvalidAnyAttributeProcessContentsAndNamespaceComposition() throws IOException {
+    write(
+        "main.xsd",
+        """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:attributeGroup name="OtherAttributes">
+            <xs:anyAttribute namespace="##other" processContents="skip"/>
+          </xs:attributeGroup>
+          <xs:complexType name="Order">
+            <xs:attributeGroup ref="tns:OtherAttributes"/>
+            <xs:anyAttribute namespace="##targetNamespace" processContents="invalid"/>
+          </xs:complexType>
+        </xs:schema>
+        """);
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
     assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
-    assertEquals(
-        "SCHEMA_IR_INVALID_COMPONENT | main.xsd | xs:any supports only explicit "
-            + "processContents=\"skip\" in profile XP-XSD10-DOCUMENT.",
-        result.diagnostics().getFirst().toManifestLine());
+    assertTrue(result.diagnostics().getFirst().message().contains("invalid processContents"));
   }
 
   @Test

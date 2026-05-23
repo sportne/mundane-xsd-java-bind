@@ -121,6 +121,9 @@ public final class GeneratedReaderEmitter {
     if ("fragment".equals(reference.kind())) {
       return "io.github.mundanej.mxjb.runtime.XmlFragment".equals(reference.name());
     }
+    if ("xmlAttribute".equals(reference.kind())) {
+      return "io.github.mundanej.mxjb.runtime.XmlAttribute".equals(reference.name());
+    }
     return "choice".equals(reference.kind())
         || ("model".equals(reference.kind()) && index.type(reference.name()) != null);
   }
@@ -128,6 +131,7 @@ public final class GeneratedReaderEmitter {
   private boolean isSupportedFieldKind(String kind) {
     return "element".equals(kind)
         || "attribute".equals(kind)
+        || "anyAttribute".equals(kind)
         || "choice".equals(kind)
         || "wildcard".equals(kind)
         || "content".equals(kind);
@@ -366,14 +370,31 @@ public final class GeneratedReaderEmitter {
     }
 
     private void appendUnexpectedAttributeCheck(StringBuilder source, BindingType type) {
+      for (BindingField anyAttribute : anyAttributes(type)) {
+        source
+            .append("    java.util.ArrayList<io.github.mundanej.mxjb.runtime.XmlAttribute> ")
+            .append(anyAttribute.javaName())
+            .append("Values = new java.util.ArrayList<>();\n");
+      }
       source.append("    for (int index = 0; index < input.attributeCount(); index++) {\n");
       source.append(
           "      io.github.mundanej.mxjb.runtime.XmlName attributeName = input.attributeName(index);\n");
       List<BindingField> attributes = attributes(type);
-      if (attributes.isEmpty()) {
+      List<BindingField> anyAttributes = anyAttributes(type);
+      List<io.github.mundanej.mxjb.generator.core.schema.SchemaQName> prohibitedNames =
+          anyAttributes.stream()
+              .flatMap(field -> field.wildcard().excludedNames().stream())
+              .toList();
+      for (io.github.mundanej.mxjb.generator.core.schema.SchemaQName prohibited : prohibitedNames) {
+        source
+            .append("      if (")
+            .append(nameConstant(prohibited))
+            .append(".equals(attributeName)) {\n");
         source.append(
-            "      throw readException(input, \"MXJB-GR-003\", \"Unexpected XML attribute.\");\n");
-      } else {
+            "        throw readException(input, \"MXJB-GR-003\", \"Prohibited XML attribute.\");\n");
+        source.append("      }\n");
+      }
+      if (!attributes.isEmpty()) {
         source.append("      if (");
         for (int indexValue = 0; indexValue < attributes.size(); indexValue++) {
           if (indexValue > 0) {
@@ -385,9 +406,42 @@ public final class GeneratedReaderEmitter {
               .append(".equals(attributeName)");
         }
         source.append(") {\n");
+      }
+      if (anyAttributes.isEmpty()) {
         source.append(
-            "        throw readException(input, \"MXJB-GR-003\", \"Unexpected XML attribute.\");\n");
-        source.append("      }\n");
+            attributes.isEmpty()
+                ? "      throw readException(input, \"MXJB-GR-003\", \"Unexpected XML attribute.\");\n"
+                : "        throw readException(input, \"MXJB-GR-003\", \"Unexpected XML attribute.\");\n");
+        if (!attributes.isEmpty()) {
+          source.append("      }\n");
+        }
+      } else {
+        if (attributes.isEmpty()) {
+          source.append("      if (");
+        } else {
+          source.append("        if (");
+        }
+        for (int indexValue = 0; indexValue < anyAttributes.size(); indexValue++) {
+          if (indexValue > 0) {
+            source.append("\n            || ");
+          }
+          source.append(wildcardMatchExpression(anyAttributes.get(indexValue), "attributeName"));
+        }
+        source.append(") {\n");
+        source
+            .append(attributes.isEmpty() ? "        " : "          ")
+            .append(anyAttributes.getFirst().javaName())
+            .append("Values.add(new io.github.mundanej.mxjb.runtime.XmlAttribute(attributeName, ")
+            .append("input.attributeValue(index)));\n");
+        source.append(attributes.isEmpty() ? "      } else {\n" : "        } else {\n");
+        source.append(
+            attributes.isEmpty()
+                ? "        throw readException(input, \"MXJB-GR-003\", \"Unexpected XML attribute.\");\n"
+                : "          throw readException(input, \"MXJB-GR-003\", \"Unexpected XML attribute.\");\n");
+        source.append(attributes.isEmpty() ? "      }\n" : "        }\n");
+        if (!attributes.isEmpty()) {
+          source.append("      }\n");
+        }
       }
       source.append("    }\n");
     }
@@ -1575,7 +1629,7 @@ public final class GeneratedReaderEmitter {
         return false;
       }
       for (BindingField field : type.fields()) {
-        if ("wildcard".equals(field.kind())) {
+        if ("wildcard".equals(field.kind()) || "anyAttribute".equals(field.kind())) {
           return true;
         }
         if ("content".equals(field.kind())
@@ -1625,6 +1679,9 @@ public final class GeneratedReaderEmitter {
       }
       if ("fragment".equals(field.type().kind())) {
         return "io.github.mundanej.mxjb.runtime.XmlFragment";
+      }
+      if ("xmlAttribute".equals(field.type().kind())) {
+        return "io.github.mundanej.mxjb.runtime.XmlAttribute";
       }
       return scalarType(field.type());
     }
@@ -1682,6 +1739,13 @@ public final class GeneratedReaderEmitter {
           .toList();
     }
 
+    private List<BindingField> anyAttributes(BindingType type) {
+      return type.fields().stream()
+          .filter(field -> "anyAttribute".equals(field.kind()))
+          .sorted(Comparator.comparingInt(BindingField::order))
+          .toList();
+    }
+
     private List<BindingField> elements(BindingType type) {
       return type.fields().stream()
           .filter(field -> "element".equals(field.kind()))
@@ -1716,7 +1780,13 @@ public final class GeneratedReaderEmitter {
     }
 
     private String wildcardMatchExpression(BindingField field) {
-      return "wildcardMatches(input.name(), \""
+      return wildcardMatchExpression(field, "input.name()");
+    }
+
+    private String wildcardMatchExpression(BindingField field, String nameExpression) {
+      return "wildcardMatches("
+          + nameExpression
+          + ", \""
           + escape(field.wildcard().namespaceConstraint().kind())
           + "\", java.util.Set.of("
           + field.wildcard().namespaceConstraint().namespaces().stream()
@@ -1753,6 +1823,11 @@ public final class GeneratedReaderEmitter {
       }
       for (BindingField field : attributes(type)) {
         nameConstant(field.xmlName());
+      }
+      for (BindingField field : anyAttributes(type)) {
+        for (SchemaQName excludedName : field.wildcard().excludedNames()) {
+          nameConstant(excludedName);
+        }
       }
       for (BindingField field : elements(type)) {
         nameConstant(field.xmlName());

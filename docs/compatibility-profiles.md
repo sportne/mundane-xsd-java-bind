@@ -84,17 +84,20 @@ choices, nested singleton sequences, and single-particle repeated/optional group
 cardinality. Optional all-groups with required children, repeated/optional multi-particle groups,
 wildcard choice branches, anonymous list/union member types, optional or repeated list-valued XML
 fields, nested list/union composition, `simpleContent`, complex
-restriction, mixed choice content, abstract types, identity constraints, full wildcard/attribute
-algebra, and full XSD 1.0 conformance remain out of scope with explicit diagnostics.
+restriction, mixed choice content, abstract types, identity constraints, strict/lax schema-known
+wildcard deep validation, and full XSD 1.0 conformance remain out of scope with explicit
+diagnostics or future-study classification.
 
 `TASK-0050` broadens the datatype engine used by existing executable profiles without making
 `XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
 1.0 primitive and derived built-ins to exact Java/runtime values where needed, including temporal
 values, duration, binary values, anyURI, QName/NOTATION, float/double special values, bounded
 numeric families, and list-valued built-ins such as `NMTOKENS`, `IDREFS`, and `ENTITIES`.
-Generated readers, writers, and validators use the same dependency-free runtime datatype engine;
-grouped content-list models, full derivation, attribute wildcard, and identity-constraint support
-remain future tasks.
+Generated readers, writers, and validators use the same dependency-free runtime datatype engine.
+`TASK-0052` adds local/global attribute namespace qualification, prohibited attributes, retained
+`xs:anyAttribute` values as `List<XmlAttribute>`, wildcard namespace-token handling, and
+`processContents` metadata. Grouped content-list models, full derivation, strict/lax schema-known
+wildcard deep validation, and identity-constraint support remain future tasks.
 
 ## `0.4.0` Semantic Baseline
 
@@ -155,9 +158,10 @@ metadata, a release tag, or a publication claim.
   fragments emit `XmlFragment` attributes and content in stored list order. This is not XML
   Canonicalization and does not support cryptographic canonical XML claims.
 
-Wildcards in choices, attributes, substitution branches, and unsupported group/derivation edge
-cases remain out of scope. `xs:anyAttribute`, `processContents="lax"` or `"strict"`, unsupported
-namespace constraints, mixed choices, comments or processing instruction preservation,
+Wildcards in choices, substitution branches, and unsupported group/derivation edge cases remain out
+of scope. `xs:anyAttribute` is retained as `List<XmlAttribute>` for accepted shapes, and
+`processContents="lax"` or `"strict"` metadata is preserved, but full schema-known deep validation
+for lax/strict remains future work. Mixed choices, comments or processing instruction preservation,
 entity-reference semantics, DOM-backed binding, identity constraints, full derivation semantics,
 artifact publication, and full XSD 1.0 conformance remain out of scope with
 explicit diagnostics.

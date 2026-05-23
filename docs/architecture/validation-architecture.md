@@ -69,8 +69,11 @@ exclusive bounds, totalDigits, and fractionDigits through the shared datatype en
 stable generated diagnostic categories. QName parsing uses the active XML namespace context, and
 generated writers emit QName lexical values through `XmlOutput` so adapters can declare deterministic
 prefixes. `TASK-0051` adds content-model coverage for legal `xs:all`, repeated choices, nested
-singleton sequences, and single-particle repeated/optional groups; full derivation, attribute
-wildcards, identity constraints, and `XP-XSD10-FULL` execution remain future gates.
+singleton sequences, and single-particle repeated/optional groups. `TASK-0052` adds accepted
+attribute namespace qualification, prohibited-attribute rejection, retained `xs:anyAttribute`
+validation, wildcard namespace-token matching, and `processContents` metadata. Full derivation,
+strict/lax schema-known wildcard validation, identity constraints, and `XP-XSD10-FULL` execution
+remain future gates.
 
 ## `TASK-0032` semantic validation
 
@@ -99,6 +102,10 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   deterministic diagnostics for missing, repeated, or out-of-order known elements.
 - `TASK-0039` verifies stable serialization policy for accepted generated output and retained
   fragments without claiming formal XML Canonicalization.
-- `xs:anyAttribute`, `processContents="lax"` or `"strict"`, identity constraints, comments,
-  processing instructions, entity-reference semantics, wildcards outside accepted sequences, mixed
-  choices, and full XSD 1.0 validation remain schema diagnostics.
+- `TASK-0052` validates accepted `xs:anyAttribute` lists for null-free structure, namespace
+  constraints, and prohibited/excluded names. Readers reject prohibited declared attributes before
+  wildcard capture and continue to reject attributes that are neither declared nor accepted by the
+  effective wildcard.
+- Full schema-known validation for `processContents="lax"` or `"strict"`, identity constraints,
+  comments, processing instructions, entity-reference semantics, wildcard choice branches, mixed
+  choices, and full XSD 1.0 validation remain future work.

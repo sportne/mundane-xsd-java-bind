@@ -13,17 +13,17 @@ traceability artifact, not a support claim. Status values:
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
 | `xs:schema` | supported | done | XML 1.0 and Namespaces in XML 1.0 baseline only. |
-| `targetNamespace`, `elementFormDefault`, `attributeFormDefault` | supported/tolerated | done/`TASK-0049` | Target namespaces are used by current binding; form defaults are parsed and preserved for later full binding semantics. |
+| `targetNamespace`, `elementFormDefault`, `attributeFormDefault` | supported | done/`TASK-0049`/`TASK-0052` | Target namespaces and form defaults are used by accepted element and attribute binding paths. |
 | `blockDefault`, `finalDefault` | tolerated/ignored | `TASK-0049`, `TASK-0053` | Parsed and preserved; full derivation and substitution semantics remain future. |
 | `xs:annotation`, `xs:documentation`, `xs:appinfo` | tolerated/ignored | `TASK-0049` | Parsed and preserved without changing binding behavior. |
 | `xs:include`, `xs:import` | supported | done/`TASK-0049` | Direct and transitive chameleon includes now adopt the including namespace in the syntax/component model, with deterministic ambiguity/conflict diagnostics; imports remain resolver-backed. |
 | `xs:redefine` | diagnostic | `TASK-0049`, `TASK-0053` | Recognized and rejected deterministically; component graph rewrite semantics remain future. |
 | Global/local `xs:element` | partially supported | `TASK-0049`, `TASK-0053` | Abstract, block/final metadata is parsed; full substitution and dynamic type behavior remain incomplete. |
-| Global/local `xs:attribute` | partially supported | `TASK-0052` | Prohibited use, full defaults/fixed, and wildcard composition remain incomplete. |
+| Global/local `xs:attribute` | partially supported | `TASK-0052` | Local/global namespace qualification, refs, defaults/fixed, and prohibited use are supported for accepted shapes; derivation composition remains incomplete. |
 | `xs:complexType` | partially supported | `TASK-0051`, `TASK-0053` | Content-model support now includes legal `xs:all`, repeated choices, and selected nested groups; simpleContent, restriction, abstract types, and `xsi:type` remain future. |
 | `xs:simpleType` | partially supported | `TASK-0050`, `TASK-0053` | Needs full datatype, facet, list, union, and derivation semantics. |
 | `xs:group` | partially supported | `TASK-0051` | Singleton refs and single-particle repeated/optional refs are flattened with composed cardinality; repeated/optional multi-particle groups require a future grouped content-list shape. |
-| `xs:attributeGroup` | partially supported | `TASK-0052` | Needs recursion checks, nested groups, and anyAttribute composition. |
+| `xs:attributeGroup` | partially supported | `TASK-0052` | Nested refs and anyAttribute composition are accepted for non-recursive groups; full restriction/derivation composition remains future. |
 | `xs:notation` | tolerated/ignored | `TASK-0049`, `TASK-0050` | Parsed and indexed as a symbol-space component; NOTATION datatype semantics remain future. |
 | Identity constraints | diagnostic | `TASK-0049`, `TASK-0054` | `xs:unique`, `xs:key`, `xs:keyref`, selector, and field syntax are recognized and rejected before binding. |
 
@@ -34,7 +34,7 @@ traceability artifact, not a support claim. Status values:
 | `xs:sequence` | supported for accepted shapes | `TASK-0051` | Direct sequences, nested singleton sequences, and single-particle repeated/optional nested sequences are accepted; repeated multi-particle groups remain diagnostic. |
 | `xs:choice` | partially supported | `TASK-0051` | Required, optional, and repeated element-only choices are generated; mixed/wildcard choice forms remain future. |
 | `xs:all` | partially supported | `TASK-0049`, `TASK-0051` | Required all-groups and optional all-groups whose members are all optional are generated with unordered reader acceptance and deterministic writer order; optional all-groups with required children remain diagnostic until grouped content state exists. |
-| `xs:any` | partially supported | `TASK-0052` | Needs all locations, lax/strict processing, and derivation interactions. |
+| `xs:any` | partially supported | `TASK-0052` | Retained element fragments support accepted locations, namespace-token handling, and process metadata; wildcard choices, strict/lax schema-known deep validation, and derivation interactions remain future. |
 | `minOccurs`, `maxOccurs` | partially supported | `TASK-0051` | Cardinality composition is verified for single-particle nested sequences/group refs and repeated choices; grouped list semantics remain future. |
 | UPA validation | partially supported | `TASK-0051` | Existing element/wildcard overlap diagnostics remain; complete automata-based UPA coverage remains future. |
 | Mixed content | partially supported | `TASK-0051`, `TASK-0053` | Sequence mixed content remains supported; mixed choices and derivation interactions remain future. |
@@ -43,13 +43,13 @@ traceability artifact, not a support claim. Status values:
 
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
-| Attribute `use=optional|required` | supported for accepted shapes | `TASK-0052` | Complete with defaults/fixed and refs. |
-| Attribute `use=prohibited` | not implemented yet | `TASK-0052` | Required for restriction and group composition. |
-| Attribute defaults/fixed | partially supported | `TASK-0052` | Needs full datatype and derivation interactions. |
-| `xs:anyAttribute` | diagnostic | `TASK-0049`, `TASK-0052` | Syntax is recognized and rejected before binding; retained unknown attributes remain future. |
-| Wildcard namespace constraints | partially supported | `TASK-0052` | Complete union/intersection/subset semantics. |
-| `processContents=skip` | partially supported | `TASK-0052` | Current support is direct element wildcard only. |
-| `processContents=lax` and `strict` | diagnostic | `TASK-0052` | Requires schema-known dispatch/validation policy. |
+| Attribute `use=optional|required` | supported for accepted shapes | `TASK-0052` | Includes refs, local/global namespace qualification, defaults, and fixed values for accepted scalar shapes. |
+| Attribute `use=prohibited` | supported for accepted shapes | `TASK-0052` | Prohibited attributes are not public model fields and are rejected before anyAttribute capture. |
+| Attribute defaults/fixed | partially supported | `TASK-0052` | Accepted scalar defaults/fixed are supported; full derivation interactions remain future. |
+| `xs:anyAttribute` | partially supported | `TASK-0049`, `TASK-0052` | Retained unknown attributes bind as immutable `List<XmlAttribute>` values for accepted shapes. |
+| Wildcard namespace constraints | partially supported | `TASK-0052` | `##any`, `##other`, `##local`, `##targetNamespace`, and explicit URI-list matching are supported; full derivation algebra remains future. |
+| `processContents=skip` | partially supported | `TASK-0052` | Supported for retained element and attribute wildcards in accepted shapes. |
+| `processContents=lax` and `strict` | partially supported | `TASK-0052` | Metadata is parsed, bound, emitted, and tested for accepted retention paths; full schema-known deep validation remains future. |
 
 ## Simple types and facets
 

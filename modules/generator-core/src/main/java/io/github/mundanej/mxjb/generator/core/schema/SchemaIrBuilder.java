@@ -102,7 +102,8 @@ public final class SchemaIrBuilder {
             // Normalized in a first pass so list/union aliases can resolve named restricted
             // scalar aliases deterministically.
           }
-          case ATTRIBUTE -> addIfPresent(attributes, normalizeAttribute(document, child, state));
+          case ATTRIBUTE ->
+              addIfPresent(attributes, normalizeAttribute(document, child, state, true));
           case ANNOTATION, APPINFO, DOCUMENTATION, INCLUDE, IMPORT, NOTATION -> {
             // Metadata and notation declarations are indexed/tolerated at the component layer.
           }
@@ -236,20 +237,30 @@ public final class SchemaIrBuilder {
       return null;
     }
     List<SchemaIrAttribute> attributes = new ArrayList<>();
+    SchemaIrAnyAttribute anyAttribute = null;
     for (XsdSyntaxNode child : node.children()) {
       if (child.kind() == XsdSyntaxKind.ATTRIBUTE) {
-        addIfPresent(attributes, normalizeAttribute(document, child, state));
+        addIfPresent(attributes, normalizeAttribute(document, child, state, false));
+      } else if (child.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP) {
+        addAttributeGroupReference(document, child, attributes, state);
+        SchemaIrAnyAttribute groupAnyAttribute = attributeGroupAnyAttribute(document, child, state);
+        anyAttribute = combineAnyAttribute(document, anyAttribute, groupAnyAttribute, state);
+      } else if (child.kind() == XsdSyntaxKind.ANY_ATTRIBUTE) {
+        anyAttribute =
+            combineAnyAttribute(
+                document, anyAttribute, normalizeAnyAttribute(document, child, state), state);
       } else {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "Only xs:attribute children are supported inside xs:attributeGroup in profile XP-XSD10-COMPOSED.");
+            "Only xs:attribute, xs:attributeGroup, and xs:anyAttribute children are supported "
+                + "inside xs:attributeGroup.");
       }
     }
     SchemaIrAttributeGroup group =
         new SchemaIrAttributeGroup(
-            new SchemaQName(schemaNamespace(document), localName), attributes);
+            new SchemaQName(schemaNamespace(document), localName), attributes, anyAttribute);
     state.attributeGroups.put(group.name(), group);
     return group;
   }
@@ -568,12 +579,13 @@ public final class SchemaIrBuilder {
     ComplexTypeContent content =
         normalizeComplexTypeContent(document, node.children(), state, mixed);
     return new SchemaIrComplexType(
-        name, content.attributes(), content.sequences(), mixed, anonymous);
+        name, content.attributes(), content.anyAttribute(), content.sequences(), mixed, anonymous);
   }
 
   private ComplexTypeContent normalizeComplexTypeContent(
       XsdSyntaxDocument document, List<XsdSyntaxNode> children, BuildState state, boolean mixed) {
     List<SchemaIrAttribute> attributes = new ArrayList<>();
+    SchemaIrAnyAttribute anyAttribute = null;
     List<SchemaIrSequence> sequences = new ArrayList<>();
     int contentParticleCount = 0;
     boolean directChoiceSeen = false;
@@ -583,10 +595,16 @@ public final class SchemaIrBuilder {
     boolean attributeGroupSeen = false;
     for (XsdSyntaxNode child : children) {
       if (child.kind() == XsdSyntaxKind.ATTRIBUTE) {
-        addIfPresent(attributes, normalizeAttribute(document, child, state));
+        addIfPresent(attributes, normalizeAttribute(document, child, state, false));
       } else if (child.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP) {
         attributeGroupSeen = true;
         addAttributeGroupReference(document, child, attributes, state);
+        SchemaIrAnyAttribute groupAnyAttribute = attributeGroupAnyAttribute(document, child, state);
+        anyAttribute = combineAnyAttribute(document, anyAttribute, groupAnyAttribute, state);
+      } else if (child.kind() == XsdSyntaxKind.ANY_ATTRIBUTE) {
+        anyAttribute =
+            combineAnyAttribute(
+                document, anyAttribute, normalizeAnyAttribute(document, child, state), state);
       } else if (child.kind() == XsdSyntaxKind.SEQUENCE) {
         contentParticleCount++;
         sequenceGroupSeen = sequenceGroupSeen || containsGroupReference(child);
@@ -683,7 +701,7 @@ public final class SchemaIrBuilder {
     if (attributeGroupSeen) {
       validateDuplicateAttributeNames(document, attributes, state);
     }
-    return new ComplexTypeContent(attributes, sequences);
+    return new ComplexTypeContent(attributes, anyAttribute, sequences);
   }
 
   private SchemaIrComplexType normalizeComplexContent(
@@ -752,11 +770,14 @@ public final class SchemaIrBuilder {
     }
     List<SchemaIrAttribute> attributes = new ArrayList<>(baseType.attributes());
     attributes.addAll(extensionContent.attributes());
+    SchemaIrAnyAttribute anyAttribute =
+        combineAnyAttribute(
+            document, baseType.anyAttribute(), extensionContent.anyAttribute(), state);
     List<SchemaIrSequence> sequences = new ArrayList<>(baseType.sequences());
     sequences.addAll(extensionContent.sequences());
     validateDuplicateElementNames(document, sequences, state);
     validateDuplicateAttributeNames(document, attributes, state);
-    return new SchemaIrComplexType(typeName, attributes, sequences, false, false);
+    return new SchemaIrComplexType(typeName, attributes, anyAttribute, sequences, false, false);
   }
 
   private SchemaIrComplexType normalizeNamedComplexType(
@@ -977,7 +998,9 @@ public final class SchemaIrBuilder {
     }
     if (particle instanceof SchemaIrWildcard wildcard) {
       return new SchemaIrWildcard(
-          composeCardinality(cardinality, wildcard.cardinality()), wildcard.namespaceConstraint());
+          composeCardinality(cardinality, wildcard.cardinality()),
+          wildcard.namespaceConstraint(),
+          wildcard.processContents());
     }
     if (particle instanceof SchemaIrAll all) {
       return new SchemaIrAll(composeCardinality(cardinality, all.cardinality()), all.elements());
@@ -1044,13 +1067,8 @@ public final class SchemaIrBuilder {
     if (cardinality == null) {
       return null;
     }
-    String processContents = node.attributes().get("processContents");
-    if (!"skip".equals(processContents)) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:any supports only explicit processContents=\"skip\" in profile XP-XSD10-DOCUMENT.");
+    String processContents = processContents(document, node, state);
+    if (processContents == null) {
       return null;
     }
     SchemaIrWildcardNamespace namespace =
@@ -1058,7 +1076,89 @@ public final class SchemaIrBuilder {
     if (namespace == null) {
       return null;
     }
-    return new SchemaIrWildcard(cardinality, namespace);
+    return new SchemaIrWildcard(cardinality, namespace, processContents);
+  }
+
+  private SchemaIrAnyAttribute normalizeAnyAttribute(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String processContents = processContents(document, node, state);
+    if (processContents == null) {
+      return null;
+    }
+    SchemaIrWildcardNamespace namespace =
+        wildcardNamespace(document, node.attributes().getOrDefault("namespace", "##any"), state);
+    if (namespace == null) {
+      return null;
+    }
+    return new SchemaIrAnyAttribute(namespace, processContents);
+  }
+
+  private String processContents(XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String value = node.attributes().getOrDefault("processContents", "strict");
+    if ("skip".equals(value) || "lax".equals(value) || "strict".equals(value)) {
+      return value;
+    }
+    diagnostic(
+        state,
+        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+        document.resourceId(),
+        "xs:" + node.kind().manifestName() + " has invalid processContents " + value + ".");
+    return null;
+  }
+
+  private SchemaIrAnyAttribute combineAnyAttribute(
+      XsdSyntaxDocument document,
+      SchemaIrAnyAttribute left,
+      SchemaIrAnyAttribute right,
+      BuildState state) {
+    if (right == null) {
+      return left;
+    }
+    if (left == null) {
+      return right;
+    }
+    SchemaIrWildcardNamespace union =
+        unionWildcardNamespaces(
+            document, left.namespaceConstraint(), right.namespaceConstraint(), state);
+    if (union == null) {
+      return left;
+    }
+    return new SchemaIrAnyAttribute(
+        union, stricterProcessContents(left.processContents(), right.processContents()));
+  }
+
+  private SchemaIrWildcardNamespace unionWildcardNamespaces(
+      XsdSyntaxDocument document,
+      SchemaIrWildcardNamespace left,
+      SchemaIrWildcardNamespace right,
+      BuildState state) {
+    if ("any".equals(left.kind()) || "any".equals(right.kind())) {
+      return new SchemaIrWildcardNamespace("any", List.of());
+    }
+    if (left.kind().equals(right.kind()) && left.namespaces().equals(right.namespaces())) {
+      return left;
+    }
+    if ("explicit".equals(left.kind()) && "explicit".equals(right.kind())) {
+      Set<String> namespaces = new LinkedHashSet<>(left.namespaces());
+      namespaces.addAll(right.namespaces());
+      return new SchemaIrWildcardNamespace("explicit", new ArrayList<>(namespaces));
+    }
+    diagnostic(
+        state,
+        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+        document.resourceId(),
+        "anyAttribute wildcard namespace composition is unsupported for overlapping ##other constraints.");
+    return null;
+  }
+
+  private String stricterProcessContents(String left, String right) {
+    if ("strict".equals(left) || "strict".equals(right)) {
+      return "strict";
+    }
+    if ("lax".equals(left) || "lax".equals(right)) {
+      return "lax";
+    }
+    return "skip";
   }
 
   private SchemaIrWildcardNamespace wildcardNamespace(
@@ -1085,39 +1185,36 @@ public final class SchemaIrBuilder {
           "xs:any namespace ##any cannot be combined with other namespace tokens.");
       return null;
     }
-    if (tokens.size() == 1) {
-      String token = tokens.get(0);
-      if ("##other".equals(token)) {
+    if (tokens.contains("##other")) {
+      if (tokens.size() == 1) {
         return new SchemaIrWildcardNamespace("other", List.of(schemaNamespace(document)));
       }
-      if ("##local".equals(token)) {
-        return new SchemaIrWildcardNamespace("explicit", List.of(""));
-      }
-      if ("##targetNamespace".equals(token)) {
-        return new SchemaIrWildcardNamespace("explicit", List.of(schemaNamespace(document)));
-      }
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:any namespace ##other cannot be combined with other namespace tokens.");
+      return null;
     }
     List<String> explicitNamespaces = new ArrayList<>();
     for (String token : tokens) {
-      if ("##other".equals(token) || "##local".equals(token) || "##targetNamespace".equals(token)) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "xs:any namespace special tokens cannot be combined with explicit namespace tokens.");
-        return null;
-      }
-      if (token.startsWith("##")) {
+      if ("##local".equals(token)) {
+        explicitNamespaces.add("");
+      } else if ("##targetNamespace".equals(token)) {
+        explicitNamespaces.add(schemaNamespace(document));
+      } else if (token.startsWith("##")) {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
             "Unsupported xs:any namespace token " + token + ".");
         return null;
+      } else {
+        explicitNamespaces.add(token);
       }
-      explicitNamespaces.add(token);
     }
-    return new SchemaIrWildcardNamespace("explicit", explicitNamespaces);
+    return new SchemaIrWildcardNamespace(
+        "explicit", new ArrayList<>(new LinkedHashSet<>(explicitNamespaces)));
   }
 
   private SchemaIrSequence normalizeGroupReferenceAsSequence(
@@ -1205,6 +1302,20 @@ public final class SchemaIrBuilder {
     if (group != null) {
       attributes.addAll(group.attributes());
     }
+  }
+
+  private SchemaIrAnyAttribute attributeGroupAnyAttribute(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String ref = node.attributes().get("ref");
+    if (ref == null || ref.isBlank()) {
+      return null;
+    }
+    SchemaQName refName = resolveQName(document, ref, state);
+    if (refName == null) {
+      return null;
+    }
+    SchemaIrAttributeGroup group = state.attributeGroups.get(refName);
+    return group == null ? null : group.anyAttribute();
   }
 
   private boolean requireSingletonGroupCardinality(
@@ -2122,7 +2233,7 @@ public final class SchemaIrBuilder {
   }
 
   private SchemaIrAttribute normalizeAttribute(
-      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state, boolean global) {
     String ref = node.attributes().get("ref");
     if (ref != null) {
       if (semanticAttributes(node).hasAny()) {
@@ -2169,11 +2280,24 @@ public final class SchemaIrBuilder {
     }
     SchemaIrValueSemantics semantics = semanticAttributes(node);
     return new SchemaIrAttribute(
-        new SchemaQName(schemaNamespace(document), localName),
+        attributeName(document, node, localName, global),
         typeReference,
         node.attributes().get("use"),
         semantics,
         false);
+  }
+
+  private SchemaQName attributeName(
+      XsdSyntaxDocument document, XsdSyntaxNode node, String localName, boolean global) {
+    if (global) {
+      return new SchemaQName(schemaNamespace(document), localName);
+    }
+    String form = node.attributes().get("form");
+    boolean qualified =
+        "qualified".equals(form)
+            || (form == null
+                && "qualified".equals(document.schemaAttributes().get("attributeFormDefault")));
+    return new SchemaQName(qualified ? schemaNamespace(document) : "", localName);
   }
 
   private SchemaIrValueSemantics semanticAttributes(XsdSyntaxNode node) {
@@ -2377,7 +2501,9 @@ public final class SchemaIrBuilder {
   }
 
   private record ComplexTypeContent(
-      List<SchemaIrAttribute> attributes, List<SchemaIrSequence> sequences) {
+      List<SchemaIrAttribute> attributes,
+      SchemaIrAnyAttribute anyAttribute,
+      List<SchemaIrSequence> sequences) {
     private ComplexTypeContent {
       attributes = List.copyOf(attributes);
       sequences = List.copyOf(sequences);
