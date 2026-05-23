@@ -20,9 +20,9 @@ traceability artifact, not a support claim. Status values:
 | `xs:redefine` | diagnostic | `TASK-0049`, `TASK-0053` | Recognized and rejected deterministically; component graph rewrite semantics remain future. |
 | Global/local `xs:element` | partially supported | `TASK-0049`, `TASK-0053` | Abstract, block/final metadata is parsed; full substitution and dynamic type behavior remain incomplete. |
 | Global/local `xs:attribute` | partially supported | `TASK-0052` | Prohibited use, full defaults/fixed, and wildcard composition remain incomplete. |
-| `xs:complexType` | partially supported | `TASK-0051`, `TASK-0053` | Needs full model groups, simpleContent, restriction, abstract types, and `xsi:type`. |
+| `xs:complexType` | partially supported | `TASK-0051`, `TASK-0053` | Content-model support now includes legal `xs:all`, repeated choices, and selected nested groups; simpleContent, restriction, abstract types, and `xsi:type` remain future. |
 | `xs:simpleType` | partially supported | `TASK-0050`, `TASK-0053` | Needs full datatype, facet, list, union, and derivation semantics. |
-| `xs:group` | partially supported | `TASK-0051` | Needs repeated/optional refs and arbitrary nested groups. |
+| `xs:group` | partially supported | `TASK-0051` | Singleton refs and single-particle repeated/optional refs are flattened with composed cardinality; repeated/optional multi-particle groups require a future grouped content-list shape. |
 | `xs:attributeGroup` | partially supported | `TASK-0052` | Needs recursion checks, nested groups, and anyAttribute composition. |
 | `xs:notation` | tolerated/ignored | `TASK-0049`, `TASK-0050` | Parsed and indexed as a symbol-space component; NOTATION datatype semantics remain future. |
 | Identity constraints | diagnostic | `TASK-0049`, `TASK-0054` | `xs:unique`, `xs:key`, `xs:keyref`, selector, and field syntax are recognized and rejected before binding. |
@@ -31,13 +31,13 @@ traceability artifact, not a support claim. Status values:
 
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
-| `xs:sequence` | supported for accepted shapes | `TASK-0051` | Replace narrow ordering code with compiled content model. |
-| `xs:choice` | partially supported | `TASK-0051` | Needs nested, repeated, and mixed/wildcard choice forms. |
-| `xs:all` | diagnostic | `TASK-0049`, `TASK-0051` | Syntax is recognized and rejected before binding; unordered content-model validation remains future. |
+| `xs:sequence` | supported for accepted shapes | `TASK-0051` | Direct sequences, nested singleton sequences, and single-particle repeated/optional nested sequences are accepted; repeated multi-particle groups remain diagnostic. |
+| `xs:choice` | partially supported | `TASK-0051` | Required, optional, and repeated element-only choices are generated; mixed/wildcard choice forms remain future. |
+| `xs:all` | partially supported | `TASK-0049`, `TASK-0051` | Required all-groups and optional all-groups whose members are all optional are generated with unordered reader acceptance and deterministic writer order; optional all-groups with required children remain diagnostic until grouped content state exists. |
 | `xs:any` | partially supported | `TASK-0052` | Needs all locations, lax/strict processing, and derivation interactions. |
-| `minOccurs`, `maxOccurs` | partially supported | `TASK-0051` | Needs cardinality composition across nested particles. |
-| UPA validation | not implemented yet | `TASK-0051` | Must detect ambiguous content models before binding. |
-| Mixed content | partially supported | `TASK-0051`, `TASK-0053` | Needs mixed choices and derivation interactions. |
+| `minOccurs`, `maxOccurs` | partially supported | `TASK-0051` | Cardinality composition is verified for single-particle nested sequences/group refs and repeated choices; grouped list semantics remain future. |
+| UPA validation | partially supported | `TASK-0051` | Existing element/wildcard overlap diagnostics remain; complete automata-based UPA coverage remains future. |
+| Mixed content | partially supported | `TASK-0051`, `TASK-0053` | Sequence mixed content remains supported; mixed choices and derivation interactions remain future. |
 
 ## Attributes and wildcards
 
@@ -85,7 +85,7 @@ traceability artifact, not a support claim. Status values:
 
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
-| Structural generated validation | partially supported | `TASK-0051` | Reader and object validation should share compiled content-model rules. |
+| Structural generated validation | partially supported | `TASK-0051` | Reader, writer, and object validation now cover legal `xs:all`, repeated choices, and composed single-particle group cardinality for accepted shapes. |
 | Datatype validation | supported for accepted schema shapes | `TASK-0050` | Full built-in lexical/value/facet coverage is verified for the currently executable schema shapes. |
 | Identity constraints | diagnostic | `TASK-0054` | Requires document-scope validation context. |
 | W3C XML Schema 1.0 suite intake | blocked/planned | `TASK-0055` | Must be pinned, classified, and locally repeatable. |

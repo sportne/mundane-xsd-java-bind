@@ -184,8 +184,10 @@ profile executable. The planned verification sequence is:
 - `TASK-0050`: accepted datatype and facet unit tests, generated reader/writer lexical tests,
   generated validator tests, and selected JDK XML Schema comparison fixtures for all XSD 1.0
   built-ins and facets in currently accepted schema shapes.
-- `TASK-0051`: compiled content-model unit tests plus generated reader/validator agreement tests
-  for nested particles, repeated groups, `xs:all`, and UPA diagnostics.
+- `TASK-0051`: accepted content-model unit and generated-code tests for required/all-optional
+  `xs:all`, nested singleton sequences, single-particle repeated/optional groups, repeated
+  element-only choices, and deterministic diagnostics for grouped shapes that still require future
+  content-list binding.
 - `TASK-0052`: attribute and wildcard tests for `xs:anyAttribute`, namespace-constraint algebra,
   `processContents`, prohibited attributes, defaults/fixed values, and generated serialization.
 - `TASK-0053`: derivation, substitution, abstract type, block/final, and `xsi:type` read/write/

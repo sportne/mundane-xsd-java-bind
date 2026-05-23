@@ -560,9 +560,134 @@ final class SchemaIrBuilderTest {
         List.of(
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE),
         diagnosticCodes(result));
+  }
+
+  @Test
+  void buildsIrForLegalAllNestedSingletonSequenceAndRepeatedChoice() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="AllOrder">
+                  <xs:all minOccurs="0">
+                    <xs:element name="id" type="xs:string" minOccurs="0"/>
+                    <xs:element name="note" type="xs:string" minOccurs="0"/>
+                  </xs:all>
+                </xs:complexType>
+                <xs:complexType name="NestedOrder">
+                  <xs:sequence>
+                    <xs:sequence minOccurs="0" maxOccurs="3">
+                      <xs:element name="line" type="xs:string"/>
+                    </xs:sequence>
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                      <xs:element name="domestic" type="xs:string"/>
+                      <xs:element name="international" type="xs:string"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("all cardinality=0..1"), irText);
+    assertTrue(irText.contains("element {urn:orders}id type=xs:string cardinality=0..1"), irText);
+    assertTrue(irText.contains("element {urn:orders}line type=xs:string cardinality=0..3"), irText);
+    assertTrue(irText.contains("choice cardinality=0..unbounded"), irText);
+  }
+
+  @Test
+  void rejectsNonFlattenableRepeatedNestedSequence() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                      <xs:element name="id" type="xs:string"/>
+                      <xs:element name="line" type="xs:string"/>
+                    </xs:sequence>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(
+        result.diagnostics().getFirst().message().contains("grouped content-list binding"),
+        result.diagnostics().toString());
+  }
+
+  @Test
+  void rejectsInvalidAllCardinalityChildrenAndEmptyAll() throws IOException {
+    write(
+        "bad-cardinality.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:all maxOccurs="2">
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:all>
+                </xs:complexType>
+                """));
+    write(
+        "bad-child.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:all>
+                    <xs:element name="id" type="xs:string" maxOccurs="2"/>
+                    <xs:choice>
+                      <xs:element name="note" type="xs:string"/>
+                    </xs:choice>
+                  </xs:all>
+                </xs:complexType>
+                """));
+    write(
+        "optional-required.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:all minOccurs="0">
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:all>
+                </xs:complexType>
+                """));
+    write(
+        "empty.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:all/>
+                </xs:complexType>
+                """));
+
+    assertEquals(
+        List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(build("bad-cardinality.xsd", GeneratorProfile.XP_XSD10_COMPOSED)));
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(build("bad-child.xsd", GeneratorProfile.XP_XSD10_COMPOSED)));
+    assertEquals(
+        List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(build("optional-required.xsd", GeneratorProfile.XP_XSD10_COMPOSED)));
+    assertEquals(
+        List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(build("empty.xsd", GeneratorProfile.XP_XSD10_COMPOSED)));
   }
 
   @Test
@@ -878,15 +1003,11 @@ final class SchemaIrBuilderTest {
         List.of(
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
         diagnosticCodes(result));
     assertTrue(
         result.diagnostics().stream()
             .anyMatch(diagnostic -> diagnostic.message().contains("Global xs:redefine")));
-    assertTrue(
-        result.diagnostics().stream()
-            .anyMatch(diagnostic -> diagnostic.message().contains("Unsupported child all")));
     assertTrue(
         result.diagnostics().stream()
             .anyMatch(

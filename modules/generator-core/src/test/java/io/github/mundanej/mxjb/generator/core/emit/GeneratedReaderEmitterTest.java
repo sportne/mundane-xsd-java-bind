@@ -196,6 +196,77 @@ final class GeneratedReaderEmitterTest {
   }
 
   @Test
+  void generatedReaderAcceptsAllGroupFieldsInAnyOrder()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(
+                        field("element", "id", scalar("string"), required(), 1),
+                        field("element", "note", scalar("string"), optional(), 1)))));
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+
+      Object order = readerClass.getMethod("read", XmlEventReader.class).invoke(null, allInput());
+
+      assertEquals("A-1", orderClass.getMethod("id").invoke(order));
+      assertEquals(Optional.of("gift"), orderClass.getMethod("note").invoke(order));
+    }
+  }
+
+  @Test
+  void generatedReaderCompilesAndReadsRepeatedChoiceLists()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(type("com.example.orders", "Order", List.of(repeatedChoiceField()))));
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> domesticChoiceClass = compiledSources.load("com.example.orders.DomesticChoice");
+      Class<?> internationalChoiceClass =
+          compiledSources.load("com.example.orders.InternationalChoice");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, repeatedChoiceInput());
+
+      Object choices = orderClass.getMethod("orderChoice").invoke(order);
+      assertInstanceOf(List.class, choices);
+      assertEquals(2, ((List<?>) choices).size());
+      assertInstanceOf(domesticChoiceClass, ((List<?>) choices).get(0));
+      assertInstanceOf(internationalChoiceClass, ((List<?>) choices).get(1));
+    }
+  }
+
+  @Test
   void generatedReaderReportsDeterministicDiagnostics()
       throws IOException, ClassNotFoundException, NoSuchMethodException {
     BindingModel model = orderModel();
@@ -502,6 +573,34 @@ final class GeneratedReaderEmitterTest {
         event(XmlEventKind.END_DOCUMENT, null));
   }
 
+  private EventXmlReader allInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "note")),
+        text("gift"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "note")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "id")),
+        text("A-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader repeatedChoiceInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "domestic")),
+        text("US"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "domestic")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "international")),
+        text("CA"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "international")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
   private EventXmlReader wrongRootNamespaceInput() {
     return reader(
         event(XmlEventKind.START_DOCUMENT, null),
@@ -651,6 +750,33 @@ final class GeneratedReaderEmitterTest {
         new BindingTypeReference("choice", choiceName.qualifiedName()),
         optional(),
         2,
+        false,
+        choice);
+  }
+
+  private BindingField repeatedChoiceField() {
+    BindingJavaName choiceName = new BindingJavaName("com.example.orders", "OrderChoice");
+    BindingChoice choice =
+        new BindingChoice(
+            choiceName,
+            List.of(
+                new BindingChoiceBranch(
+                    schemaName("domestic"),
+                    "domestic",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "DomesticChoice")),
+                new BindingChoiceBranch(
+                    schemaName("international"),
+                    "international",
+                    scalar("string"),
+                    new BindingJavaName("com.example.orders", "InternationalChoice"))));
+    return new BindingField(
+        "choice",
+        schemaName("orderChoice"),
+        "orderChoice",
+        new BindingTypeReference("choice", choiceName.qualifiedName()),
+        list(),
+        1,
         false,
         choice);
   }

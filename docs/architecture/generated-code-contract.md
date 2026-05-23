@@ -80,8 +80,10 @@ opt-in profile `XP-DATA-10-CHOICE`.
 - Each branch is a generated record named `<BranchElementSimpleName>Choice` and carries the existing scalar or generated model value for that branch.
 - Generated readers and writers dispatch on the sealed choice type explicitly and must keep the generated-code ban on reflection, annotations, ServiceLoader, dynamic proxies, parser APIs, and external resource access.
 
-This shape does not imply support for repeated choices, nested model groups, wildcards,
-substitution groups, mixed content, anonymous branch complex types, or full XSD 1.0 model groups.
+`TASK-0051` extends the same generated shape to repeated element-only choices by using
+`List<<ContainingTypeSimpleName>Choice>` fields whose list order controls writer order and validator
+iteration. This shape still does not imply support for wildcard choice branches, mixed choice
+branches, anonymous branch complex types, or derivation-polymorphic choices.
 
 ## `TASK-0027` through `TASK-0029` composed-schema shape
 
@@ -90,6 +92,10 @@ runtime binding mechanisms.
 
 - `TASK-0027` model groups and attribute groups are flattened before emission, so generated records
   keep ordinary field and attribute components in deterministic schema order.
+- `TASK-0051` required `xs:all` groups and optional all-groups whose members are all optional flatten
+  into ordinary fields with unordered generated reader acceptance and deterministic writer output in
+  binding order; non-flattenable repeated/optional multi-particle groups remain deterministic
+  diagnostics.
 - `TASK-0029` complex-type extension is flattened with base fields before derived fields; generated
   Java model classes do not use inheritance for the accepted derivation subset.
 - `TASK-0028` list-valued simple types use immutable `List<T>` record components for required

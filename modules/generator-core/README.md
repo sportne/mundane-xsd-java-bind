@@ -21,10 +21,11 @@ those accepted semantic paths only. The document profile currently covers accept
 sequence types, and verified stable project serialization policy. It does not claim W3C XML
 Canonicalization or cryptographic canonical XML compatibility.
 
-`XP-XSD10-FULL` is now the planned full XML Schema 1.0 target. The public token exists, but this
-module rejects it before generation until `TASK-0049` through `TASK-0056` complete the remaining
-frontend, datatype, content-model, wildcard, derivation, identity-constraint, conformance, and
-readiness work.
+`TASK-0051` adds content-model coverage for required `xs:all`, all-optional `xs:all`, repeated
+element-only choices, nested singleton sequences, and single-particle repeated/optional group refs
+in the currently executable profiles. `XP-XSD10-FULL` is the planned full XML Schema 1.0 target,
+but this module still rejects it before generation until the remaining wildcard, derivation,
+identity-constraint, conformance, and readiness work is accepted.
 
 ## Contributor notes
 

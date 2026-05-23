@@ -1,0 +1,24 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:content-model"
+    targetNamespace="urn:content-model"
+    elementFormDefault="qualified">
+  <xs:element name="allOrder" type="tns:AllOrder"/>
+  <xs:element name="choiceOrder" type="tns:ChoiceOrder"/>
+  <xs:complexType name="AllOrder">
+    <xs:all>
+      <xs:element name="id" type="xs:string"/>
+      <xs:element name="note" type="xs:string" minOccurs="0"/>
+    </xs:all>
+  </xs:complexType>
+  <xs:complexType name="ChoiceOrder">
+    <xs:sequence>
+      <xs:sequence minOccurs="0" maxOccurs="2">
+        <xs:element name="line" type="xs:string"/>
+      </xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="domestic" type="xs:string"/>
+        <xs:element name="international" type="xs:string"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

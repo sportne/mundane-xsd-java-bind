@@ -189,16 +189,20 @@ public final class SchemaIrBuilder {
       return null;
     }
     if (node.children().size() != 1
-        || node.children().getFirst().kind() != XsdSyntaxKind.SEQUENCE) {
+        || (node.children().getFirst().kind() != XsdSyntaxKind.SEQUENCE
+            && node.children().getFirst().kind() != XsdSyntaxKind.ALL)) {
       diagnostic(
           state,
           DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
           document.resourceId(),
-          "xs:group declarations support exactly one xs:sequence child in profile XP-XSD10-COMPOSED.");
+          "xs:group declarations support exactly one xs:sequence or legal xs:all child.");
       return null;
     }
+    XsdSyntaxNode child = node.children().getFirst();
     SchemaIrSequence sequence =
-        normalizeSequence(document, node.children().getFirst(), state, false);
+        child.kind() == XsdSyntaxKind.ALL
+            ? allAsSequence(document, child, state)
+            : normalizeSequence(document, child, state, false);
     if (sequence == null || !requireSingletonGroupCardinality(document, node, state)) {
       return null;
     }
@@ -575,6 +579,7 @@ public final class SchemaIrBuilder {
     boolean directChoiceSeen = false;
     boolean directGroupSeen = false;
     boolean sequenceGroupSeen = false;
+    boolean allSeen = false;
     boolean attributeGroupSeen = false;
     for (XsdSyntaxNode child : children) {
       if (child.kind() == XsdSyntaxKind.ATTRIBUTE) {
@@ -586,6 +591,10 @@ public final class SchemaIrBuilder {
         contentParticleCount++;
         sequenceGroupSeen = sequenceGroupSeen || containsGroupReference(child);
         addIfPresent(sequences, normalizeSequence(document, child, state));
+      } else if (child.kind() == XsdSyntaxKind.ALL) {
+        contentParticleCount++;
+        allSeen = true;
+        addIfPresent(sequences, allAsSequence(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.CHOICE) {
         contentParticleCount++;
         directChoiceSeen = true;
@@ -622,6 +631,13 @@ public final class SchemaIrBuilder {
           document.resourceId(),
           "Direct xs:group ref is supported only as the sole complexType content particle or inside xs:sequence.");
     }
+    if (allSeen && contentParticleCount > 1) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:all is supported only as the sole complexType content particle.");
+    }
     if (mixed) {
       if (directChoiceSeen) {
         diagnostic(
@@ -636,6 +652,13 @@ public final class SchemaIrBuilder {
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
             "mixed content supports xs:sequence content only; direct xs:group ref is not supported.");
+      }
+      if (allSeen) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "mixed content does not support xs:all.");
       }
       if (contentParticleCount != sequences.size()) {
         diagnostic(
@@ -816,6 +839,11 @@ public final class SchemaIrBuilder {
         addIfPresent(particles, normalizeElement(document, child, state, false));
       } else if (child.kind() == XsdSyntaxKind.CHOICE) {
         addIfPresent(particles, normalizeChoice(document, child, state));
+      } else if (child.kind() == XsdSyntaxKind.SEQUENCE) {
+        SchemaIrSequence nested = normalizeSequence(document, child, state, allowGroupReferences);
+        if (nested != null) {
+          addFlattenedNestedSequence(document, particles, nested, state);
+        }
       } else if (child.kind() == XsdSyntaxKind.ANY) {
         addIfPresent(particles, normalizeWildcard(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.GROUP && allowGroupReferences) {
@@ -828,12 +856,145 @@ public final class SchemaIrBuilder {
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "Only xs:element, accepted xs:choice, accepted xs:any, and accepted xs:group refs "
+            "Only xs:element, accepted xs:sequence, accepted xs:choice, accepted xs:any, and accepted xs:group refs "
                 + "are supported inside xs:sequence for normalized IR.");
       }
     }
     validateWildcardElementAmbiguity(document, particles, state);
     return new SchemaIrSequence(cardinality, particles);
+  }
+
+  private SchemaIrSequence allAsSequence(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    SchemaIrAll all = normalizeAll(document, node, state);
+    if (all == null) {
+      return null;
+    }
+    return new SchemaIrSequence(SchemaCardinality.ONE, List.of(all));
+  }
+
+  private SchemaIrAll normalizeAll(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    SchemaCardinality cardinality = cardinality(document, node, state);
+    if (cardinality == null) {
+      return null;
+    }
+    if ((cardinality.minOccurs() != 0 && cardinality.minOccurs() != 1)
+        || !"1".equals(cardinality.maxOccurs())) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:all supports only minOccurs 0 or 1 and maxOccurs 1.");
+      return null;
+    }
+    List<SchemaIrElement> elements = new ArrayList<>();
+    for (XsdSyntaxNode child : node.children()) {
+      if (child.kind() != XsdSyntaxKind.ELEMENT) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:all supports only xs:element children.");
+        continue;
+      }
+      String branchMin = child.attributes().getOrDefault("minOccurs", "1");
+      String branchMax = child.attributes().getOrDefault("maxOccurs", "1");
+      if (!("0".equals(branchMin) || "1".equals(branchMin)) || !"1".equals(branchMax)) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:all element children support only minOccurs 0 or 1 and maxOccurs 1.");
+        continue;
+      }
+      addIfPresent(elements, normalizeElement(document, child, state, false));
+    }
+    if (elements.isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:all must contain at least one supported element.");
+      return null;
+    }
+    if (cardinality.minOccurs() == 0
+        && elements.stream().anyMatch(element -> element.cardinality().minOccurs() > 0)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:all minOccurs=0 with required children requires grouped content-model state.");
+      return null;
+    }
+    validateDuplicateAllElementNames(document, elements, state);
+    return new SchemaIrAll(cardinality, elements);
+  }
+
+  private void validateDuplicateAllElementNames(
+      XsdSyntaxDocument document, List<SchemaIrElement> elements, BuildState state) {
+    Set<SchemaQName> names = new HashSet<>();
+    for (SchemaIrElement element : elements) {
+      addUniqueElementName(document, names, element.name(), state);
+    }
+  }
+
+  private void addFlattenedNestedSequence(
+      XsdSyntaxDocument document,
+      List<SchemaIrParticle> particles,
+      SchemaIrSequence nested,
+      BuildState state) {
+    if (nested.cardinality().minOccurs() == 1 && "1".equals(nested.cardinality().maxOccurs())) {
+      particles.addAll(nested.particles());
+      return;
+    }
+    if (nested.particles().size() == 1) {
+      particles.add(withCardinality(nested.particles().getFirst(), nested.cardinality()));
+      return;
+    }
+    diagnostic(
+        state,
+        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+        document.resourceId(),
+        "Repeated or optional nested xs:sequence with multiple particles requires grouped content-list binding.");
+  }
+
+  private SchemaIrParticle withCardinality(
+      SchemaIrParticle particle, SchemaCardinality cardinality) {
+    if (particle instanceof SchemaIrElement element) {
+      return new SchemaIrElement(
+          element.name(),
+          element.type(),
+          composeCardinality(cardinality, element.cardinality()),
+          element.inlineComplexType(),
+          element.semantics(),
+          element.substitutionGroup(),
+          element.reference());
+    }
+    if (particle instanceof SchemaIrChoice choice) {
+      return new SchemaIrChoice(
+          composeCardinality(cardinality, choice.cardinality()), choice.branches());
+    }
+    if (particle instanceof SchemaIrWildcard wildcard) {
+      return new SchemaIrWildcard(
+          composeCardinality(cardinality, wildcard.cardinality()), wildcard.namespaceConstraint());
+    }
+    if (particle instanceof SchemaIrAll all) {
+      return new SchemaIrAll(composeCardinality(cardinality, all.cardinality()), all.elements());
+    }
+    return particle;
+  }
+
+  private SchemaCardinality composeCardinality(SchemaCardinality outer, SchemaCardinality inner) {
+    return new SchemaCardinality(
+        outer.minOccurs() * inner.minOccurs(), multiplyMax(outer.maxOccurs(), inner.maxOccurs()));
+  }
+
+  private String multiplyMax(String left, String right) {
+    if ("unbounded".equals(left) || "unbounded".equals(right)) {
+      return "unbounded";
+    }
+    return Integer.toString(Integer.parseInt(left) * Integer.parseInt(right));
   }
 
   private void validateWildcardElementAmbiguity(
@@ -842,6 +1003,10 @@ public final class SchemaIrBuilder {
     for (SchemaIrParticle particle : particles) {
       if (particle instanceof SchemaIrElement element) {
         elementNames.add(element.name());
+      } else if (particle instanceof SchemaIrAll all) {
+        for (SchemaIrElement element : all.elements()) {
+          elementNames.add(element.name());
+        }
       } else if (particle instanceof SchemaIrChoice choice) {
         for (SchemaIrElement branch : choice.branches()) {
           elementNames.add(branch.name());
@@ -965,7 +1130,8 @@ public final class SchemaIrBuilder {
           "Local xs:group use must reference a global group with ref.");
       return null;
     }
-    if (!requireSingletonGroupCardinality(document, node, state)) {
+    SchemaCardinality cardinality = cardinality(document, node, state);
+    if (cardinality == null) {
       return null;
     }
     String ref = node.attributes().get("ref");
@@ -989,7 +1155,20 @@ public final class SchemaIrBuilder {
     if (group == null) {
       return null;
     }
-    return new SchemaIrSequence(SchemaCardinality.ONE, group.sequence().particles());
+    if (cardinality.minOccurs() == 1 && "1".equals(cardinality.maxOccurs())) {
+      return new SchemaIrSequence(SchemaCardinality.ONE, group.sequence().particles());
+    }
+    if (group.sequence().particles().size() == 1) {
+      return new SchemaIrSequence(
+          SchemaCardinality.ONE,
+          List.of(withCardinality(group.sequence().particles().getFirst(), cardinality)));
+    }
+    diagnostic(
+        state,
+        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+        document.resourceId(),
+        "Repeated or optional xs:group ref with multiple particles requires grouped content-list binding.");
+    return null;
   }
 
   private void addAttributeGroupReference(
@@ -1052,6 +1231,10 @@ public final class SchemaIrBuilder {
       for (SchemaIrParticle particle : sequence.particles()) {
         if (particle instanceof SchemaIrElement element) {
           addUniqueElementName(document, names, element.name(), state);
+        } else if (particle instanceof SchemaIrAll all) {
+          for (SchemaIrElement element : all.elements()) {
+            addUniqueElementName(document, names, element.name(), state);
+          }
         } else if (particle instanceof SchemaIrChoice choice) {
           for (SchemaIrElement branch : choice.branches()) {
             addUniqueElementName(document, names, branch.name(), state);
@@ -1090,15 +1273,6 @@ public final class SchemaIrBuilder {
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
     SchemaCardinality cardinality = cardinality(document, node, state);
     if (cardinality == null) {
-      return null;
-    }
-    if ((cardinality.minOccurs() != 0 && cardinality.minOccurs() != 1)
-        || !"1".equals(cardinality.maxOccurs())) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:choice supports only minOccurs 0 or 1 and maxOccurs 1 in profile XP-DATA-10-CHOICE.");
       return null;
     }
     List<SchemaIrElement> branches = new ArrayList<>();

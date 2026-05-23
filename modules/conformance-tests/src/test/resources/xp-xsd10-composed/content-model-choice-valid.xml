@@ -1,0 +1,6 @@
+<choiceOrder xmlns="urn:content-model">
+  <line>L-1</line>
+  <line>L-2</line>
+  <domestic>US</domestic>
+  <international>CA</international>
+</choiceOrder>

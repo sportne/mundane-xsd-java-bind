@@ -39,7 +39,9 @@ import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
 
 final class XpXsd10ComposedConformanceTest {
-  // Selected fixture manifest ID: T-CONF-XP-XSD10-COMPOSED-GROUPS.
+  // Selected fixture manifest IDs:
+  // - T-CONF-XP-XSD10-COMPOSED-GROUPS
+  // - T-CONF-XP-XSD10-COMPOSED-CONTENT-MODEL
 
   @TempDir private Path tempDirectory;
 
@@ -76,22 +78,80 @@ final class XpXsd10ComposedConformanceTest {
     }
   }
 
+  @Test
+  void contentModelFixturesMatchJdkSchemaValidationAndGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-composed/content-model.xsd");
+    String allValidXml = resource("/xp-xsd10-composed/content-model-all-valid.xml");
+    String allInvalidXml = resource("/xp-xsd10-composed/content-model-all-invalid.xml");
+    String choiceValidXml = resource("/xp-xsd10-composed/content-model-choice-valid.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(allValidXml)));
+    schema.newValidator().validate(new StreamSource(new StringReader(choiceValidXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(allInvalidXml))));
+
+    try (CompiledGeneratedComposedBindings bindings =
+        generateAndCompileComposedBindings("/xp-xsd10-composed/content-model.xsd", "content")) {
+      Class<?> allOrderClass = bindings.load("com.example.content.Allorder");
+      Class<?> allReaderClass = bindings.load("com.example.content.xml.AllorderXmlReader");
+      Class<?> allValidatorClass = bindings.load("com.example.content.xml.AllorderXmlValidator");
+      Class<?> choiceOrderClass = bindings.load("com.example.content.Choiceorder");
+      Class<?> choiceReaderClass = bindings.load("com.example.content.xml.ChoiceorderXmlReader");
+      Class<?> choiceValidatorClass =
+          bindings.load("com.example.content.xml.ChoiceorderXmlValidator");
+
+      Object allOrder =
+          allReaderClass
+              .getMethod("read", XmlEventReader.class)
+              .invoke(null, readerFor(allValidXml));
+      Object choiceOrder =
+          choiceReaderClass
+              .getMethod("read", XmlEventReader.class)
+              .invoke(null, readerFor(choiceValidXml));
+      ValidationResult allValidResult =
+          (ValidationResult)
+              allValidatorClass.getMethod("validate", allOrderClass).invoke(null, allOrder);
+      ValidationResult choiceValidResult =
+          (ValidationResult)
+              choiceValidatorClass
+                  .getMethod("validate", choiceOrderClass)
+                  .invoke(null, choiceOrder);
+      ValidationResult allInvalidResult =
+          (ValidationResult)
+              allValidatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(allInvalidXml));
+
+      assertTrue(allValidResult.isValid());
+      assertTrue(choiceValidResult.isValid());
+      assertFalse(allInvalidResult.isValid());
+      assertFalse(allInvalidResult.errors().isEmpty());
+    }
+  }
+
   private CompiledGeneratedComposedBindings generateAndCompileComposedBindings()
       throws IOException {
-    Path output = tempDirectory.resolve("generated");
-    Path schema = resourcePath("/xp-xsd10-composed/order.xsd");
+    return generateAndCompileComposedBindings("/xp-xsd10-composed/order.xsd", "generated");
+  }
+
+  private CompiledGeneratedComposedBindings generateAndCompileComposedBindings(
+      String schemaResource, String outputName) throws IOException {
+    Path schema = resourcePath(schemaResource);
     GeneratorRequest request =
         new GeneratorRequest(
             List.of(schema),
-            output,
+            tempDirectory.resolve(outputName),
             GeneratorProfile.XP_XSD10_COMPOSED,
             "com.example.generated",
-            Map.of("urn:composed", "com.example.composed"),
+            Map.of(
+                "urn:composed", "com.example.composed", "urn:content-model", "com.example.content"),
             List.of(),
             Map.of());
     GeneratorResult result = new CoreGenerator().generate(request);
     assertTrue(result.successful(), result.diagnostics().toString());
-    compileGeneratedSources(output, result.generatedSources());
+    compileGeneratedSources(tempDirectory.resolve(outputName), result.generatedSources());
     return new CompiledGeneratedComposedBindings(
         new URLClassLoader(
             new URL[] {tempDirectory.resolve("classes").toUri().toURL()},
@@ -126,8 +186,12 @@ final class XpXsd10ComposedConformanceTest {
   }
 
   private Schema jdkSchema() throws SAXException {
+    return jdkSchema("/xp-xsd10-composed/order.xsd");
+  }
+
+  private Schema jdkSchema(String schemaResource) throws SAXException {
     return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-        .newSchema(resourcePath("/xp-xsd10-composed/order.xsd").toFile());
+        .newSchema(resourcePath(schemaResource).toFile());
   }
 
   private XmlEventReader readerFor(String xml) throws XMLStreamException {

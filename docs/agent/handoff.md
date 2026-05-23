@@ -61,8 +61,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 48. `TASK-0048`: Standards reset and full XSD 1.0 feature matrix. Completed and accepted.
 49. `TASK-0049`: Complete XSD 1.0 frontend and component model. Completed and accepted.
 50. `TASK-0050`: Complete XSD 1.0 datatype and facet engine. Completed and accepted.
-51. `TASK-0051`: Implement full XSD 1.0 content-model compiler. Next implementation gate.
-52. `TASK-0052`: Implement full XSD 1.0 attributes and wildcards. Draft.
+51. `TASK-0051`: Expand accepted XSD 1.0 content-model support toward the full compiler. Completed and accepted.
+52. `TASK-0052`: Implement full XSD 1.0 attributes and wildcards. Next implementation gate.
 53. `TASK-0053`: Implement full XSD 1.0 derivation, substitution, and dynamic typing. Draft.
 54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Draft.
 55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Draft.
@@ -109,8 +109,12 @@ deterministic non-executable generator behavior, and added the full XSD 1.0 feat
 draft follow-on task cards. `TASK-0049` has accepted frontend/component-model awareness for
 remaining XSD 1.0 schema constructs while keeping unimplemented behavior as deterministic
 pre-binding diagnostics. `TASK-0050` has accepted full XSD 1.0 built-in datatype and facet support
-for currently executable schema shapes while keeping `XP-XSD10-FULL` non-executable. `TASK-0051` is
-the next implementation gate.
+for currently executable schema shapes while keeping `XP-XSD10-FULL` non-executable. `TASK-0051`
+has accepted the content-model compiler expansion for legal `xs:all`, nested singleton sequences,
+single-particle repeated/optional groups with composed cardinality, repeated generated choices, and
+deterministic diagnostics for non-flattenable repeated/optional multi-particle groups and optional
+`xs:all` groups with required children.
+`TASK-0052` is the next implementation gate.
 
 ## Draft completion backlog
 
@@ -170,8 +174,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0048` | XSD 1.0 full | accepted | Standards reset and full XSD 1.0 feature matrix. |
 | `TASK-0049` | XSD 1.0 full | accepted | Complete XSD 1.0 frontend and component model. |
 | `TASK-0050` | XSD 1.0 full | accepted | Complete XSD 1.0 datatype and facet engine. |
-| `TASK-0051` | XSD 1.0 full | next | Implement full XSD 1.0 content-model compiler. |
-| `TASK-0052` | XSD 1.0 full | draft | Implement full XSD 1.0 attributes and wildcards. |
+| `TASK-0051` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 content-model support toward the full compiler. |
+| `TASK-0052` | XSD 1.0 full | next | Implement full XSD 1.0 attributes and wildcards. |
 | `TASK-0053` | XSD 1.0 full | draft | Implement full XSD 1.0 derivation, substitution, and dynamic typing. |
 | `TASK-0054` | XSD 1.0 full | draft | Implement XSD 1.0 identity constraints and document-level validation. |
 | `TASK-0055` | XSD 1.0 full | draft | Add full XSD 1.0 conformance-suite intake. |
@@ -179,11 +183,11 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0051` is the next implementation gate after the accepted `TASK-0050` datatype/facet engine
-work. It must implement the full XSD 1.0 content-model compiler before attribute/wildcard,
-derivation, identity-constraint, or conformance-suite work begins. Future product behavior, dependency changes,
-release publication, signing, tags, benchmark thresholds, or broader schema support still require an
-accepted task card or ADR.
+`TASK-0052` is the next implementation gate after the accepted `TASK-0051` content-model work. It
+must implement full XSD 1.0 attributes and wildcards before derivation, identity-constraint, or
+conformance-suite work begins. Future product behavior, dependency changes, release publication,
+signing, tags, benchmark thresholds, or broader schema support still require an accepted task card
+or ADR.
 
 Any future work must preserve:
 

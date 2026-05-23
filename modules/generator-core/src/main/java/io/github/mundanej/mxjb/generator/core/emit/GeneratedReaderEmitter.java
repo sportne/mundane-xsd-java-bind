@@ -678,20 +678,33 @@ public final class GeneratedReaderEmitter {
           .append("        lastElementOrder = Math.max(lastElementOrder, ")
           .append(field.order())
           .append(");\n");
-      if ("optional".equals(field.cardinality().shape())) {
+      if ("list".equals(field.cardinality().shape())) {
+        appendMaxOccursCheck(source, field);
+      } else if ("optional".equals(field.cardinality().shape())) {
         source.append("        if (").append(field.javaName()).append(".isPresent()) {\n");
       } else {
         source.append("        if (").append(field.javaName()).append(" != null) {\n");
       }
-      source
-          .append("          throw readException(input, \"MXJB-GR-005\", \"Repeated XML ")
-          .append(escape(field.choice().modelKind()))
-          .append(" ")
-          .append(escape(field.javaName()))
-          .append(".\");\n");
-      source.append("        }\n");
+      if (!"list".equals(field.cardinality().shape())) {
+        source
+            .append("          throw readException(input, \"MXJB-GR-005\", \"Repeated XML ")
+            .append(escape(field.choice().modelKind()))
+            .append(" ")
+            .append(escape(field.javaName()))
+            .append(".\");\n");
+        source.append("        }\n");
+      }
       String valueExpression = readBranchValueExpression(branch);
-      if ("optional".equals(field.cardinality().shape())) {
+      if ("list".equals(field.cardinality().shape())) {
+        source
+            .append("        ")
+            .append(field.javaName())
+            .append("Values.add(new ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append("(")
+            .append(valueExpression)
+            .append("));\n");
+      } else if ("optional".equals(field.cardinality().shape())) {
         source
             .append("        ")
             .append(field.javaName())

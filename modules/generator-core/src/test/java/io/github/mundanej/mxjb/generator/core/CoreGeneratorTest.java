@@ -169,6 +169,31 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void composedProfileGeneratesAllNestedSequenceAndRepeatedChoiceSources() throws IOException {
+    Path schema = writeSchema("content-model-order.xsd", contentModelOrderSchema());
+    Path output = tempDirectory.resolve("content-model-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_COMPOSED,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertTrue(result.generatedSources().contains(Path.of("com/acme/orders/Allorder.java")));
+    assertTrue(result.generatedSources().contains(Path.of("com/acme/orders/Order.java")));
+    assertTrue(
+        Files.readString(output.resolve("com/acme/orders/Order.java"), StandardCharsets.UTF_8)
+            .contains("List<OrderChoice> orderChoice"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
   void defaultProfileRejectsRestrictedSimpleTypeWithoutWritingSources() throws IOException {
     Path schema = writeSchema("facet-order.xsd", facetOrderSchema());
     Path output = tempDirectory.resolve("facet-default");
@@ -1063,6 +1088,34 @@ final class CoreGeneratorTest {
             <xs:sequence>
               <xs:element name="id" type="xs:string"/>
               <xs:choice minOccurs="0">
+                <xs:element name="domestic" type="xs:string"/>
+                <xs:element name="international" type="xs:string"/>
+              </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String contentModelOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:element name="allOrder" type="tns:AllOrder"/>
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="AllOrder">
+            <xs:all minOccurs="0">
+              <xs:element name="id" type="xs:string" minOccurs="0"/>
+              <xs:element name="note" type="xs:string" minOccurs="0"/>
+            </xs:all>
+          </xs:complexType>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:sequence minOccurs="0" maxOccurs="3">
+                <xs:element name="line" type="xs:string"/>
+              </xs:sequence>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
                 <xs:element name="domestic" type="xs:string"/>
                 <xs:element name="international" type="xs:string"/>
               </xs:choice>

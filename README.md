@@ -30,6 +30,11 @@ Across the executable profiles, accepted scalar element and attribute positions 
 QName/NOTATION, list-valued built-ins, and restriction facets are supported for the schema shapes
 the profiles already accept.
 
+Content-model coverage now includes required `xs:all` groups, all-optional `xs:all` groups,
+repeated element-only choices, nested singleton sequences, and single-particle repeated/optional
+group refs in the currently executable profiles. More complex grouped content-list shapes remain
+planned.
+
 The planned full XML Schema 1.0 target is `XP-XSD10-FULL`. The public profile token exists for
 planning, but generation intentionally rejects it until the follow-on implementation tasks complete.
 The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
@@ -37,8 +42,8 @@ The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 ## Not supported
 
 - Full XML Schema 1.0 conformance is not claimed yet.
-- Full content-model automata, full derivation/polymorphism, full attribute/wildcard algebra, and
-  identity constraints are still planned work.
+- Grouped content-list models, complete UPA automata, full derivation/polymorphism, full
+  attribute/wildcard algebra, and identity constraints are still planned work.
 - XSD 1.1 and XML 1.1 are not project targets.
 - XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
   retention, DTD/entity identity preservation, and DOM-backed binding are not supported.

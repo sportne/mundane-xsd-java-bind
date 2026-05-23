@@ -3,6 +3,7 @@ package io.github.mundanej.mxjb.generator.core.bind;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaCardinality;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrAll;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrAttribute;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrChoice;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrComplexType;
@@ -202,6 +203,15 @@ public final class BindingModelBuilder {
               fields.add(field);
               validationRules.add(
                   "wildcard " + field.javaName() + " " + field.cardinality().toText());
+            } else if (particle instanceof SchemaIrAll all) {
+              for (SchemaIrElement element : all.elements()) {
+                fields.add(bindElementField(element, usedFieldNames, order));
+                validationRules.add(
+                    "all-element "
+                        + fields.get(fields.size() - 1).javaName()
+                        + " "
+                        + fields.get(fields.size() - 1).cardinality().toText());
+              }
             } else {
               diagnostic(
                   DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,

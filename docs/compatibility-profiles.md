@@ -79,11 +79,13 @@ choice and facet profiles remain narrower.
   base fields before derived fields and no generated Java inheritance, plus named simple
   restriction derivation chains over supported scalar bases with merged accepted facet metadata.
 
-Repeated or optional group references, nested model groups beyond the accepted direct shape,
-`xs:all`, wildcards, anonymous list/union member types, optional or repeated list-valued XML fields,
-nested list/union composition, `simpleContent`, complex restriction, mixed content, abstract types,
-substitution groups, identity constraints, defaults/fixed semantics, and full XSD 1.0 conformance
-remain out of scope with explicit diagnostics.
+`TASK-0051` adds required `xs:all` groups, all-optional `xs:all` groups, repeated element-only
+choices, nested singleton sequences, and single-particle repeated/optional group refs with composed
+cardinality. Optional all-groups with required children, repeated/optional multi-particle groups,
+wildcard choice branches, anonymous list/union member types, optional or repeated list-valued XML
+fields, nested list/union composition, `simpleContent`, complex
+restriction, mixed choice content, abstract types, identity constraints, full wildcard/attribute
+algebra, and full XSD 1.0 conformance remain out of scope with explicit diagnostics.
 
 `TASK-0050` broadens the datatype engine used by existing executable profiles without making
 `XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
@@ -91,8 +93,8 @@ remain out of scope with explicit diagnostics.
 values, duration, binary values, anyURI, QName/NOTATION, float/double special values, bounded
 numeric families, and list-valued built-ins such as `NMTOKENS`, `IDREFS`, and `ENTITIES`.
 Generated readers, writers, and validators use the same dependency-free runtime datatype engine;
-content-model, full derivation, attribute wildcard, and identity-constraint support remain future
-tasks.
+grouped content-list models, full derivation, attribute wildcard, and identity-constraint support
+remain future tasks.
 
 ## `0.4.0` Semantic Baseline
 

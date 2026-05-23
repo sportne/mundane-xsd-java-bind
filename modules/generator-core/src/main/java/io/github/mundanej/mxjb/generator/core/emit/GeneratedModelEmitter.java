@@ -69,9 +69,6 @@ public final class GeneratedModelEmitter {
         if ("choice".equals(field.kind()) && field.choice() == null) {
           diagnostics.add(invalidModel("Choice field is missing generated choice metadata."));
         }
-        if ("choice".equals(field.kind()) && "list".equals(field.cardinality().shape())) {
-          diagnostics.add(invalidModel("Choice fields do not support list cardinality."));
-        }
         if ("content".equals(field.kind()) && field.content() == null) {
           diagnostics.add(invalidModel("Content field is missing generated content metadata."));
         }

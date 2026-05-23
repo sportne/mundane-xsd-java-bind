@@ -8,7 +8,7 @@ Validation is a first-class generated-code concern.
 |---|---|---|
 | Well-formedness | Delegated to XML event source. | Same unless custom parser is introduced. |
 | Namespace correctness | Required for supported constructs. | Expanded edge cases. |
-| Structural content model | Required for supported sequences/cardinality. | Full model groups and derivation. |
+| Structural content model | Required for supported sequences/cardinality, legal `xs:all`, and repeated element-only choices. | Grouped content-list models, complete UPA automata, and derivation. |
 | Simple lexical conversion | Full XSD 1.0 built-ins for accepted schema shapes. | Broader schema shapes through later full-XSD gates. |
 | Simple restrictions | XSD 1.0 facets for accepted schema shapes. | Integration with full derivation/content-model semantics. |
 | Identity constraints | Validation-ready only. | `xs:key`, `xs:keyref`, `xs:unique`. |
@@ -68,8 +68,9 @@ Generated validation enforces enumeration, pattern, length/minLength/maxLength, 
 exclusive bounds, totalDigits, and fractionDigits through the shared datatype engine while keeping
 stable generated diagnostic categories. QName parsing uses the active XML namespace context, and
 generated writers emit QName lexical values through `XmlOutput` so adapters can declare deterministic
-prefixes. Full content-model automata, full derivation, attribute wildcards, identity constraints,
-and `XP-XSD10-FULL` execution remain future gates.
+prefixes. `TASK-0051` adds content-model coverage for legal `xs:all`, repeated choices, nested
+singleton sequences, and single-particle repeated/optional groups; full derivation, attribute
+wildcards, identity constraints, and `XP-XSD10-FULL` execution remain future gates.
 
 ## `TASK-0032` semantic validation
 

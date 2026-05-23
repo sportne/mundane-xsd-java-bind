@@ -11,10 +11,7 @@ public record SchemaIrSequence(SchemaCardinality cardinality, List<SchemaIrParti
   }
 
   public List<SchemaIrElement> elements() {
-    return particles.stream()
-        .filter(SchemaIrElement.class::isInstance)
-        .map(SchemaIrElement.class::cast)
-        .toList();
+    return particles.stream().flatMap(SchemaIrSequence::elementStream).toList();
   }
 
   public List<SchemaIrChoice> choices() {
@@ -29,6 +26,23 @@ public record SchemaIrSequence(SchemaCardinality cardinality, List<SchemaIrParti
         .filter(SchemaIrWildcard.class::isInstance)
         .map(SchemaIrWildcard.class::cast)
         .toList();
+  }
+
+  public List<SchemaIrAll> allGroups() {
+    return particles.stream()
+        .filter(SchemaIrAll.class::isInstance)
+        .map(SchemaIrAll.class::cast)
+        .toList();
+  }
+
+  private static java.util.stream.Stream<SchemaIrElement> elementStream(SchemaIrParticle particle) {
+    if (particle instanceof SchemaIrElement element) {
+      return java.util.stream.Stream.of(element);
+    }
+    if (particle instanceof SchemaIrAll all) {
+      return all.elements().stream();
+    }
+    return java.util.stream.Stream.empty();
   }
 
   public String toText(String indent) {

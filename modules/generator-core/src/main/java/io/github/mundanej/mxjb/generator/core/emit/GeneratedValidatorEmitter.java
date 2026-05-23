@@ -375,6 +375,10 @@ public final class GeneratedValidatorEmitter {
     }
 
     private void appendChoiceValidation(StringBuilder source, BindingField field, String accessor) {
+      if ("list".equals(field.cardinality().shape())) {
+        appendChoiceListValidation(source, field, accessor);
+        return;
+      }
       boolean optional = "optional".equals(field.cardinality().shape());
       String valueExpression = optional ? accessor + ".orElse(null)" : accessor;
       if (optional) {
@@ -412,6 +416,68 @@ public final class GeneratedValidatorEmitter {
           source.append("      }\n");
         }
       }
+      source.append("    }\n");
+    }
+
+    private void appendChoiceListValidation(
+        StringBuilder source, BindingField field, String accessor) {
+      source.append("    if (").append(accessor).append(" == null) {\n");
+      source
+          .append("      addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("    } else {\n");
+      if (field.cardinality().minOccurs() > 0) {
+        source.append("      if (").append(accessor).append(".size() < ");
+        source.append(field.cardinality().minOccurs()).append(") {\n");
+        source
+            .append("        addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+            .append(escape(field.javaName()))
+            .append(".\", location);\n");
+        source.append("      }\n");
+      }
+      if (!"unbounded".equals(field.cardinality().maxOccurs())) {
+        source.append("      if (").append(accessor).append(".size() > ");
+        source.append(Integer.parseInt(field.cardinality().maxOccurs())).append(") {\n");
+        source
+            .append("        addError(errors, \"MXJB-GV-003\", \"Too many values for ")
+            .append(escape(field.javaName()))
+            .append(".\", location);\n");
+        source.append("      }\n");
+      }
+      source
+          .append("      for (")
+          .append(field.type().name())
+          .append(" item : ")
+          .append(accessor)
+          .append(") {\n");
+      source.append("        if (item == null) {\n");
+      source
+          .append("          addError(errors, \"MXJB-GV-001\", \"Missing required value ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("        }");
+      for (BindingChoiceBranch branch : field.choice().branches()) {
+        source
+            .append(" else if (item instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch) {\n");
+        BindingType nestedType = modelType(branch.type());
+        if (nestedType != null) {
+          source
+              .append("          ")
+              .append(helperName(nestedType))
+              .append("(branch.value(), location, errors);\n");
+        } else if (hasValidationRules(branch.type())) {
+          appendTypeValidation(source, branch.type(), "branch.value()", "          ");
+        }
+        source.append("        }");
+      }
+      source.append(" else {\n");
+      source.append(
+          "          addError(errors, \"MXJB-GV-009\", \"Unsupported choice branch.\", location);\n");
+      source.append("        }\n");
+      source.append("      }\n");
       source.append("    }\n");
     }
 
