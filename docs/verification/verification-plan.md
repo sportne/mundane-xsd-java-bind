@@ -190,8 +190,11 @@ profile executable. The planned verification sequence is:
   content-list binding.
 - `TASK-0052`: attribute and wildcard tests for `xs:anyAttribute`, namespace-constraint algebra,
   `processContents`, prohibited attributes, defaults/fixed values, and generated serialization.
-- `TASK-0053`: derivation, substitution, abstract type, block/final, and `xsi:type` read/write/
-  validate tests.
+- `TASK-0053`: accepted derivation and substitution tests for simpleContent
+  text-with-attributes binding, basic complex restriction member checks, abstract/nested/repeated
+  substitution heads, substitution cycle diagnostics, generated read/write/validate behavior, and
+  selected JDK XML Schema comparison fixtures. Full block/final, complete restriction algebra, and
+  `xsi:type` dispatch remain later full-XSD evidence.
 - `TASK-0054`: identity-constraint selector/field XPath tests and document-scope generated
   validator tests for `xs:unique`, `xs:key`, and `xs:keyref`.
 - `TASK-0055`: pinned W3C XML Schema 1.0 suite classification and repeatable local execution.

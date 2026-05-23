@@ -135,6 +135,7 @@ public final class GeneratedValidatorEmitter {
     return "element".equals(kind)
         || "attribute".equals(kind)
         || "anyAttribute".equals(kind)
+        || "simpleContent".equals(kind)
         || "choice".equals(kind)
         || "wildcard".equals(kind)
         || "content".equals(kind);

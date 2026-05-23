@@ -71,9 +71,11 @@ generated writers emit QName lexical values through `XmlOutput` so adapters can 
 prefixes. `TASK-0051` adds content-model coverage for legal `xs:all`, repeated choices, nested
 singleton sequences, and single-particle repeated/optional groups. `TASK-0052` adds accepted
 attribute namespace qualification, prohibited-attribute rejection, retained `xs:anyAttribute`
-validation, wildcard namespace-token matching, and `processContents` metadata. Full derivation,
-strict/lax schema-known wildcard validation, identity constraints, and `XP-XSD10-FULL` execution
-remain future gates.
+validation, wildcard namespace-token matching, and `processContents` metadata. `TASK-0053` adds
+accepted simpleContent text validation, basic complex restriction member checks before emission,
+and generated validation recursion through repeated/nested/abstract substitution branch values.
+Full restriction algebra, block/final, `xsi:type`, strict/lax schema-known wildcard validation,
+identity constraints, and `XP-XSD10-FULL` execution remain future gates.
 
 ## `TASK-0032` semantic validation
 
@@ -85,6 +87,9 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
   absent and preserve absent optional elements as absent rather than defaulted.
 - `TASK-0033` validates substitution group dispatch using the resolved element name and generated
   sealed branch type.
+- `TASK-0053` extends substitution validation to accepted abstract heads, nested substitution
+  members, and repeated head references. Abstract head elements are not accepted as concrete
+  branch values; generated validators recurse through each concrete branch value in list order.
 - `TASK-0034` verifies deterministic semantic object diagnostics, location-aware XML diagnostics
   for nil-content and fixed-value reader failures, substitution branch value recursion, and
   explicit schema diagnostics for unsupported validation categories.

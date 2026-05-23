@@ -129,6 +129,7 @@ public final class GeneratedWriterEmitter {
     return "element".equals(kind)
         || "attribute".equals(kind)
         || "anyAttribute".equals(kind)
+        || "simpleContent".equals(kind)
         || "choice".equals(kind)
         || "wildcard".equals(kind)
         || "content".equals(kind);
@@ -257,6 +258,9 @@ public final class GeneratedWriterEmitter {
       for (BindingField field : anyAttributes(type)) {
         appendFieldWrite(source, field);
       }
+      for (BindingField field : simpleContentFields(type)) {
+        appendFieldWrite(source, field);
+      }
       for (BindingField field : contentFields(type)) {
         appendFieldWrite(source, field);
       }
@@ -365,6 +369,14 @@ public final class GeneratedWriterEmitter {
             .append(".name(), ")
             .append(valueExpression)
             .append(".value());\n");
+        return;
+      }
+      if ("simpleContent".equals(field.kind())) {
+        source
+            .append(indent)
+            .append("output.text(")
+            .append(scalarText(field, valueExpression))
+            .append(");\n");
         return;
       }
       String name = nameConstant(field.xmlName());
@@ -561,6 +573,13 @@ public final class GeneratedWriterEmitter {
     private List<BindingField> anyAttributes(BindingType type) {
       return type.fields().stream()
           .filter(field -> "anyAttribute".equals(field.kind()))
+          .sorted(Comparator.comparingInt(BindingField::order))
+          .toList();
+    }
+
+    private List<BindingField> simpleContentFields(BindingType type) {
+      return type.fields().stream()
+          .filter(field -> "simpleContent".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
     }

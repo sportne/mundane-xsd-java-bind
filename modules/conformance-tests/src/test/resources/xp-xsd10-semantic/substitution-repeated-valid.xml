@@ -1,0 +1,12 @@
+<order xmlns="urn:semantic-substitution-repeated">
+  <id>A-1</id>
+  <cardPayment>
+    <amount>12.50</amount>
+    <cardLast4>4242</cardLast4>
+  </cardPayment>
+  <rewardPayment>
+    <amount>3.25</amount>
+    <cardLast4>1111</cardLast4>
+    <rewardId>R-1</rewardId>
+  </rewardPayment>
+</order>

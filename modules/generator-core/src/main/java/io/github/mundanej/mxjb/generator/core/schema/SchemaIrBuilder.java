@@ -308,14 +308,6 @@ public final class SchemaIrBuilder {
             "Substitution group head " + headName.toText() + " is not declared.");
         continue;
       }
-      if (head.substitutionGroup() != null) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            "schema-ir",
-            "Nested substitution group head " + headName.toText() + " is not supported.");
-        continue;
-      }
       if (head.cardinality().minOccurs() != 1 || !"1".equals(head.cardinality().maxOccurs())) {
         diagnostic(
             state,
@@ -326,22 +318,66 @@ public final class SchemaIrBuilder {
       }
       Set<SchemaQName> branchNames = new LinkedHashSet<>();
       List<SchemaIrElement> branches = new ArrayList<>();
-      branches.add(head);
-      branchNames.add(head.name());
-      for (SchemaIrElement member : entry.getValue()) {
+      if (!head.abstractElement()) {
+        branches.add(head);
+        branchNames.add(head.name());
+      }
+      collectSubstitutionBranches(
+          headName, headName, membersByHead, branchNames, branches, new LinkedHashSet<>(), state);
+      groups.add(new SchemaIrSubstitutionGroup(headName, branches));
+    }
+    for (SchemaIrElement element : elements) {
+      if (element.abstractElement() && !membersByHead.containsKey(element.name())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            "schema-ir",
+            "Abstract element " + element.name().toText() + " has no substitution members.");
+      }
+    }
+    return groups;
+  }
+
+  private void collectSubstitutionBranches(
+      SchemaQName originalHead,
+      SchemaQName currentHead,
+      Map<SchemaQName, List<SchemaIrElement>> membersByHead,
+      Set<SchemaQName> branchNames,
+      List<SchemaIrElement> branches,
+      Set<SchemaQName> path,
+      BuildState state) {
+    if (!path.add(currentHead)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          "schema-ir",
+          "Substitution group cycle involving " + currentHead.toText() + ".");
+      return;
+    }
+    for (SchemaIrElement member : membersByHead.getOrDefault(currentHead, List.of())) {
+      if (member.name().equals(originalHead)) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            "schema-ir",
+            "Substitution group cycle involving " + originalHead.toText() + ".");
+        continue;
+      }
+      if (!member.abstractElement()) {
         if (!branchNames.add(member.name())) {
           diagnostic(
               state,
               DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
               "schema-ir",
               "Duplicate substitution group branch " + member.name().toText() + ".");
-          continue;
+        } else {
+          branches.add(member);
         }
-        branches.add(member);
       }
-      groups.add(new SchemaIrSubstitutionGroup(headName, branches));
+      collectSubstitutionBranches(
+          originalHead, member.name(), membersByHead, branchNames, branches, path, state);
     }
-    return groups;
+    path.remove(currentHead);
   }
 
   private SchemaIrElement normalizeElement(
@@ -358,15 +394,6 @@ public final class SchemaIrBuilder {
           "xs:element block/final substitution controls are not supported in profile XP-XSD10-SEMANTIC.");
       return null;
     }
-    if ("true".equals(node.attributes().get("abstract"))) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "abstract xs:element declarations are not supported in profile XP-XSD10-SEMANTIC.");
-      return null;
-    }
-
     String ref = node.attributes().get("ref");
     if (ref != null) {
       if (semanticAttributes(node).hasAny()) {
@@ -433,6 +460,15 @@ public final class SchemaIrBuilder {
       return null;
     }
     SchemaIrValueSemantics semantics = semanticAttributes(node);
+    boolean abstractElement = "true".equals(node.attributes().get("abstract"));
+    if (abstractElement && !global) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "abstract xs:element declarations are supported only for global element heads.");
+      return null;
+    }
     return new SchemaIrElement(
         new SchemaQName(schemaNamespace(document), name),
         type,
@@ -440,6 +476,7 @@ public final class SchemaIrBuilder {
         inlineComplexType,
         semantics,
         substitutionGroup,
+        abstractElement,
         false);
   }
 
@@ -575,11 +612,175 @@ public final class SchemaIrBuilder {
       }
       return normalizeComplexContent(document, complexContentChildren.getFirst(), name, state);
     }
+    List<XsdSyntaxNode> simpleContentChildren =
+        node.children().stream()
+            .filter(child -> child.kind() == XsdSyntaxKind.SIMPLE_CONTENT)
+            .toList();
+    if (!simpleContentChildren.isEmpty()) {
+      if (mixed) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "mixed complexType with xs:simpleContent is not supported.");
+        return null;
+      }
+      if (node.children().size() != 1 || simpleContentChildren.size() != 1) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "xs:simpleContent must be the only child of complexType.");
+        return null;
+      }
+      return normalizeSimpleContentComplexType(
+          document, simpleContentChildren.getFirst(), name, anonymous, state);
+    }
 
     ComplexTypeContent content =
         normalizeComplexTypeContent(document, node.children(), state, mixed);
     return new SchemaIrComplexType(
         name, content.attributes(), content.anyAttribute(), content.sequences(), mixed, anonymous);
+  }
+
+  private SchemaIrComplexType normalizeSimpleContentComplexType(
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      SchemaQName typeName,
+      boolean anonymous,
+      BuildState state) {
+    if (node.children().size() != 1) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:simpleContent supports exactly one xs:extension or xs:restriction child.");
+      return null;
+    }
+    XsdSyntaxNode derivation = node.children().getFirst();
+    if (derivation.kind() != XsdSyntaxKind.EXTENSION
+        && derivation.kind() != XsdSyntaxKind.RESTRICTION) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:simpleContent supports only xs:extension or xs:restriction.");
+      return null;
+    }
+    List<XsdSyntaxNode> invalidChildren =
+        derivation.children().stream()
+            .filter(
+                child ->
+                    !isAttributeUse(child)
+                        && (derivation.kind() != XsdSyntaxKind.RESTRICTION
+                            || !isRestrictionFacet(child)))
+            .toList();
+    if (!invalidChildren.isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:simpleContent derivation child xs:"
+              + invalidChildren.getFirst().kind().manifestName()
+              + " is not supported.");
+      return null;
+    }
+    SchemaIrSimpleContent simpleContent =
+        derivation.kind() == XsdSyntaxKind.EXTENSION
+            ? normalizeSimpleContentExtension(document, derivation, state)
+            : normalizeSimpleContentRestriction(document, derivation, state);
+    ComplexTypeContent attributes =
+        normalizeComplexTypeContent(
+            document,
+            derivation.children().stream().filter(this::isAttributeUse).toList(),
+            state,
+            false);
+    if (simpleContent == null) {
+      return null;
+    }
+    return new SchemaIrComplexType(
+        typeName,
+        simpleContent,
+        attributes.attributes(),
+        attributes.anyAttribute(),
+        List.of(),
+        false,
+        anonymous);
+  }
+
+  private SchemaIrSimpleContent normalizeSimpleContentExtension(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    SchemaQName base = simpleContentBase(document, node, state);
+    if (base == null) {
+      return null;
+    }
+    return new SchemaIrSimpleContent(SchemaIrTypeReference.named(base));
+  }
+
+  private SchemaIrSimpleContent normalizeSimpleContentRestriction(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    XsdSyntaxNode restrictionNode =
+        new XsdSyntaxNode(
+            node.kind(),
+            node.attributes(),
+            node.children().stream().filter(this::isRestrictionFacet).toList());
+    SchemaIrSimpleRestriction restriction =
+        normalizeSimpleRestriction(document, restrictionNode, state);
+    if (restriction == null) {
+      return null;
+    }
+    return new SchemaIrSimpleContent(SchemaIrTypeReference.named(restriction.base()), restriction);
+  }
+
+  private SchemaQName simpleContentBase(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String baseText = node.attributes().get("base");
+    if (baseText == null || baseText.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:simpleContent derivation is missing a base.");
+      return null;
+    }
+    SchemaQName base = resolveQName(document, baseText, state);
+    if (base == null) {
+      return null;
+    }
+    if (isSupportedRestrictionBase(base) || isAcceptedSimpleCompositionMember(base, state)) {
+      return base;
+    }
+    diagnostic(
+        state,
+        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+        document.resourceId(),
+        "Unsupported xs:simpleContent base " + base.toText() + ".");
+    return null;
+  }
+
+  private boolean isAttributeUse(XsdSyntaxNode node) {
+    return node.kind() == XsdSyntaxKind.ATTRIBUTE
+        || node.kind() == XsdSyntaxKind.ATTRIBUTE_GROUP
+        || node.kind() == XsdSyntaxKind.ANY_ATTRIBUTE;
+  }
+
+  private boolean isRestrictionFacet(XsdSyntaxNode node) {
+    return switch (node.kind()) {
+      case ENUMERATION,
+          LENGTH,
+          MIN_LENGTH,
+          MAX_LENGTH,
+          MIN_INCLUSIVE,
+          MAX_INCLUSIVE,
+          MIN_EXCLUSIVE,
+          MAX_EXCLUSIVE,
+          TOTAL_DIGITS,
+          FRACTION_DIGITS,
+          WHITE_SPACE,
+          PATTERN ->
+          true;
+      default -> false;
+    };
   }
 
   private ComplexTypeContent normalizeComplexTypeContent(
@@ -724,12 +925,7 @@ public final class SchemaIrBuilder {
     }
     XsdSyntaxNode child = node.children().getFirst();
     if (child.kind() == XsdSyntaxKind.RESTRICTION) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:complexContent/xs:restriction is not supported in profile XP-XSD10-COMPOSED.");
-      return null;
+      return normalizeComplexRestriction(document, child, typeName, state);
     }
     if (child.kind() != XsdSyntaxKind.EXTENSION) {
       diagnostic(
@@ -740,6 +936,79 @@ public final class SchemaIrBuilder {
       return null;
     }
     return normalizeComplexExtension(document, child, typeName, state);
+  }
+
+  private SchemaIrComplexType normalizeComplexRestriction(
+      XsdSyntaxDocument document, XsdSyntaxNode node, SchemaQName typeName, BuildState state) {
+    String baseText = node.attributes().get("base");
+    if (baseText == null || baseText.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:restriction is missing a base.");
+      return null;
+    }
+    SchemaQName baseName = resolveQName(document, baseText, state);
+    if (baseName == null) {
+      return null;
+    }
+    SchemaComponentKey baseKey = new SchemaComponentKey(SchemaComponentKind.COMPLEX_TYPE, baseName);
+    requireComponent(state, document.resourceId(), baseKey);
+    if (!state.components.containsKey(baseKey)) {
+      return null;
+    }
+    SchemaIrComplexType baseType = normalizeReferencedComplexType(document, baseName, state);
+    ComplexTypeContent restrictedContent =
+        normalizeComplexTypeContent(document, node.children(), state, false);
+    if (baseType == null) {
+      return null;
+    }
+    validateComplexRestriction(document, baseType, restrictedContent, state);
+    return new SchemaIrComplexType(
+        typeName,
+        restrictedContent.attributes(),
+        restrictedContent.anyAttribute(),
+        restrictedContent.sequences(),
+        false,
+        false);
+  }
+
+  private void validateComplexRestriction(
+      XsdSyntaxDocument document,
+      SchemaIrComplexType baseType,
+      ComplexTypeContent restrictedContent,
+      BuildState state) {
+    Set<SchemaQName> baseElements = new LinkedHashSet<>();
+    for (SchemaIrSequence sequence : baseType.sequences()) {
+      for (SchemaIrElement element : sequence.elements()) {
+        baseElements.add(element.name());
+      }
+    }
+    for (SchemaIrSequence sequence : restrictedContent.sequences()) {
+      for (SchemaIrElement element : sequence.elements()) {
+        if (!baseElements.contains(element.name())) {
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              document.resourceId(),
+              "Restricted element " + element.name().toText() + " is not present in base type.");
+        }
+      }
+    }
+    Set<SchemaQName> baseAttributes =
+        baseType.attributes().stream()
+            .map(SchemaIrAttribute::name)
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    for (SchemaIrAttribute attribute : restrictedContent.attributes()) {
+      if (!baseAttributes.contains(attribute.name()) && !"prohibited".equals(attribute.use())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Restricted attribute " + attribute.name().toText() + " is not present in base type.");
+      }
+    }
   }
 
   private SchemaIrComplexType normalizeComplexExtension(
@@ -990,6 +1259,7 @@ public final class SchemaIrBuilder {
           element.inlineComplexType(),
           element.semantics(),
           element.substitutionGroup(),
+          element.abstractElement(),
           element.reference());
     }
     if (particle instanceof SchemaIrChoice choice) {

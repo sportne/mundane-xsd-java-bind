@@ -132,6 +132,7 @@ public final class GeneratedReaderEmitter {
     return "element".equals(kind)
         || "attribute".equals(kind)
         || "anyAttribute".equals(kind)
+        || "simpleContent".equals(kind)
         || "choice".equals(kind)
         || "wildcard".equals(kind)
         || "content".equals(kind);
@@ -270,6 +271,15 @@ public final class GeneratedReaderEmitter {
       appendUnexpectedAttributeCheck(source, type);
       for (BindingField field : attributes(type)) {
         appendAttributeRead(source, field);
+      }
+      BindingField simpleContent = simpleContentField(type);
+      if (simpleContent != null) {
+        appendSimpleContentRead(source, simpleContent);
+        source.append("    return new ").append(typeText(type)).append("(");
+        source.append(constructorArguments(type));
+        source.append(");\n");
+        source.append("  }\n\n");
+        return;
       }
       for (BindingField field : contentFields(type)) {
         appendElementVariable(source, field);
@@ -514,6 +524,17 @@ public final class GeneratedReaderEmitter {
             .append(parseExpression(field.type(), textName))
             .append(";\n");
       }
+    }
+
+    private void appendSimpleContentRead(StringBuilder source, BindingField field) {
+      source
+          .append("    ")
+          .append(localType(field))
+          .append(' ')
+          .append(field.javaName())
+          .append(" = ")
+          .append(parseExpression(field.type(), "readTextElement(input, elementName)"))
+          .append(";\n");
     }
 
     private void appendElementVariable(StringBuilder source, BindingField field) {
@@ -1744,6 +1765,13 @@ public final class GeneratedReaderEmitter {
           .filter(field -> "anyAttribute".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
+    }
+
+    private BindingField simpleContentField(BindingType type) {
+      return type.fields().stream()
+          .filter(field -> "simpleContent".equals(field.kind()))
+          .findFirst()
+          .orElse(null);
     }
 
     private List<BindingField> elements(BindingType type) {

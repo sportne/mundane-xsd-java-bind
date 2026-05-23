@@ -1,0 +1,6 @@
+<order xmlns="urn:semantic-substitution-repeated">
+  <id>A-1</id>
+  <payment>
+    <amount>1.00</amount>
+  </payment>
+</order>

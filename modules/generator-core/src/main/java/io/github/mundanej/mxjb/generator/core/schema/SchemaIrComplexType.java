@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 /** Normalized complex type with attributes and ordered sequences. */
 public record SchemaIrComplexType(
     SchemaQName name,
+    SchemaIrSimpleContent simpleContent,
     List<SchemaIrAttribute> attributes,
     SchemaIrAnyAttribute anyAttribute,
     List<SchemaIrSequence> sequences,
@@ -18,7 +19,17 @@ public record SchemaIrComplexType(
       List<SchemaIrSequence> sequences,
       boolean mixed,
       boolean anonymous) {
-    this(name, attributes, null, sequences, mixed, anonymous);
+    this(name, null, attributes, null, sequences, mixed, anonymous);
+  }
+
+  public SchemaIrComplexType(
+      SchemaQName name,
+      List<SchemaIrAttribute> attributes,
+      SchemaIrAnyAttribute anyAttribute,
+      List<SchemaIrSequence> sequences,
+      boolean mixed,
+      boolean anonymous) {
+    this(name, null, attributes, anyAttribute, sequences, mixed, anonymous);
   }
 
   public SchemaIrComplexType {
@@ -39,12 +50,14 @@ public record SchemaIrComplexType(
         sequences.stream()
             .map(sequence -> sequence.toText(indent + "  "))
             .collect(Collectors.joining("\n"));
+    String simpleContentText = simpleContent == null ? "" : simpleContent.toText(indent + "  ");
     String attributeText =
         attributes.stream()
             .map(attribute -> attribute.toText(indent + "  "))
             .collect(Collectors.joining("\n"));
     String anyAttributeText = anyAttribute == null ? "" : anyAttribute.toText(indent + "  ");
-    return java.util.stream.Stream.of(line, sequenceText, attributeText, anyAttributeText)
+    return java.util.stream.Stream.of(
+            line, simpleContentText, sequenceText, attributeText, anyAttributeText)
         .filter(value -> !value.isEmpty())
         .collect(Collectors.joining("\n"));
   }

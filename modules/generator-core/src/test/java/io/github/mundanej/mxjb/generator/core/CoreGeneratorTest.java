@@ -649,10 +649,9 @@ final class CoreGeneratorTest {
   }
 
   @Test
-  void semanticProfileRejectsRepeatedSubstitutionGroupReferencesWithoutWritingSources()
-      throws IOException {
-    Path schema = writeSchema("bad-substitution-order.xsd", substitutionOrderSchema(true));
-    Path output = tempDirectory.resolve("bad-substitution-generated");
+  void semanticProfileGeneratesRepeatedSubstitutionGroupReferences() throws IOException {
+    Path schema = writeSchema("repeated-substitution-order.xsd", substitutionOrderSchema(true));
+    Path output = tempDirectory.resolve("repeated-substitution-generated");
 
     GeneratorResult result =
         new CoreGenerator()
@@ -666,12 +665,67 @@ final class CoreGeneratorTest {
                     List.of(),
                     Map.of()));
 
-    assertFalse(result.successful());
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    assertTrue(order.contains("List<PaymentSubstitution> payment"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void semanticProfileDoesNotGenerateRootCodeForAbstractSubstitutionHeads() throws IOException {
+    Path schema = writeSchema("abstract-substitution-order.xsd", abstractSubstitutionOrderSchema());
+    Path output = tempDirectory.resolve("abstract-substitution-generated");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_SEMANTIC,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String paymentReader =
+        Files.readString(output.resolve("com/acme/orders/xml/PaymentXmlReader.java"));
     assertTrue(
-        result.diagnostics().stream()
-            .anyMatch(
-                diagnostic -> diagnostic.message().contains("Repeated substitution group head")));
-    assertFalse(Files.exists(output));
+        paymentReader.contains("Expected root element {urn:orders}cardPayment"), paymentReader);
+    assertEquals(
+        -1, paymentReader.indexOf("Expected root element {urn:orders}payment."), paymentReader);
+    assertTrue(
+        result.generatedSources().stream()
+            .anyMatch(path -> path.toString().endsWith("OrderXmlReader.java")),
+        result.generatedSources().toString());
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void composedProfileGeneratesSimpleContentSourcesAndCompiles() throws IOException {
+    Path schema = writeSchema("simple-content-order.xsd", simpleContentOrderSchema());
+    Path output = tempDirectory.resolve("simple-content-generated");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_COMPOSED,
+                    "com.acme.generated",
+                    Map.of("urn:orders", "com.acme.orders"),
+                    List.of(),
+                    Map.of()));
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String note = Files.readString(output.resolve("com/acme/orders/Note.java"));
+    String writer = Files.readString(output.resolve("com/acme/orders/xml/NoteXmlWriter.java"));
+    assertTrue(note.contains("String value"));
+    assertTrue(note.contains("String lang"));
+    assertTrue(writer.contains("output.text(value.value())"));
+    compileGeneratedSources(output, result.generatedSources());
   }
 
   @Test
@@ -864,27 +918,7 @@ final class CoreGeneratorTest {
               </xs:complexType>
             </xs:schema>
             """,
-            """
-            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                xmlns:tns="urn:orders"
-                targetNamespace="urn:orders">
-              <xs:element name="order" type="tns:Order"/>
-              <xs:complexType name="Order">
-                <xs:complexContent>
-                  <xs:restriction base="tns:BaseOrder">
-                    <xs:sequence>
-                      <xs:element name="id" type="xs:string"/>
-                    </xs:sequence>
-                  </xs:restriction>
-                </xs:complexContent>
-              </xs:complexType>
-              <xs:complexType name="BaseOrder">
-                <xs:sequence>
-                  <xs:element name="id" type="xs:string"/>
-                </xs:sequence>
-              </xs:complexType>
-            </xs:schema>
-            """);
+            unsupportedValidationSchema("<xs:element name=\"date\" type=\"xs:anyType\"/>"));
 
     for (int index = 0; index < schemas.size(); index++) {
       Path schema = writeSchema("bad-semantic-validation-" + index + ".xsd", schemas.get(index));
@@ -1381,6 +1415,42 @@ final class CoreGeneratorTest {
         </xs:schema>
         """
         .replace("PAYMENT_CARDINALITY", paymentCardinality);
+  }
+
+  private String abstractSubstitutionOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders"
+            elementFormDefault="qualified">
+          <xs:element name="payment" type="tns:Payment" abstract="true"/>
+          <xs:element name="cardPayment" substitutionGroup="tns:payment" type="tns:Payment"/>
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Payment"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element ref="tns:payment" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String simpleContentOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:element name="note" type="tns:Note"/>
+          <xs:complexType name="Note">
+            <xs:simpleContent>
+              <xs:extension base="xs:string">
+                <xs:attribute name="lang" type="xs:string" use="required"/>
+              </xs:extension>
+            </xs:simpleContent>
+          </xs:complexType>
+        </xs:schema>
+        """;
   }
 
   private String documentOrderSchema(boolean unsupportedProcessContents) {

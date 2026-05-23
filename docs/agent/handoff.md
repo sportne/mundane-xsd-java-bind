@@ -63,8 +63,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 50. `TASK-0050`: Complete XSD 1.0 datatype and facet engine. Completed and accepted.
 51. `TASK-0051`: Expand accepted XSD 1.0 content-model support toward the full compiler. Completed and accepted.
 52. `TASK-0052`: Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. Completed and accepted.
-53. `TASK-0053`: Implement full XSD 1.0 derivation, substitution, and dynamic typing. Next implementation gate.
-54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Draft.
+53. `TASK-0053`: Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. Completed and accepted.
+54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Next implementation gate.
 55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Draft.
 56. `TASK-0056`: Full XSD 1.0 readiness review. Draft.
 
@@ -117,7 +117,11 @@ deterministic diagnostics for non-flattenable repeated/optional multi-particle g
 `TASK-0052` has accepted attribute and wildcard expansion for local/global attribute namespace
 qualification, `use="prohibited"`, retained `xs:anyAttribute` values, wildcard namespace-token
 handling, and `processContents` metadata while keeping strict/lax schema-known deep validation and
-derivation interactions for later gates. `TASK-0053` is the next implementation gate.
+derivation interactions for later gates. `TASK-0053` has accepted simpleContent
+text-with-attributes binding, repeated/nested/abstract substitution heads, deterministic
+substitution cycle diagnostics, and basic complex restriction member checks while leaving full
+`xsi:type`, block/final, and complete restriction algebra for later full-XSD gates.
+`TASK-0054` is the next implementation gate.
 
 ## Draft completion backlog
 
@@ -179,18 +183,18 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0050` | XSD 1.0 full | accepted | Complete XSD 1.0 datatype and facet engine. |
 | `TASK-0051` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 content-model support toward the full compiler. |
 | `TASK-0052` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. |
-| `TASK-0053` | XSD 1.0 full | next | Implement full XSD 1.0 derivation, substitution, and dynamic typing. |
-| `TASK-0054` | XSD 1.0 full | draft | Implement XSD 1.0 identity constraints and document-level validation. |
+| `TASK-0053` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. |
+| `TASK-0054` | XSD 1.0 full | next | Implement XSD 1.0 identity constraints and document-level validation. |
 | `TASK-0055` | XSD 1.0 full | draft | Add full XSD 1.0 conformance-suite intake. |
 | `TASK-0056` | XSD 1.0 full | draft | Full XSD 1.0 readiness review. |
 
 ## Current implementation gate
 
-`TASK-0053` is the next implementation gate after the accepted `TASK-0052` attribute/wildcard work.
-It must implement full XSD 1.0 derivation, substitution, and dynamic typing before
-identity-constraint or conformance-suite work begins. Future product behavior, dependency changes,
-release publication, signing, tags, benchmark thresholds, or broader schema support still require an
-accepted task card or ADR.
+`TASK-0054` is the next implementation gate after the accepted `TASK-0053`
+derivation/substitution expansion. It must implement XSD 1.0 identity constraints and
+document-level validation before conformance-suite intake or final full-XSD readiness work begins.
+Future product behavior, dependency changes, release publication, signing, tags, benchmark
+thresholds, or broader schema support still require an accepted task card or ADR.
 
 Any future work must preserve:
 

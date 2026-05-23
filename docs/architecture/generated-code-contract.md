@@ -121,6 +121,14 @@ The `XP-XSD10-SEMANTIC` profile continues the explicit generated-code contract.
 - `TASK-0033` substitution group support uses a generated sealed interface plus one record branch
   per accepted concrete head or member element, preserving the actual XML element name for
   generated reader and writer dispatch.
+- `TASK-0053` extends the substitution branch shape to accepted abstract heads, nested
+  substitution members, and repeated head references. Repeated heads use
+  `List<<HeadSimpleName>Substitution>` branch lists; abstract heads are not emitted as concrete
+  branch records.
+- `TASK-0053` simpleContent complex types emit ordinary records with a collision-safe `value`
+  component for text content plus declared attributes. Generated readers parse the element text,
+  generated writers emit it as text, and validators apply the same scalar/facet rules used by
+  element and attribute values.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, and external
   resource access.

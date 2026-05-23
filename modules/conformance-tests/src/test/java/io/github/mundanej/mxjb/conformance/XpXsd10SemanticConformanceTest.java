@@ -42,6 +42,7 @@ import org.xml.sax.SAXException;
 final class XpXsd10SemanticConformanceTest {
   // Selected fixture manifest IDs:
   // T-CONF-XP-XSD10-SEMANTIC-DEFAULTS, T-CONF-XP-XSD10-SEMANTIC-SUBSTITUTION.
+  // T-CONF-XP-XSD10-SEMANTIC-SUBSTITUTION-REPEATED.
 
   @TempDir private Path tempDirectory;
 
@@ -142,6 +143,46 @@ final class XpXsd10SemanticConformanceTest {
               .getClass()
               .getName()
               .endsWith("CardpaymentSubstitutionBranch"));
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult invalidResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(invalidXml));
+
+      assertTrue(validResult.isValid());
+      assertFalse(invalidResult.isValid());
+      assertFalse(invalidResult.errors().isEmpty());
+    }
+  }
+
+  @Test
+  void repeatedNestedSubstitutionFixturesMatchJdkSchemaValidationAndGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-semantic/substitution-repeated.xsd");
+    String validXml = resource("/xp-xsd10-semantic/substitution-repeated-valid.xml");
+    String invalidXml = resource("/xp-xsd10-semantic/substitution-repeated-invalid.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidXml))));
+
+    try (CompiledGeneratedSemanticBindings bindings =
+        generateAndCompileSemanticBindings(
+            "/xp-xsd10-semantic/substitution-repeated.xsd",
+            Map.of("urn:semantic-substitution-repeated", "com.example.substitutionrepeated"))) {
+      Class<?> orderClass = bindings.load("com.example.substitutionrepeated.Order");
+      Class<?> readerClass = bindings.load("com.example.substitutionrepeated.xml.OrderXmlReader");
+      Class<?> validatorClass =
+          bindings.load("com.example.substitutionrepeated.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      Object payment = orderClass.getMethod("payment").invoke(order);
+      assertTrue(payment instanceof java.util.List<?>);
+      assertEquals(2, ((java.util.List<?>) payment).size());
       ValidationResult validResult =
           (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
       ValidationResult invalidResult =

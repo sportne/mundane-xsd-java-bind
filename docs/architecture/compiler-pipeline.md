@@ -31,6 +31,9 @@ writer, and validator architecture.
   item/member metadata into binding and validation planning.
 - `TASK-0029` complex extension and simple restriction derivation chains are flattened or merged
   before emission; generated Java inheritance is not part of the accepted model shape.
+- `TASK-0053` adds simpleContent value metadata for accepted text-with-attributes models and
+  performs basic complex restriction member checks before binding. Complete XSD restriction algebra
+  remains a later full-XSD task.
 - Recursive groups or derivation chains, unsupported composition depth, and out-of-scope constructs
   must fail with deterministic diagnostics before source emission.
 
@@ -42,8 +45,10 @@ The `XP-XSD10-SEMANTIC` profile keeps semantic expansion inside the same compile
   generated readers, writers, and validators can emit explicit code.
 - `TASK-0033` resolves direct substitution group heads and members in normalized IR before binding,
   then emits an explicit sealed branch model instead of runtime polymorphic lookup.
-- Substitution cycles, unsupported blocking/final semantics, repeated substitution groups, and
-  unsupported semantic combinations must fail with deterministic diagnostics before source emission.
+- `TASK-0053` expands normalized substitution groups to accepted abstract heads, nested members,
+  and repeated head references. Branches are still generated statically from known declarations.
+- Substitution cycles, unsupported blocking/final semantics, and unsupported semantic combinations
+  must fail with deterministic diagnostics before source emission.
 
 ## `TASK-0037` document/open-content normalization
 

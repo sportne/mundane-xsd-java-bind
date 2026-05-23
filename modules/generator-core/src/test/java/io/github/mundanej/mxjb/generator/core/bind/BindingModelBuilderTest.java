@@ -710,7 +710,7 @@ final class BindingModelBuilderTest {
   }
 
   @Test
-  void rejectsRepeatedSubstitutionGroupHeadReference() throws IOException {
+  void bindsRepeatedSubstitutionGroupHeadReferenceAsList() throws IOException {
     write(
         "main.xsd",
         schema(
@@ -729,8 +729,45 @@ final class BindingModelBuilderTest {
 
     BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
 
-    assertEquals(List.of(DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL), diagnosticCodes(result));
-    assertTrue(result.model().toText().isEmpty());
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    assertTrue(
+        result
+            .model()
+            .toText()
+            .contains(
+                "choice payment xml={urn:orders}payment type=choice:"
+                    + "io.github.mundanej.mxjb.generated.orders.PaymentSubstitution "
+                    + "cardinality=list 0..unbounded"),
+        result.model().toText());
+  }
+
+  @Test
+  void skipsAbstractSubstitutionHeadsAsRootElements() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" type="tns:Payment" abstract="true"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="tns:Payment"/>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Payment"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element ref="tns:payment" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertFalse(bindingText.contains("root {urn:orders}payment"), bindingText);
+    assertTrue(bindingText.contains("root {urn:orders}cardPayment"), bindingText);
+    assertTrue(bindingText.contains("root {urn:orders}order"), bindingText);
+    assertTrue(bindingText.contains("choice payment xml={urn:orders}payment"), bindingText);
+    assertFalse(bindingText.contains("branch payment xml={urn:orders}payment"), bindingText);
   }
 
   @Test

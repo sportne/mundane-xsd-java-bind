@@ -83,10 +83,9 @@ choice and facet profiles remain narrower.
 choices, nested singleton sequences, and single-particle repeated/optional group refs with composed
 cardinality. Optional all-groups with required children, repeated/optional multi-particle groups,
 wildcard choice branches, anonymous list/union member types, optional or repeated list-valued XML
-fields, nested list/union composition, `simpleContent`, complex
-restriction, mixed choice content, abstract types, identity constraints, strict/lax schema-known
-wildcard deep validation, and full XSD 1.0 conformance remain out of scope with explicit
-diagnostics or future-study classification.
+fields, nested list/union composition, mixed choice content, identity constraints, strict/lax
+schema-known wildcard deep validation, and full XSD 1.0 conformance remain out of scope with
+explicit diagnostics or future-study classification.
 
 `TASK-0050` broadens the datatype engine used by existing executable profiles without making
 `XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
@@ -96,8 +95,10 @@ numeric families, and list-valued built-ins such as `NMTOKENS`, `IDREFS`, and `E
 Generated readers, writers, and validators use the same dependency-free runtime datatype engine.
 `TASK-0052` adds local/global attribute namespace qualification, prohibited attributes, retained
 `xs:anyAttribute` values as `List<XmlAttribute>`, wildcard namespace-token handling, and
-`processContents` metadata. Grouped content-list models, full derivation, strict/lax schema-known
-wildcard deep validation, and identity-constraint support remain future tasks.
+`processContents` metadata. `TASK-0053` adds accepted simpleContent text-with-attributes binding,
+basic complexContent restriction member checks, and selected derivation/substitution diagnostics.
+Grouped content-list models, complete derivation algebra, strict/lax schema-known wildcard deep
+validation, `xsi:type` dispatch, and identity-constraint support remain future tasks.
 
 ## `0.4.0` Semantic Baseline
 
@@ -115,20 +116,22 @@ accepted semantic paths.
   elements remain absent. Absent attributes with defaults or fixed values are read as effective
   model values.
 - accepted in `TASK-0033`: direct global `xs:element substitutionGroup="head"` members and
-  singleton head references only. Generated models use an explicit sealed branch type with one
-  record branch per accepted concrete head or member element and preserve the actual element name
-  for reader/writer dispatch.
+  singleton head references. Generated models use an explicit sealed branch type with one record
+  branch per accepted concrete head or member element and preserve the actual element name for
+  reader/writer dispatch.
+- accepted in `TASK-0053`: abstract substitution heads with concrete members, nested substitution
+  members, and repeated head references for accepted branch shapes. Generated readers and writers
+  dispatch by actual XML element name; validators recurse through concrete branch values.
 - accepted in `TASK-0034`: generated validation hardening for accepted semantic behavior,
   including nil content rules, fixed-value checks, default/fixed reader behavior, substitution
   dispatch diagnostics, deterministic diagnostic ordering, unsupported validation-category
   diagnostics, and interop comparison.
 
 Optional or repeated nillable fields, nillable attributes, complex/list/union defaults,
-ambiguous nil/default/fixed combinations, abstract substitution heads, repeated substitution
-groups, nested substitution groups, substitution cycles, blocking/final semantics, full
-polymorphism, abstract complex types, wildcards, mixed content, identity constraints, full
-derivation semantics, artifact publication, and full XSD 1.0 conformance remain out of scope with
-explicit diagnostics.
+ambiguous nil/default/fixed combinations, blocking/final semantics, `xsi:type` polymorphism,
+abstract complex types outside substitution-head dispatch, wildcards, mixed content, identity
+constraints, full derivation semantics, artifact publication, and full XSD 1.0 conformance remain
+out of scope with explicit diagnostics.
 
 ## `0.5.0` Document-Oriented Baseline
 
@@ -194,9 +197,9 @@ support. The planned sequence is:
   known-but-later XSD 1.0 constructs.
 - accepted in `TASK-0050`: complete XSD 1.0 datatype and facet engine for accepted schema shapes,
   while keeping `XP-XSD10-FULL` non-executable.
-- `TASK-0051`: full content-model compiler.
-- `TASK-0052`: full attributes and wildcards.
-- `TASK-0053`: full derivation, substitution, and dynamic typing.
+- accepted in `TASK-0051`: full content-model compiler expansion for accepted shapes.
+- accepted in `TASK-0052`: full attributes and wildcards expansion for accepted shapes.
+- accepted in `TASK-0053`: derivation, substitution, and dynamic typing expansion for accepted shapes.
 - `TASK-0054`: identity constraints and document-level validation.
 - `TASK-0055`: full-suite conformance harness.
 - `TASK-0056`: final full XSD 1.0 readiness review.

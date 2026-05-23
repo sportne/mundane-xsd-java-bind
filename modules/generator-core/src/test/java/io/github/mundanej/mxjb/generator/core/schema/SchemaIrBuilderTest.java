@@ -815,9 +815,7 @@ final class SchemaIrBuilderTest {
 
     assertEquals(
         List.of(
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
         diagnosticCodes(result));
   }
 
@@ -862,6 +860,113 @@ final class SchemaIrBuilderTest {
     assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("abstract")));
     assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("missing a base")));
     assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("restriction")));
+  }
+
+  @Test
+  void normalizesSimpleContentRestrictionWithAttributes() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Note">
+                  <xs:simpleContent>
+                    <xs:restriction base="xs:string">
+                      <xs:maxLength value="12"/>
+                      <xs:attribute name="lang" type="xs:string" use="required"/>
+                    </xs:restriction>
+                  </xs:simpleContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("complexType {urn:orders}Note"), irText);
+    assertTrue(
+        irText.contains("simpleContent type=xs:string restriction base=xs:string maxLength=12"),
+        irText);
+    assertTrue(irText.contains("attribute lang type=xs:string use=required"), irText);
+  }
+
+  @Test
+  void reportsInvalidSimpleContentShapes() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="MissingBase">
+                  <xs:simpleContent>
+                    <xs:extension/>
+                  </xs:simpleContent>
+                </xs:complexType>
+                <xs:complexType name="Order"/>
+                <xs:complexType name="UnsupportedBase">
+                  <xs:simpleContent>
+                    <xs:extension base="tns:Order"/>
+                  </xs:simpleContent>
+                </xs:complexType>
+                <xs:complexType name="BadChild">
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:sequence/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
+    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("missing a base")));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(d -> d.message().contains("Unsupported xs:simpleContent base")));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(d -> d.message().contains("derivation child xs:sequence")));
+  }
+
+  @Test
+  void normalizesComplexRestrictionWhenMembersAreBaseMembers() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="BaseOrder">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                    <xs:element name="note" type="xs:string" minOccurs="0"/>
+                  </xs:sequence>
+                  <xs:attribute name="version" type="xs:string" use="required"/>
+                </xs:complexType>
+                <xs:complexType name="RestrictedOrder">
+                  <xs:complexContent>
+                    <xs:restriction base="tns:BaseOrder">
+                      <xs:sequence>
+                        <xs:element name="id" type="xs:string"/>
+                      </xs:sequence>
+                      <xs:attribute name="version" type="xs:string" use="required"/>
+                    </xs:restriction>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("complexType {urn:orders}RestrictedOrder"), irText);
+    assertTrue(irText.contains("element {urn:orders}id type=xs:string"), irText);
+    assertTrue(irText.contains("attribute version type=xs:string use=required"), irText);
   }
 
   @Test
@@ -1179,7 +1284,7 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
-  void rejectsNestedSubstitutionGroupHead() throws IOException {
+  void normalizesNestedSubstitutionGroupHead() throws IOException {
     write(
         "main.xsd",
         schema(
@@ -1192,16 +1297,32 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
 
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("substitutionGroup head={urn:orders}payment"), irText);
+    assertTrue(irText.contains("element {urn:orders}rewardCardPayment"), irText);
+  }
+
+  @Test
+  void reportsSubstitutionGroupCycles() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="payment" substitutionGroup="tns:rewardPayment" type="xs:string"/>
+                <xs:element name="cardPayment" substitutionGroup="tns:payment" type="xs:string"/>
+                <xs:element name="rewardPayment" substitutionGroup="tns:cardPayment" type="xs:string"/>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
     assertTrue(
         diagnosticCodes(result).stream()
             .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
     assertTrue(
-        result
-            .diagnostics()
-            .getFirst()
-            .message()
-            .contains("Nested substitution group head {urn:orders}cardPayment"),
-        result.diagnostics().toString());
+        result.diagnostics().stream()
+            .anyMatch(d -> d.message().contains("Substitution group cycle")));
   }
 
   @Test
@@ -1235,7 +1356,7 @@ final class SchemaIrBuilderTest {
     assertTrue(
         diagnosticCodes(result).stream()
             .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
-    assertTrue(result.diagnostics().getFirst().message().contains("abstract xs:element"));
+    assertTrue(result.diagnostics().getFirst().message().contains("has no substitution members"));
   }
 
   @Test

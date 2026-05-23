@@ -18,9 +18,9 @@ traceability artifact, not a support claim. Status values:
 | `xs:annotation`, `xs:documentation`, `xs:appinfo` | tolerated/ignored | `TASK-0049` | Parsed and preserved without changing binding behavior. |
 | `xs:include`, `xs:import` | supported | done/`TASK-0049` | Direct and transitive chameleon includes now adopt the including namespace in the syntax/component model, with deterministic ambiguity/conflict diagnostics; imports remain resolver-backed. |
 | `xs:redefine` | diagnostic | `TASK-0049`, `TASK-0053` | Recognized and rejected deterministically; component graph rewrite semantics remain future. |
-| Global/local `xs:element` | partially supported | `TASK-0049`, `TASK-0053` | Abstract, block/final metadata is parsed; full substitution and dynamic type behavior remain incomplete. |
+| Global/local `xs:element` | partially supported | `TASK-0049`, `TASK-0053` | Abstract global substitution heads and nested/repeated substitution members are supported for accepted shapes; block/final and `xsi:type` dynamic type behavior remain incomplete. |
 | Global/local `xs:attribute` | partially supported | `TASK-0052` | Local/global namespace qualification, refs, defaults/fixed, and prohibited use are supported for accepted shapes; derivation composition remains incomplete. |
-| `xs:complexType` | partially supported | `TASK-0051`, `TASK-0053` | Content-model support now includes legal `xs:all`, repeated choices, and selected nested groups; simpleContent, restriction, abstract types, and `xsi:type` remain future. |
+| `xs:complexType` | partially supported | `TASK-0051`, `TASK-0053` | Content-model support now includes legal `xs:all`, repeated choices, selected nested groups, simpleContent text-with-attributes binding, and basic restriction member checks; full restriction algebra, abstract type instantiation rules, and `xsi:type` remain future. |
 | `xs:simpleType` | partially supported | `TASK-0050`, `TASK-0053` | Needs full datatype, facet, list, union, and derivation semantics. |
 | `xs:group` | partially supported | `TASK-0051` | Singleton refs and single-particle repeated/optional refs are flattened with composed cardinality; repeated/optional multi-particle groups require a future grouped content-list shape. |
 | `xs:attributeGroup` | partially supported | `TASK-0052` | Nested refs and anyAttribute composition are accepted for non-recursive groups; full restriction/derivation composition remains future. |
@@ -71,14 +71,14 @@ traceability artifact, not a support claim. Status values:
 
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
-| `complexContent/extension` | partially supported | `TASK-0053` | Current implementation flattens accepted named extensions only. |
-| `complexContent/restriction` | diagnostic/not implemented yet | `TASK-0053` | Requires particle and attribute restriction checks. |
-| `simpleContent/extension` | diagnostic/not implemented yet | `TASK-0053` | Required for text-with-attributes binding. |
-| `simpleContent/restriction` | diagnostic/not implemented yet | `TASK-0053` | Requires base simple content validation. |
-| Simple restriction derivation chains | partially supported | `TASK-0050`, `TASK-0053` | Needs all facets and built-ins. |
-| Abstract elements/types | diagnostic/not implemented yet | `TASK-0053` | Requires generated polymorphic model shapes. |
-| Substitution groups | partially supported | `TASK-0053` | Needs abstract heads, nested groups, cycles, repeated heads, block/final. |
-| `xsi:type` | not implemented yet | `TASK-0053` | Requires known derived-type dispatch and validation. |
+| `complexContent/extension` | partially supported | `TASK-0053` | Accepted named extensions flatten base-before-derived particles and attributes. |
+| `complexContent/restriction` | partially supported | `TASK-0053` | Basic restricted member checks are implemented; complete particle, wildcard, default/fixed, and attribute restriction algebra remains future. |
+| `simpleContent/extension` | supported for accepted shapes | `TASK-0053` | Binds text value plus declared attributes for accepted simple bases. |
+| `simpleContent/restriction` | partially supported | `TASK-0053` | Normalizes restrictions over accepted simple bases; full restriction against complex simple-content bases remains future. |
+| Simple restriction derivation chains | partially supported | `TASK-0050`, `TASK-0053` | Accepted scalar/list/union datatype chains use the datatype engine; anonymous and deeper composition rules remain future. |
+| Abstract elements/types | partially supported | `TASK-0053` | Abstract substitution heads are omitted from concrete branch models and rejected when no concrete members exist; full abstract complex type and `xsi:type` behavior remains future. |
+| Substitution groups | partially supported | `TASK-0053` | Direct, nested, repeated, and abstract-head substitution groups are supported for accepted branch shapes with deterministic cycle diagnostics; block/final remains future. |
+| `xsi:type` | not implemented yet | `TASK-0053` | Requires known derived-type dispatch and validation in a later full-XSD gate. |
 | `xsi:nil` | partially supported | `TASK-0053` | Needs optional/repeated and derivation interactions. |
 
 ## Validation and conformance

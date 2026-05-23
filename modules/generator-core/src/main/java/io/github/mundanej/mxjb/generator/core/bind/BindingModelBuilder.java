@@ -13,6 +13,7 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrModel;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrParticle;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrResult;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSequence;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleContent;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleRestriction;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSimpleType;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrSubstitutionGroup;
@@ -179,7 +180,11 @@ public final class BindingModelBuilder {
       List<String> validationRules = new ArrayList<>();
       Set<String> usedFieldNames = new HashSet<>();
       int order = 1;
-      if (complexType.mixed()) {
+      if (complexType.simpleContent() != null) {
+        BindingField field = bindSimpleContentField(complexType.simpleContent(), usedFieldNames);
+        fields.add(field);
+        validationRules.add("simpleContent " + field.javaName());
+      } else if (complexType.mixed()) {
         BindingField field = bindContentField(complexType, javaName, usedFieldNames, order);
         fields.add(field);
         validationRules.add("content " + field.javaName() + " " + field.cardinality().toText());
@@ -266,6 +271,22 @@ public final class BindingModelBuilder {
           "record",
           fields,
           new BindingValidationPlan(validationRules));
+    }
+
+    private BindingField bindSimpleContentField(
+        SchemaIrSimpleContent simpleContent, Set<String> usedFieldNames) {
+      BindingTypeReference type =
+          simpleContent.restriction() == null
+              ? bindTypeReference(simpleContent.valueType(), null, new SchemaQName("", "value"))
+              : bindRestrictedScalar(simpleContent.restriction());
+      return new BindingField(
+          "simpleContent",
+          new SchemaQName("", "#text"),
+          JavaNames.unique("value", usedFieldNames),
+          type,
+          new BindingCardinality("required", 1, "1"),
+          0,
+          true);
     }
 
     private BindingField bindAnyAttributeField(
@@ -429,12 +450,6 @@ public final class BindingModelBuilder {
         Set<String> usedFieldNames,
         int order) {
       BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
-      if ("list".equals(cardinality.shape())) {
-        diagnostic(
-            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
-            "binding",
-            "Repeated substitution group head " + element.name().toText() + " is not supported.");
-      }
       String packageName = javaName(element.name()).packageName();
       String substitutionSimpleName =
           uniqueTypeName(packageName, JavaNames.typeName(element.name()) + "Substitution");
@@ -453,6 +468,12 @@ public final class BindingModelBuilder {
                 branchFieldName,
                 bindingType,
                 new BindingJavaName(packageName, branchSimpleName)));
+      }
+      if (branches.isEmpty()) {
+        diagnostic(
+            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+            "binding",
+            "Substitution group head " + element.name().toText() + " has no concrete branches.");
       }
       BindingChoice bindingChoice = new BindingChoice(substitutionName, branches, "substitution");
       String fieldName = JavaNames.unique(JavaNames.fieldName(element.name()), usedFieldNames);
@@ -543,7 +564,9 @@ public final class BindingModelBuilder {
     private List<BindingRootElement> bindRootElements(List<SchemaIrElement> elements) {
       List<BindingRootElement> roots = new ArrayList<>();
       for (SchemaIrElement element : elements) {
-        roots.add(bindRootElement(element));
+        if (!element.abstractElement()) {
+          roots.add(bindRootElement(element));
+        }
       }
       return roots;
     }

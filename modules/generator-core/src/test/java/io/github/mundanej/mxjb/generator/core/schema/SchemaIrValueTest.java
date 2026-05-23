@@ -89,4 +89,29 @@ final class SchemaIrValueTest {
             .contains(
                 "wildcard namespace=other:urn:test processContents=strict cardinality=0..unbounded"));
   }
+
+  @Test
+  void simpleContentTextIncludesRestrictionWhenPresent() {
+    SchemaIrSimpleRestriction restriction =
+        new SchemaIrSimpleRestriction(
+            new SchemaQName(SchemaQName.XSD_NAMESPACE, "string"),
+            List.of("READY"),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "collapse",
+            List.of());
+    SchemaIrSimpleContent content =
+        new SchemaIrSimpleContent(SchemaIrTypeReference.named(restriction.base()), restriction);
+
+    assertEquals(
+        "  simpleContent type=xs:string restriction base=xs:string enumeration=READY whiteSpace=collapse",
+        content.toText("  "));
+  }
 }

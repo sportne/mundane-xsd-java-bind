@@ -1,0 +1,19 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:simple-content"
+    targetNamespace="urn:simple-content"
+    elementFormDefault="qualified">
+  <xs:element name="note" type="tns:Note"/>
+  <xs:simpleType name="LimitedNoteText">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="3"/>
+      <xs:maxLength value="12"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="Note">
+    <xs:simpleContent>
+      <xs:extension base="tns:LimitedNoteText">
+        <xs:attribute name="lang" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+</xs:schema>
