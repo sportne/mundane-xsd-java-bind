@@ -13,6 +13,7 @@ public record SchemaIrElement(
     SchemaIrValueSemantics semantics,
     SchemaQName substitutionGroup,
     boolean abstractElement,
+    List<SchemaIrIdentityConstraint> identityConstraints,
     boolean reference)
     implements SchemaIrParticle {
   public SchemaIrElement(
@@ -29,6 +30,7 @@ public record SchemaIrElement(
         SchemaIrValueSemantics.NONE,
         null,
         false,
+        List.of(),
         reference);
   }
 
@@ -37,6 +39,8 @@ public record SchemaIrElement(
     Objects.requireNonNull(type, "type");
     Objects.requireNonNull(cardinality, "cardinality");
     semantics = semantics == null ? SchemaIrValueSemantics.NONE : semantics;
+    identityConstraints =
+        identityConstraints == null ? List.of() : List.copyOf(identityConstraints);
   }
 
   @Override
@@ -53,10 +57,14 @@ public record SchemaIrElement(
             + (substitutionGroup == null ? "" : " substitutionGroup=" + substitutionGroup.toText())
             + (abstractElement ? " abstract=true" : "")
             + semantics.toText();
-    if (inlineComplexType == null) {
-      return line;
-    }
-    return line + "\n" + inlineComplexType.toText(indent + "  ");
+    String identityText =
+        identityConstraints.stream()
+            .map(identity -> identity.toText(indent + "  "))
+            .collect(Collectors.joining("\n"));
+    String inlineText = inlineComplexType == null ? "" : inlineComplexType.toText(indent + "  ");
+    return java.util.stream.Stream.of(line, identityText, inlineText)
+        .filter(value -> !value.isEmpty())
+        .collect(Collectors.joining("\n"));
   }
 
   static String elementsText(List<SchemaIrElement> elements, String indent) {

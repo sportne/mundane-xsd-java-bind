@@ -195,8 +195,9 @@ profile executable. The planned verification sequence is:
   substitution heads, substitution cycle diagnostics, generated read/write/validate behavior, and
   selected JDK XML Schema comparison fixtures. Full block/final, complete restriction algebra, and
   `xsi:type` dispatch remain later full-XSD evidence.
-- `TASK-0054`: identity-constraint selector/field XPath tests and document-scope generated
-  validator tests for `xs:unique`, `xs:key`, and `xs:keyref`.
+- `TASK-0054`: accepted identity-constraint selector/field XPath tests, document-scope generated
+  validator tests for `xs:unique`, `xs:key`, and `xs:keyref`, and selected JDK XML Schema
+  comparison fixture `T-CONF-XP-XSD10-SEMANTIC-IDENTITY`.
 - `TASK-0055`: pinned W3C XML Schema 1.0 suite classification and repeatable local execution.
 - `TASK-0056`: final support-claim reconciliation. `XP-XSD10-FULL` may be advertised as executable
   only after this evidence passes.

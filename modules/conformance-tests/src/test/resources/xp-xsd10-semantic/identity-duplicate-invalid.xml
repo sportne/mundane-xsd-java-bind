@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<order xmlns="urn:semantic-identity">
+  <line sku="SKU-1"/>
+  <line sku="SKU-1"/>
+  <reference sku="SKU-1"/>
+</order>

@@ -64,8 +64,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 51. `TASK-0051`: Expand accepted XSD 1.0 content-model support toward the full compiler. Completed and accepted.
 52. `TASK-0052`: Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. Completed and accepted.
 53. `TASK-0053`: Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. Completed and accepted.
-54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Next implementation gate.
-55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Draft.
+54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Completed and accepted.
+55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Next implementation gate.
 56. `TASK-0056`: Full XSD 1.0 readiness review. Draft.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
@@ -121,7 +121,10 @@ derivation interactions for later gates. `TASK-0053` has accepted simpleContent
 text-with-attributes binding, repeated/nested/abstract substitution heads, deterministic
 substitution cycle diagnostics, and basic complex restriction member checks while leaving full
 `xsi:type`, block/final, and complete restriction algebra for later full-XSD gates.
-`TASK-0054` is the next implementation gate.
+`TASK-0054` has accepted generated identity-constraint validation for `xs:unique`, `xs:key`, and
+`xs:keyref` over accepted generated model shapes using private document-scope validation state and
+the accepted selector/field XPath subset. Full-suite identity edge-case classification remains part
+of `TASK-0055`.
 
 ## Draft completion backlog
 
@@ -184,15 +187,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0051` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 content-model support toward the full compiler. |
 | `TASK-0052` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. |
 | `TASK-0053` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. |
-| `TASK-0054` | XSD 1.0 full | next | Implement XSD 1.0 identity constraints and document-level validation. |
-| `TASK-0055` | XSD 1.0 full | draft | Add full XSD 1.0 conformance-suite intake. |
+| `TASK-0054` | XSD 1.0 full | accepted | Implement XSD 1.0 identity constraints and document-level validation. |
+| `TASK-0055` | XSD 1.0 full | next | Add full XSD 1.0 conformance-suite intake. |
 | `TASK-0056` | XSD 1.0 full | draft | Full XSD 1.0 readiness review. |
 
 ## Current implementation gate
 
-`TASK-0054` is the next implementation gate after the accepted `TASK-0053`
-derivation/substitution expansion. It must implement XSD 1.0 identity constraints and
-document-level validation before conformance-suite intake or final full-XSD readiness work begins.
+`TASK-0055` is the next implementation gate after accepted `TASK-0054` identity constraints. It
+must add a pinned, repeatable full XSD 1.0 conformance-suite intake/classification harness before
+final full-XSD readiness work begins.
 Future product behavior, dependency changes, release publication, signing, tags, benchmark
 thresholds, or broader schema support still require an accepted task card or ADR.
 
@@ -209,7 +212,8 @@ Any future work must preserve:
   JVM-focused.
 - `TASK-0021` accepted the first public vertical slice readiness evidence, verified requirement
   statuses for the implemented `XP-DATA-10` slice, and kept `xs:choice`, simple-type facets,
-  derivation, wildcards, mixed content, and identity constraints as future-profile work.
+  derivation, wildcards, mixed content, and identity constraints as future-profile work at that
+  point in the task sequence.
 - `TASK-0022` accepted the `0.2.0` Practical Data Contracts planning scope without creating a
   `0.1.0` release tag or publication claim. `TASK-0023` accepted local singleton `xs:choice`
   particles with supported element branches behind opt-in profile `XP-DATA-10-CHOICE`, including

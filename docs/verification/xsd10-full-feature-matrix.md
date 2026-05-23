@@ -25,7 +25,7 @@ traceability artifact, not a support claim. Status values:
 | `xs:group` | partially supported | `TASK-0051` | Singleton refs and single-particle repeated/optional refs are flattened with composed cardinality; repeated/optional multi-particle groups require a future grouped content-list shape. |
 | `xs:attributeGroup` | partially supported | `TASK-0052` | Nested refs and anyAttribute composition are accepted for non-recursive groups; full restriction/derivation composition remains future. |
 | `xs:notation` | tolerated/ignored | `TASK-0049`, `TASK-0050` | Parsed and indexed as a symbol-space component; NOTATION datatype semantics remain future. |
-| Identity constraints | diagnostic | `TASK-0049`, `TASK-0054` | `xs:unique`, `xs:key`, `xs:keyref`, selector, and field syntax are recognized and rejected before binding. |
+| Identity constraints | partially supported | `TASK-0049`, `TASK-0054` | `xs:unique`, `xs:key`, and `xs:keyref` are parsed, normalized, and enforced by generated document-scope validators for accepted generated model shapes. The accepted XPath subset covers namespace-aware QName steps, `*`, `.`, `.//`, `/`, union alternatives, and terminal attribute fields. Unsupported XPath axes, predicates, functions, parent traversal, variables, and arbitrary expressions remain deterministic diagnostics. |
 
 ## Particles and content models
 
@@ -87,7 +87,7 @@ traceability artifact, not a support claim. Status values:
 |---|---|---|---|
 | Structural generated validation | partially supported | `TASK-0051` | Reader, writer, and object validation now cover legal `xs:all`, repeated choices, and composed single-particle group cardinality for accepted shapes. |
 | Datatype validation | supported for accepted schema shapes | `TASK-0050` | Full built-in lexical/value/facet coverage is verified for the currently executable schema shapes. |
-| Identity constraints | diagnostic | `TASK-0054` | Requires document-scope validation context. |
+| Identity constraints | partially supported | `TASK-0054` | Generated validators build private document-scope identity tables for accepted model shapes, enforcing `unique`, `key`, and `keyref`; full-suite coverage and edge-case conformance classification remain `TASK-0055`. |
 | W3C XML Schema 1.0 suite intake | blocked/planned | `TASK-0055` | Must be pinned, classified, and locally repeatable. |
 | Full XSD 1.0 readiness claim | not implemented yet | `TASK-0056` | Only after matrix evidence passes. |
 

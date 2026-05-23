@@ -20,7 +20,8 @@ The current executable profiles are:
 - `XP-XSD10-COMPOSED`: accepted named model groups, attribute groups, named list/union simple
   types, and initial derivation flattening.
 - `XP-XSD10-SEMANTIC`: accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution
-  groups, and expanded generated validation for those paths.
+  groups, `xs:unique`/`xs:key`/`xs:keyref` identity constraints for accepted generated model
+  shapes, and expanded generated validation for those paths.
 - `XP-XSD10-DOCUMENT`: accepted direct `xs:any` wildcard/open-content retention, accepted
   `xs:anyAttribute` retention, accepted `mixed="true"` sequence content, retained `XmlFragment`
   and `XmlAttribute` values, and stable project serialization policy.
@@ -43,8 +44,8 @@ The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 
 - Full XML Schema 1.0 conformance is not claimed yet.
 - Grouped content-list models, complete UPA automata, full derivation/polymorphism, strict/lax
-  schema-known wildcard validation, wildcard choice branches, and identity constraints are still
-  planned work.
+  schema-known wildcard validation, wildcard choice branches, and full conformance-suite
+  classification are still planned work.
 - XSD 1.1 and XML 1.1 are not project targets.
 - XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
   retention, DTD/entity identity preservation, and DOM-backed binding are not supported.

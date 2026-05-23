@@ -51,11 +51,11 @@ Evidence remains selected and local. Full XSD 1.0 conformance is not claimed.
 
 ## Unsupported features still called out
 
-Unsupported feature claims remain explicit for `xs:anyAttribute`, wildcard `processContents="lax"`
-or `"strict"`, unsupported wildcard namespace constraints, wildcard choices, mixed choices,
-complex mixed derivation edge cases, identity constraints, full derivation semantics,
-DOM-backed binding, parser-handle retention, comments/PI preservation, DTD/entity
-identity, XSD 1.1, and XML 1.1.
+Unsupported feature claims remain explicit for wildcard `processContents="lax"` or `"strict"`
+schema-known deep validation, unsupported wildcard namespace constraints, wildcard choices, mixed
+choices, complex mixed derivation edge cases, identity-constraint edge cases beyond accepted
+generated model shapes, full derivation semantics, DOM-backed binding, parser-handle retention,
+comments/PI preservation, DTD/entity identity, XSD 1.1, and XML 1.1.
 
 ## Rollback
 

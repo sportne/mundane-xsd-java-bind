@@ -558,7 +558,10 @@ public final class BindingModelBuilder {
     private BindingRootElement bindRootElement(SchemaIrElement element) {
       BindingTypeReference type = bindTypeReference(element.type(), element, element.name());
       return new BindingRootElement(
-          element.name(), type, BindingCardinality.from(element.cardinality()));
+          element.name(),
+          type,
+          BindingCardinality.from(element.cardinality()),
+          element.identityConstraints());
     }
 
     private List<BindingRootElement> bindRootElements(List<SchemaIrElement> elements) {

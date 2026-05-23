@@ -66,6 +66,11 @@ The first generated-validator emitter supports basic validation for supported da
 - Datatype and facet validation delegates to the shared runtime datatype engine while preserving
   stable generated diagnostic categories for length, range, pattern, and general datatype facet
   failures.
+- `TASK-0054` generated validators add private document-scope identity helpers when a root element
+  declares `xs:unique`, `xs:key`, or `xs:keyref`. The generated public model API is unchanged:
+  validators build a private tree from generated records, evaluate the accepted XSD 1.0
+  selector/field XPath subset, enforce unique/key/keyref tuple rules, and report stable generated
+  diagnostics without reflection or a runtime XPath dependency.
 - Generated validator source uses fully qualified names for generated model types and `runtime-core` validation/XML types to avoid import collisions.
 - Generated validator source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, dependency injection, or external resource access.
 

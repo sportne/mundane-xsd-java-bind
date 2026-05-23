@@ -13,6 +13,10 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
 import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityConstraint;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityField;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityPath;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityStep;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -153,7 +157,7 @@ public final class GeneratedValidatorEmitter {
   private GeneratedJavaSource emitRootValidator(BindingRootElement root, ModelIndex index) {
     BindingType rootType = Objects.requireNonNull(index.type(root.type().name()));
     BindingJavaName validatorName = validatorName(rootType.javaName());
-    SourceState sourceState = new SourceState(rootType, validatorName, index);
+    SourceState sourceState = new SourceState(root, rootType, validatorName, index);
     return new GeneratedJavaSource(
         validatorName, relativePath(validatorName), sourceState.sourceText());
   }
@@ -169,12 +173,19 @@ public final class GeneratedValidatorEmitter {
   }
 
   private static final class SourceState {
+    private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName validatorName;
     private final ModelIndex index;
     private final Set<String> helperNames = new LinkedHashSet<>();
+    private final Set<String> identityHelperNames = new LinkedHashSet<>();
 
-    private SourceState(BindingType rootType, BindingJavaName validatorName, ModelIndex index) {
+    private SourceState(
+        BindingRootElement root,
+        BindingType rootType,
+        BindingJavaName validatorName,
+        ModelIndex index) {
+      this.root = root;
       this.rootType = rootType;
       this.validatorName = validatorName;
       this.index = index;
@@ -191,9 +202,16 @@ public final class GeneratedValidatorEmitter {
       source.append("  private ").append(validatorName.simpleName()).append("() {}\n\n");
       appendPublicValidate(source);
       appendHelper(source, rootType);
+      if (hasIdentityConstraints()) {
+        appendIdentityHelper(source, rootType);
+      }
       appendSharedHelpers(source);
       source.append("}\n");
       return source.toString();
+    }
+
+    private boolean hasIdentityConstraints() {
+      return !root.identityConstraints().isEmpty();
     }
 
     private void appendPublicValidate(StringBuilder source) {
@@ -209,6 +227,14 @@ public final class GeneratedValidatorEmitter {
           .append("    ")
           .append(helperName(rootType))
           .append("(value, io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN, errors);\n")
+          .append(
+              hasIdentityConstraints()
+                  ? "    validateIdentityConstraints(identityNode"
+                      + rootType.javaName().simpleName()
+                      + "(\""
+                      + escape(root.xmlName().toText())
+                      + "\", value), errors);\n"
+                  : "")
           .append("    return validationResult(errors);\n")
           .append("  }\n\n")
           .append("  public static io.github.mundanej.mxjb.runtime.ValidationResult validate(\n")
@@ -746,6 +772,281 @@ public final class GeneratedValidatorEmitter {
       source.append("    }\n");
     }
 
+    private void appendIdentityHelper(StringBuilder source, BindingType type) {
+      if (!identityHelperNames.add(type.javaName().qualifiedName())) {
+        return;
+      }
+      source
+          .append("  private static IdentityNode identityNode")
+          .append(type.javaName().simpleName())
+          .append("(String name, ")
+          .append(typeText(type))
+          .append(" value) {\n")
+          .append("    java.util.LinkedHashMap<String, Object> attributes =\n")
+          .append("        new java.util.LinkedHashMap<>();\n")
+          .append("    java.util.ArrayList<IdentityNode> children = new java.util.ArrayList<>();\n")
+          .append("    Object text = null;\n");
+      for (BindingField field : type.fields().stream().sorted(fieldComparator()).toList()) {
+        appendIdentityField(source, field);
+      }
+      source
+          .append("    return new IdentityNode(name, text, attributes, children);\n")
+          .append("  }\n\n");
+      for (BindingField field : elements(type)) {
+        BindingType nestedType = modelType(field);
+        if (nestedType != null
+            && !identityHelperNames.contains(nestedType.javaName().qualifiedName())) {
+          appendIdentityHelper(source, nestedType);
+        }
+      }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
+        for (BindingChoiceBranch branch : field.choice().branches()) {
+          BindingType branchType = modelType(branch.type());
+          if (branchType != null
+              && !identityHelperNames.contains(branchType.javaName().qualifiedName())) {
+            appendIdentityHelper(source, branchType);
+          }
+        }
+      }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
+        for (BindingContentBranch branch : field.content().branches()) {
+          BindingType branchType = modelType(branch.type());
+          if (branchType != null
+              && !identityHelperNames.contains(branchType.javaName().qualifiedName())) {
+            appendIdentityHelper(source, branchType);
+          }
+        }
+      }
+    }
+
+    private void appendIdentityField(StringBuilder source, BindingField field) {
+      String accessor = "value." + field.javaName() + "()";
+      if ("attribute".equals(field.kind())) {
+        appendIdentityAttribute(source, field, accessor);
+      } else if ("anyAttribute".equals(field.kind())) {
+        appendIdentityAnyAttribute(source, accessor);
+      } else if ("simpleContent".equals(field.kind())) {
+        appendIdentitySimpleContent(source, field, accessor);
+      } else if ("element".equals(field.kind())) {
+        appendIdentityElement(source, field, accessor);
+      } else if ("choice".equals(field.kind())) {
+        appendIdentityChoice(source, field, accessor);
+      } else if ("content".equals(field.kind())) {
+        appendIdentityContent(source, field, accessor);
+      }
+    }
+
+    private void appendIdentityAttribute(
+        StringBuilder source, BindingField field, String accessor) {
+      String name = escape(field.xmlName().toText());
+      if ("optional".equals(field.cardinality().shape())) {
+        source
+            .append("    if (")
+            .append(accessor)
+            .append(" != null && ")
+            .append(accessor)
+            .append(".isPresent()) {\n")
+            .append("      attributes.put(\"")
+            .append(name)
+            .append("\", identityScalar(")
+            .append(accessor)
+            .append(".get()));\n")
+            .append("    }\n");
+        return;
+      }
+      source
+          .append("    if (")
+          .append(accessor)
+          .append(" != null) {\n")
+          .append("      attributes.put(\"")
+          .append(name)
+          .append("\", identityScalar(")
+          .append(accessor)
+          .append("));\n")
+          .append("    }\n");
+    }
+
+    private void appendIdentityAnyAttribute(StringBuilder source, String accessor) {
+      source
+          .append("    if (")
+          .append(accessor)
+          .append(" != null) {\n")
+          .append(
+              "      for (io.github.mundanej.mxjb.runtime.XmlAttribute attribute : "
+                  + accessor
+                  + ") {\n")
+          .append("        if (attribute != null && attribute.name() != null) {\n")
+          .append("          attributes.put(identityName(attribute.name()), attribute.value());\n")
+          .append("        }\n")
+          .append("      }\n")
+          .append("    }\n");
+    }
+
+    private void appendIdentitySimpleContent(
+        StringBuilder source, BindingField field, String accessor) {
+      if ("optional".equals(field.cardinality().shape())) {
+        source
+            .append("    if (")
+            .append(accessor)
+            .append(" != null && ")
+            .append(accessor)
+            .append(".isPresent()) {\n")
+            .append("      text = identityScalar(")
+            .append(accessor)
+            .append(".get());\n")
+            .append("    }\n");
+        return;
+      }
+      source
+          .append("    if (")
+          .append(accessor)
+          .append(" != null) {\n")
+          .append("      text = identityScalar(")
+          .append(accessor)
+          .append(");\n")
+          .append("    }\n");
+    }
+
+    private void appendIdentityElement(StringBuilder source, BindingField field, String accessor) {
+      BindingType nestedType = modelType(field);
+      String name = escape(field.xmlName().toText());
+      String shape = field.cardinality().shape();
+      if ("list".equals(shape)) {
+        source
+            .append("    if (")
+            .append(accessor)
+            .append(" != null) {\n")
+            .append("      for (")
+            .append(nestedType == null ? scalarTypeText(field.type()) : typeText(nestedType))
+            .append(" item : ")
+            .append(accessor)
+            .append(") {\n")
+            .append("        if (item != null) {\n");
+        appendIdentityElementItem(source, nestedType, name, "item", "          ");
+        source.append("        }\n").append("      }\n").append("    }\n");
+        return;
+      }
+      String item = "optional".equals(shape) ? accessor + ".get()" : accessor;
+      if ("optional".equals(shape)) {
+        source
+            .append("    if (")
+            .append(accessor)
+            .append(" != null && ")
+            .append(accessor)
+            .append(".isPresent()) {\n");
+        appendIdentityElementItem(source, nestedType, name, item, "      ");
+        source.append("    }\n");
+      } else {
+        source.append("    if (").append(accessor).append(" != null) {\n");
+        appendIdentityElementItem(source, nestedType, name, item, "      ");
+        source.append("    }\n");
+      }
+    }
+
+    private void appendIdentityElementItem(
+        StringBuilder source, BindingType nestedType, String name, String value, String indent) {
+      source.append(indent).append("children.add(");
+      if (nestedType == null) {
+        source
+            .append("new IdentityNode(\"")
+            .append(name)
+            .append("\", identityScalar(")
+            .append(value)
+            .append("), java.util.Map.of(), java.util.List.of())");
+      } else {
+        source
+            .append("identityNode")
+            .append(nestedType.javaName().simpleName())
+            .append("(\"")
+            .append(name)
+            .append("\", ")
+            .append(value)
+            .append(")");
+      }
+      source.append(");\n");
+    }
+
+    private void appendIdentityChoice(StringBuilder source, BindingField field, String accessor) {
+      if ("list".equals(field.cardinality().shape())) {
+        source.append("    if (").append(accessor).append(" != null) {\n");
+        source
+            .append("      for (")
+            .append(field.type().name())
+            .append(" item : ")
+            .append(accessor)
+            .append(") {\n");
+        appendIdentityChoiceBranches(source, field.choice().branches(), "item", "        ");
+        source.append("      }\n").append("    }\n");
+        return;
+      }
+      String valueExpression = field.javaName() + "IdentityChoice";
+      source.append("    Object ").append(valueExpression).append(" = ");
+      if ("optional".equals(field.cardinality().shape())) {
+        source
+            .append(accessor)
+            .append(" == null ? null : ")
+            .append(accessor)
+            .append(".orElse(null)");
+      } else {
+        source.append(accessor);
+      }
+      source.append(";\n");
+      source.append("    if (").append(valueExpression).append(" != null) {\n");
+      appendIdentityChoiceBranches(source, field.choice().branches(), valueExpression, "      ");
+      source.append("    }\n");
+    }
+
+    private void appendIdentityChoiceBranches(
+        StringBuilder source,
+        List<BindingChoiceBranch> branches,
+        String valueExpression,
+        String indent) {
+      for (BindingChoiceBranch branch : branches) {
+        if ("fragment".equals(branch.type().kind())) {
+          continue;
+        }
+        BindingType nestedType = modelType(branch.type());
+        source
+            .append(indent)
+            .append("if (")
+            .append(valueExpression)
+            .append(" instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch && branch.value() != null) {\n");
+        appendIdentityElementItem(
+            source, nestedType, escape(branch.xmlName().toText()), "branch.value()", indent + "  ");
+        source.append(indent).append("}\n");
+      }
+    }
+
+    private void appendIdentityContent(StringBuilder source, BindingField field, String accessor) {
+      source.append("    if (").append(accessor).append(" != null) {\n");
+      source
+          .append("      for (")
+          .append(field.type().name())
+          .append(" item : ")
+          .append(accessor)
+          .append(") {\n");
+      for (BindingContentBranch branch : field.content().branches()) {
+        if ("text".equals(branch.kind())
+            || "wildcard".equals(branch.kind())
+            || "fragment".equals(branch.type().kind())) {
+          continue;
+        }
+        BindingType nestedType = modelType(branch.type());
+        source
+            .append("        if (item instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch && branch.value() != null) {\n");
+        appendIdentityElementItem(
+            source, nestedType, escape(branch.xmlName().toText()), "branch.value()", "          ");
+        source.append("        }\n");
+      }
+      source.append("      }\n").append("    }\n");
+    }
+
     private boolean hasFacetRules(BindingTypeReference reference) {
       return reference.restriction() != null && reference.restriction().hasRules();
     }
@@ -1199,6 +1500,9 @@ public final class GeneratedValidatorEmitter {
             .append("    };\n")
             .append("  }\n");
       }
+      if (hasIdentityConstraints()) {
+        appendIdentitySharedHelpers(source);
+      }
       if (!needsUnionSupport()) {
         return;
       }
@@ -1239,6 +1543,296 @@ public final class GeneratedValidatorEmitter {
           .append("      return null;\n")
           .append("    }\n")
           .append("  }\n");
+    }
+
+    private void appendIdentitySharedHelpers(StringBuilder source) {
+      source
+          .append('\n')
+          .append("  private record IdentityNode(\n")
+          .append("      String name,\n")
+          .append("      Object text,\n")
+          .append("      java.util.Map<String, Object> attributes,\n")
+          .append("      java.util.List<IdentityNode> children) {}\n\n")
+          .append("  private record IdentitySelectorPath(\n")
+          .append("      boolean descendant, java.util.List<String> steps) {}\n\n")
+          .append("  private record IdentityField(\n")
+          .append("      java.util.List<IdentityFieldPath> alternatives) {}\n\n")
+          .append("  private record IdentityFieldPath(\n")
+          .append("      boolean self,\n")
+          .append("      boolean attribute,\n")
+          .append("      java.util.List<String> steps,\n")
+          .append("      String terminal) {}\n\n")
+          .append("  private record IdentityReference(\n")
+          .append("      String name, String refer, java.util.List<Object> tuple) {}\n\n");
+      appendValidateIdentityConstraints(source);
+      source
+          .append("  private static void validateIdentityConstraint(\n")
+          .append("      IdentityNode root,\n")
+          .append("      String kind,\n")
+          .append("      String name,\n")
+          .append("      String refer,\n")
+          .append("      java.util.List<IdentitySelectorPath> selectors,\n")
+          .append("      java.util.List<IdentityField> fields,\n")
+          .append("      java.util.Map<String, java.util.Set<java.util.List<Object>>> tables,\n")
+          .append("      java.util.ArrayList<IdentityReference> references,\n")
+          .append(
+              "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+          .append("    java.util.ArrayList<IdentityNode> selected = new java.util.ArrayList<>();\n")
+          .append("    for (IdentitySelectorPath selector : selectors) {\n")
+          .append("      selected.addAll(selectIdentityNodes(root, selector));\n")
+          .append("    }\n")
+          .append("    java.util.Set<java.util.List<Object>> table = null;\n")
+          .append("    if (!\"keyref\".equals(kind)) {\n")
+          .append(
+              "      table = tables.computeIfAbsent(name, unused -> new java.util.LinkedHashSet<>());\n")
+          .append("    }\n")
+          .append("    for (IdentityNode node : selected) {\n")
+          .append(
+              "      java.util.List<Object> tuple = identityTuple(node, kind, name, fields, errors);\n")
+          .append("      if (tuple == null) {\n")
+          .append("        continue;\n")
+          .append("      }\n")
+          .append("      if (\"keyref\".equals(kind)) {\n")
+          .append("        references.add(new IdentityReference(name, refer, tuple));\n")
+          .append("      } else if (!table.add(tuple)) {\n")
+          .append(
+              "        addError(errors, \"MXJB-GV-011\", "
+                  + "\"Duplicate identity value for \" + name + \".\", "
+                  + "io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN);\n")
+          .append("      }\n")
+          .append("    }\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Object> identityTuple(\n")
+          .append("      IdentityNode node,\n")
+          .append("      String kind,\n")
+          .append("      String name,\n")
+          .append("      java.util.List<IdentityField> fields,\n")
+          .append(
+              "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+          .append("    java.util.ArrayList<Object> tuple = new java.util.ArrayList<>();\n")
+          .append("    for (IdentityField field : fields) {\n")
+          .append("      java.util.List<Object> values = identityFieldValues(node, field);\n")
+          .append("      if (values.size() != 1) {\n")
+          .append("        if (\"key\".equals(kind)) {\n")
+          .append(
+              "          addError(errors, \"MXJB-GV-010\", "
+                  + "\"Missing key field for \" + name + \".\", "
+                  + "io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN);\n")
+          .append("        }\n")
+          .append("        return null;\n")
+          .append("      }\n")
+          .append("      tuple.add(values.getFirst());\n")
+          .append("    }\n")
+          .append("    return java.util.List.copyOf(tuple);\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<IdentityNode> selectIdentityNodes(\n")
+          .append("      IdentityNode root, IdentitySelectorPath path) {\n")
+          .append("    java.util.ArrayList<IdentityNode> selected = new java.util.ArrayList<>();\n")
+          .append("    if (path.steps().isEmpty()) {\n")
+          .append("      selected.add(root);\n")
+          .append("      return selected;\n")
+          .append("    }\n")
+          .append("    if (path.descendant()) {\n")
+          .append("      collectDescendantMatches(root, path.steps().getFirst(), selected);\n")
+          .append(
+              "      return traverseIdentityPath(selected, path.steps().subList(1, path.steps().size()));\n")
+          .append("    }\n")
+          .append("    selected.add(root);\n")
+          .append("    return traverseIdentityPath(selected, path.steps());\n")
+          .append("  }\n\n")
+          .append("  private static void collectDescendantMatches(\n")
+          .append(
+              "      IdentityNode node, String name, java.util.ArrayList<IdentityNode> selected) {\n")
+          .append("    for (IdentityNode child : node.children()) {\n")
+          .append("      if (identityNameMatches(child.name(), name)) {\n")
+          .append("        selected.add(child);\n")
+          .append("      }\n")
+          .append("      collectDescendantMatches(child, name, selected);\n")
+          .append("    }\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<IdentityNode> traverseIdentityPath(\n")
+          .append("      java.util.List<IdentityNode> nodes, java.util.List<String> steps) {\n")
+          .append("    java.util.List<IdentityNode> current = nodes;\n")
+          .append("    for (String step : steps) {\n")
+          .append("      java.util.ArrayList<IdentityNode> next = new java.util.ArrayList<>();\n")
+          .append("      for (IdentityNode node : current) {\n")
+          .append("        for (IdentityNode child : node.children()) {\n")
+          .append("          if (identityNameMatches(child.name(), step)) {\n")
+          .append("            next.add(child);\n")
+          .append("          }\n")
+          .append("        }\n")
+          .append("      }\n")
+          .append("      current = next;\n")
+          .append("    }\n")
+          .append("    return current;\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Object> identityFieldValues(\n")
+          .append("      IdentityNode node, IdentityField field) {\n")
+          .append("    java.util.ArrayList<Object> values = new java.util.ArrayList<>();\n")
+          .append("    for (IdentityFieldPath alternative : field.alternatives()) {\n")
+          .append("      values.addAll(identityFieldPathValues(node, alternative));\n")
+          .append("    }\n")
+          .append("    return values;\n")
+          .append("  }\n\n")
+          .append("  private static java.util.List<Object> identityFieldPathValues(\n")
+          .append("      IdentityNode node, IdentityFieldPath field) {\n")
+          .append("    if (field.self()) {\n")
+          .append(
+              "      return node.text() == null ? java.util.List.of() : java.util.List.of(node.text());\n")
+          .append("    }\n")
+          .append("    java.util.List<IdentityNode> targets = traverseIdentityPath(\n")
+          .append("        java.util.List.of(node), field.steps());\n")
+          .append("    java.util.ArrayList<Object> values = new java.util.ArrayList<>();\n")
+          .append("    for (IdentityNode target : targets) {\n")
+          .append("      if (field.attribute()) {\n")
+          .append("        if (\"*\".equals(field.terminal())) {\n")
+          .append("          values.addAll(target.attributes().values());\n")
+          .append("        } else if (target.attributes().containsKey(field.terminal())) {\n")
+          .append("          values.add(target.attributes().get(field.terminal()));\n")
+          .append("        }\n")
+          .append("      } else {\n")
+          .append("        for (IdentityNode child : target.children()) {\n")
+          .append(
+              "          if (identityNameMatches(child.name(), field.terminal()) && child.text() != null) {\n")
+          .append("            values.add(child.text());\n")
+          .append("          }\n")
+          .append("        }\n")
+          .append("      }\n")
+          .append("    }\n")
+          .append("    return values;\n")
+          .append("  }\n\n")
+          .append(
+              "  private static boolean identityNameMatches(String actual, String expected) {\n")
+          .append(
+              "    return \"*\".equals(expected) || java.util.Objects.equals(actual, expected);\n")
+          .append("  }\n\n")
+          .append("  private static Object identityScalar(Object value) {\n")
+          .append("    if (value instanceof java.math.BigDecimal decimal) {\n")
+          .append("      return decimal.stripTrailingZeros();\n")
+          .append("    }\n")
+          .append(
+              "    if (value instanceof Float floatValue && floatValue.floatValue() == 0.0f) {\n")
+          .append("      return Float.valueOf(0.0f);\n")
+          .append("    }\n")
+          .append(
+              "    if (value instanceof Double doubleValue && doubleValue.doubleValue() == 0.0d) {\n")
+          .append("      return Double.valueOf(0.0d);\n")
+          .append("    }\n")
+          .append("    return value;\n")
+          .append("  }\n\n")
+          .append(
+              "  private static String identityName(io.github.mundanej.mxjb.runtime.XmlName name) {\n")
+          .append("    return name.namespaceUri().isEmpty()\n")
+          .append("        ? name.localName()\n")
+          .append("        : \"{\" + name.namespaceUri() + \"}\" + name.localName();\n")
+          .append("  }\n\n");
+    }
+
+    private void appendValidateIdentityConstraints(StringBuilder source) {
+      source
+          .append("  private static void validateIdentityConstraints(\n")
+          .append("      IdentityNode root,\n")
+          .append(
+              "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+          .append("    java.util.Map<String, java.util.Set<java.util.List<Object>>> tables =\n")
+          .append("        new java.util.LinkedHashMap<>();\n")
+          .append(
+              "    java.util.ArrayList<IdentityReference> references = new java.util.ArrayList<>();\n");
+      for (SchemaIrIdentityConstraint constraint : root.identityConstraints()) {
+        if (!"keyref".equals(constraint.kind())) {
+          appendIdentityConstraintCall(source, constraint);
+        }
+      }
+      for (SchemaIrIdentityConstraint constraint : root.identityConstraints()) {
+        if ("keyref".equals(constraint.kind())) {
+          appendIdentityConstraintCall(source, constraint);
+        }
+      }
+      source
+          .append("    for (IdentityReference reference : references) {\n")
+          .append(
+              "      java.util.Set<java.util.List<Object>> table = tables.get(reference.refer());\n")
+          .append("      if (table == null || !table.contains(reference.tuple())) {\n")
+          .append(
+              "        addError(errors, \"MXJB-GV-012\", "
+                  + "\"Unresolved key reference for \" + reference.name() + \".\", "
+                  + "io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN);\n")
+          .append("      }\n")
+          .append("    }\n")
+          .append("  }\n\n");
+    }
+
+    private void appendIdentityConstraintCall(
+        StringBuilder source, SchemaIrIdentityConstraint constraint) {
+      source
+          .append("    validateIdentityConstraint(root, \"")
+          .append(escape(constraint.kind()))
+          .append("\", \"")
+          .append(escape(constraint.name().toText()))
+          .append("\", ")
+          .append(
+              constraint.refer() == null
+                  ? "null"
+                  : "\"" + escape(constraint.refer().toText()) + "\"")
+          .append(", ")
+          .append(selectorListExpression(constraint.selectors()))
+          .append(", ")
+          .append(fieldListExpression(constraint.fields()))
+          .append(", tables, references, errors);\n");
+    }
+
+    private String selectorListExpression(List<SchemaIrIdentityPath> paths) {
+      return paths.stream()
+          .map(
+              path ->
+                  "new IdentitySelectorPath("
+                      + path.descendant()
+                      + ", "
+                      + identityStepListExpression(path.steps())
+                      + ")")
+          .collect(java.util.stream.Collectors.joining(", ", "java.util.List.of(", ")"));
+    }
+
+    private String fieldListExpression(List<SchemaIrIdentityField> fields) {
+      return fields.stream()
+          .map(this::fieldExpression)
+          .collect(java.util.stream.Collectors.joining(", ", "java.util.List.of(", ")"));
+    }
+
+    private String fieldExpression(SchemaIrIdentityField field) {
+      return field.alternatives().stream()
+          .map(this::fieldPathExpression)
+          .collect(
+              java.util.stream.Collectors.joining(
+                  ", ", "new IdentityField(java.util.List.of(", "))"));
+    }
+
+    private String fieldPathExpression(SchemaIrIdentityPath path) {
+      if (path.self()) {
+        return "new IdentityFieldPath(true, false, java.util.List.of(), null)";
+      }
+      List<SchemaIrIdentityStep> steps = path.steps();
+      SchemaIrIdentityStep terminal = steps.getLast();
+      return "new IdentityFieldPath(false, "
+          + terminal.attribute()
+          + ", "
+          + identityStepListExpression(steps.subList(0, steps.size() - 1))
+          + ", \""
+          + escape(identityStepName(terminal))
+          + "\")";
+    }
+
+    private String identityStepListExpression(List<SchemaIrIdentityStep> steps) {
+      if (steps.isEmpty()) {
+        return "java.util.List.of()";
+      }
+      return steps.stream()
+          .map(step -> "\"" + escape(identityStepName(step)) + "\"")
+          .collect(java.util.stream.Collectors.joining(", ", "java.util.List.of(", ")"));
+    }
+
+    private String identityStepName(SchemaIrIdentityStep step) {
+      return step.wildcard() ? "*" : step.name().toText();
     }
 
     private boolean needsUnionSupport() {

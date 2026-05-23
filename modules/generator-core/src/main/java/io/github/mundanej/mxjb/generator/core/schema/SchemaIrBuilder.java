@@ -450,7 +450,9 @@ public final class SchemaIrBuilder {
         return null;
       }
     }
-    if (hasUnsupportedBindingChildren(document, node, state)) {
+    List<SchemaIrIdentityConstraint> identityConstraints =
+        normalizeIdentityConstraints(document, node, state);
+    if (identityConstraints == null) {
       return null;
     }
 
@@ -477,25 +479,206 @@ public final class SchemaIrBuilder {
         semantics,
         substitutionGroup,
         abstractElement,
+        identityConstraints,
         false);
   }
 
-  private boolean hasUnsupportedBindingChildren(
-      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
-    boolean unsupported = false;
-    for (XsdSyntaxNode child : node.children()) {
-      if (child.kind() == XsdSyntaxKind.UNIQUE
-          || child.kind() == XsdSyntaxKind.KEY
-          || child.kind() == XsdSyntaxKind.KEYREF) {
+  private List<SchemaIrIdentityConstraint> normalizeIdentityConstraints(
+      XsdSyntaxDocument document, XsdSyntaxNode elementNode, BuildState state) {
+    List<SchemaIrIdentityConstraint> constraints = new ArrayList<>();
+    Set<SchemaQName> names = new LinkedHashSet<>();
+    for (XsdSyntaxNode child : elementNode.children()) {
+      if (child.kind() != XsdSyntaxKind.UNIQUE
+          && child.kind() != XsdSyntaxKind.KEY
+          && child.kind() != XsdSyntaxKind.KEYREF) {
+        continue;
+      }
+      SchemaIrIdentityConstraint constraint = normalizeIdentityConstraint(document, child, state);
+      if (constraint == null) {
+        return null;
+      }
+      if (!names.add(constraint.name())) {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "xs:" + child.kind().manifestName() + " is not supported before binding.");
-        unsupported = true;
+            "Duplicate identity constraint " + constraint.name().toText() + ".");
+        return null;
+      }
+      constraints.add(constraint);
+    }
+    Set<SchemaQName> keyNames =
+        constraints.stream()
+            .filter(constraint -> !"keyref".equals(constraint.kind()))
+            .map(SchemaIrIdentityConstraint::name)
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    for (SchemaIrIdentityConstraint constraint : constraints) {
+      if ("keyref".equals(constraint.kind()) && !keyNames.contains(constraint.refer())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE,
+            document.resourceId(),
+            "keyref "
+                + constraint.name().toText()
+                + " refers to missing key or unique "
+                + constraint.refer().toText()
+                + ".");
+        return null;
       }
     }
-    return unsupported;
+    return constraints;
+  }
+
+  private SchemaIrIdentityConstraint normalizeIdentityConstraint(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    String nameText = node.attributes().get("name");
+    if (nameText == null || nameText.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_MISSING_NAME,
+          document.resourceId(),
+          "identity constraint is missing a name.");
+      return null;
+    }
+    SchemaQName name = new SchemaQName(schemaNamespace(document), nameText);
+    SchemaQName refer = null;
+    if (node.kind() == XsdSyntaxKind.KEYREF) {
+      refer = resolveQName(document, node.attributes().get("refer"), state);
+      if (refer == null) {
+        return null;
+      }
+    }
+    List<XsdSyntaxNode> selectors =
+        node.children().stream().filter(child -> child.kind() == XsdSyntaxKind.SELECTOR).toList();
+    List<XsdSyntaxNode> fields =
+        node.children().stream().filter(child -> child.kind() == XsdSyntaxKind.FIELD).toList();
+    if (selectors.size() != 1 || fields.isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "identity constraint "
+              + name.toText()
+              + " requires exactly one selector and at least one field.");
+      return null;
+    }
+    List<SchemaIrIdentityPath> selectorPaths =
+        identityPaths(document, selectors.getFirst().attributes().get("xpath"), false, state);
+    if (selectorPaths == null) {
+      return null;
+    }
+    List<SchemaIrIdentityField> identityFields = new ArrayList<>();
+    for (XsdSyntaxNode field : fields) {
+      List<SchemaIrIdentityPath> paths =
+          identityPaths(document, field.attributes().get("xpath"), true, state);
+      if (paths == null) {
+        return null;
+      }
+      identityFields.add(new SchemaIrIdentityField(paths));
+    }
+    return new SchemaIrIdentityConstraint(
+        node.kind().manifestName(), name, refer, selectorPaths, identityFields);
+  }
+
+  private List<SchemaIrIdentityPath> identityPaths(
+      XsdSyntaxDocument document, String xpath, boolean field, BuildState state) {
+    if (xpath == null || xpath.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "identity constraint XPath is missing.");
+      return null;
+    }
+    List<SchemaIrIdentityPath> paths = new ArrayList<>();
+    for (String alternative : splitOn(xpath, '|')) {
+      SchemaIrIdentityPath path = identityPath(document, alternative.trim(), field, state);
+      if (path == null) {
+        return null;
+      }
+      paths.add(path);
+    }
+    return paths;
+  }
+
+  private SchemaIrIdentityPath identityPath(
+      XsdSyntaxDocument document, String xpath, boolean field, BuildState state) {
+    if (xpath.isBlank()
+        || xpath.startsWith("/")
+        || xpath.contains("[")
+        || xpath.contains("]")
+        || xpath.contains("(")
+        || xpath.contains(")")
+        || xpath.contains("::")
+        || xpath.contains("$")
+        || xpath.contains("..")) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Unsupported identity constraint XPath " + xpath + ".");
+      return null;
+    }
+    if (".".equals(xpath)) {
+      return new SchemaIrIdentityPath(false, true, List.of());
+    }
+    boolean descendant = xpath.startsWith(".//");
+    String body = descendant ? xpath.substring(3) : xpath;
+    if (body.isBlank()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Unsupported identity constraint XPath " + xpath + ".");
+      return null;
+    }
+    List<String> tokens = splitOn(body, '/');
+    List<SchemaIrIdentityStep> steps = new ArrayList<>();
+    for (int index = 0; index < tokens.size(); index++) {
+      boolean terminal = index == tokens.size() - 1;
+      String token = tokens.get(index).trim();
+      boolean attribute = token.startsWith("@");
+      if (attribute && (!field || !terminal)) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Attribute steps are supported only as terminal identity fields.");
+        return null;
+      }
+      String nameText = attribute ? token.substring(1) : token;
+      if (nameText.isBlank()) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Unsupported identity constraint XPath " + xpath + ".");
+        return null;
+      }
+      if ("*".equals(nameText)) {
+        steps.add(new SchemaIrIdentityStep(null, true, attribute));
+      } else {
+        SchemaQName name = resolveQName(document, nameText, state);
+        if (name == null) {
+          return null;
+        }
+        steps.add(new SchemaIrIdentityStep(name, false, attribute));
+      }
+    }
+    return new SchemaIrIdentityPath(descendant, false, steps);
+  }
+
+  private List<String> splitOn(String value, char delimiter) {
+    List<String> parts = new ArrayList<>();
+    int start = 0;
+    for (int index = 0; index < value.length(); index++) {
+      if (value.charAt(index) == delimiter) {
+        parts.add(value.substring(start, index));
+        start = index + 1;
+      }
+    }
+    parts.add(value.substring(start));
+    return parts;
   }
 
   private SchemaIrTypeReference typeReference(
@@ -1260,6 +1443,7 @@ public final class SchemaIrBuilder {
           element.semantics(),
           element.substitutionGroup(),
           element.abstractElement(),
+          element.identityConstraints(),
           element.reference());
     }
     if (particle instanceof SchemaIrChoice choice) {

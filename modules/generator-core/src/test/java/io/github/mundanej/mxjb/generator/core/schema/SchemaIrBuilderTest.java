@@ -1101,16 +1101,10 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_FULL);
 
-    assertEquals(
-        List.of(
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
-        diagnosticCodes(result));
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
     assertTrue(
         result.diagnostics().stream()
             .anyMatch(diagnostic -> diagnostic.message().contains("Global xs:redefine")));
-    assertTrue(
-        result.diagnostics().stream()
-            .anyMatch(diagnostic -> diagnostic.message().contains("xs:key is not supported")));
   }
 
   @Test
@@ -1396,6 +1390,98 @@ final class SchemaIrBuilderTest {
 
     assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
     assertTrue(result.diagnostics().getFirst().message().contains("block/final"));
+  }
+
+  @Test
+  void buildsIrForIdentityConstraintMetadata() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order">
+                  <xs:key name="lineSkuKey">
+                    <xs:selector xpath="tns:line"/>
+                    <xs:field xpath="tns:sku"/>
+                  </xs:key>
+                  <xs:keyref name="referenceSkuKeyref" refer="tns:lineSkuKey">
+                    <xs:selector xpath="tns:reference"/>
+                    <xs:field xpath="tns:sku"/>
+                  </xs:keyref>
+                </xs:element>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="line" type="tns:Line" maxOccurs="unbounded"/>
+                    <xs:element name="reference" type="tns:Reference" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="Line">
+                  <xs:sequence>
+                    <xs:element name="sku" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="Reference">
+                  <xs:sequence>
+                    <xs:element name="sku" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(
+        irText.contains(
+            "key {urn:orders}lineSkuKey selector={urn:orders}line fields={urn:orders}sku"),
+        irText);
+    assertTrue(
+        irText.contains(
+            "keyref {urn:orders}referenceSkuKeyref refer={urn:orders}lineSkuKey "
+                + "selector={urn:orders}reference fields={urn:orders}sku"),
+        irText);
+  }
+
+  @Test
+  void rejectsUnsupportedIdentityConstraintXpath() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="xs:string">
+                  <xs:unique name="lineSkuUnique">
+                    <xs:selector xpath="tns:line[position()=1]"/>
+                    <xs:field xpath="tns:sku"/>
+                  </xs:unique>
+                </xs:element>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("Unsupported identity"));
+  }
+
+  @Test
+  void rejectsUnresolvedIdentityConstraintKeyref() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="xs:string">
+                  <xs:keyref name="missingReference" refer="tns:missingKey">
+                    <xs:selector xpath="."/>
+                    <xs:field xpath="."/>
+                  </xs:keyref>
+                </xs:element>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("refers to missing key"));
   }
 
   @Test

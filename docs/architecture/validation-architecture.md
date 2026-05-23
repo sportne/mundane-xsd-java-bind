@@ -11,9 +11,8 @@ Validation is a first-class generated-code concern.
 | Structural content model | Required for supported sequences/cardinality, legal `xs:all`, and repeated element-only choices. | Grouped content-list models, complete UPA automata, and derivation. |
 | Simple lexical conversion | Full XSD 1.0 built-ins for accepted schema shapes. | Broader schema shapes through later full-XSD gates. |
 | Simple restrictions | XSD 1.0 facets for accepted schema shapes. | Integration with full derivation/content-model semantics. |
-| Identity constraints | Validation-ready only. | `xs:key`, `xs:keyref`, `xs:unique`. |
+| Identity constraints | Generated document-scope validation for accepted model shapes. | Full-suite edge-case classification. |
 | Defaults/fixed | Limited or validation-ready only. | Full schema semantics. |
-| Identity constraints | Out of scope initially. | Planned XSD 1.0 document-scope validation phase. |
 
 ## Diagnostics principles
 
@@ -28,7 +27,7 @@ Generated readers now report deterministic `XmlReadException` diagnostics for ro
 
 ## `TASK-0016` generated validation baseline
 
-Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, nested model aggregation, accepted simple restriction facets, and accepted `XP-XSD10-SEMANTIC` fixed-value checks with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, then applies object validation, preserving reader diagnostics when lexical conversion, nil-content, or fixed-value checks fail. Identity constraints remain a future validation phase.
+Generated validators now return `ValidationResult` values for supported root models and XML input streams. Object validation covers required singleton values, repeated `minOccurs`, finite repeated `maxOccurs`, nested model aggregation, accepted simple restriction facets, and accepted `XP-XSD10-SEMANTIC` fixed-value checks with `XmlLocation.UNKNOWN`. XML validation delegates parsing and lexical checks to the generated reader, then applies object validation, preserving reader diagnostics when lexical conversion, nil-content, or fixed-value checks fail. `TASK-0054` adds generated document-scope identity validation for accepted `xs:unique`, `xs:key`, and `xs:keyref` shapes.
 
 ## `TASK-0024` facet validation scope
 
@@ -39,8 +38,9 @@ named simple-type restrictions over the existing supported scalar mappings, with
 
 Facet checks run in generated object validation and XML validation after reader lexical conversion
 succeeds. Unsupported facets, list/union, derivation chains, anonymous simple types,
-broader whitespace normalization, full date/time semantics, identity constraints, defaults/fixed,
-and identity constraints remain future full-XSD-1.0 work with explicit diagnostics.
+broader whitespace normalization, full date/time semantics, defaults/fixed, and
+identity-constraint edge cases beyond accepted generated model shapes remain future
+full-XSD-1.0 work with explicit diagnostics.
 
 ## `TASK-0027` through `TASK-0029` composed-schema validation
 
@@ -75,7 +75,8 @@ validation, wildcard namespace-token matching, and `processContents` metadata. `
 accepted simpleContent text validation, basic complex restriction member checks before emission,
 and generated validation recursion through repeated/nested/abstract substitution branch values.
 Full restriction algebra, block/final, `xsi:type`, strict/lax schema-known wildcard validation,
-identity constraints, and `XP-XSD10-FULL` execution remain future gates.
+identity-constraint edge cases beyond accepted generated model shapes, and `XP-XSD10-FULL`
+execution remain future gates.
 
 ## `TASK-0032` semantic validation
 
@@ -93,8 +94,9 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
 - `TASK-0034` verifies deterministic semantic object diagnostics, location-aware XML diagnostics
   for nil-content and fixed-value reader failures, substitution branch value recursion, and
   explicit schema diagnostics for unsupported validation categories.
-- Identity constraints, wildcards, mixed content, and full XSD 1.0 validation
-  semantics remain future-profile work with explicit diagnostics.
+- Identity constraints are generated for accepted model shapes by `TASK-0054`; wildcard,
+  mixed-content, and full XSD 1.0 validation edge cases remain future-profile work with explicit
+  diagnostics.
 
 ## `TASK-0037` document wildcard validation
 
@@ -111,6 +113,7 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   constraints, and prohibited/excluded names. Readers reject prohibited declared attributes before
   wildcard capture and continue to reject attributes that are neither declared nor accepted by the
   effective wildcard.
-- Full schema-known validation for `processContents="lax"` or `"strict"`, identity constraints,
+- Full schema-known validation for `processContents="lax"` or `"strict"`, identity-constraint
+  edge cases beyond accepted generated model shapes,
   comments, processing instructions, entity-reference semantics, wildcard choice branches, mixed
   choices, and full XSD 1.0 validation remain future work.

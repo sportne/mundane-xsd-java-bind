@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:semantic-identity"
+    targetNamespace="urn:semantic-identity"
+    elementFormDefault="qualified">
+  <xs:element name="order" type="tns:Order">
+    <xs:key name="lineSkuKey">
+      <xs:selector xpath="tns:line"/>
+      <xs:field xpath="@sku"/>
+    </xs:key>
+    <xs:keyref name="referenceSkuKeyref" refer="tns:lineSkuKey">
+      <xs:selector xpath="tns:reference"/>
+      <xs:field xpath="@sku"/>
+    </xs:keyref>
+  </xs:element>
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="line" type="tns:Line" maxOccurs="unbounded"/>
+      <xs:element name="reference" type="tns:Reference" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Line">
+    <xs:attribute name="sku" type="xs:string" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="Reference">
+    <xs:attribute name="sku" type="xs:string" use="required"/>
+  </xs:complexType>
+</xs:schema>

@@ -83,7 +83,7 @@ choice and facet profiles remain narrower.
 choices, nested singleton sequences, and single-particle repeated/optional group refs with composed
 cardinality. Optional all-groups with required children, repeated/optional multi-particle groups,
 wildcard choice branches, anonymous list/union member types, optional or repeated list-valued XML
-fields, nested list/union composition, mixed choice content, identity constraints, strict/lax
+fields, nested list/union composition, mixed choice content, identity-constraint edge cases, strict/lax
 schema-known wildcard deep validation, and full XSD 1.0 conformance remain out of scope with
 explicit diagnostics or future-study classification.
 
@@ -98,7 +98,7 @@ Generated readers, writers, and validators use the same dependency-free runtime 
 `processContents` metadata. `TASK-0053` adds accepted simpleContent text-with-attributes binding,
 basic complexContent restriction member checks, and selected derivation/substitution diagnostics.
 Grouped content-list models, complete derivation algebra, strict/lax schema-known wildcard deep
-validation, `xsi:type` dispatch, and identity-constraint support remain future tasks.
+validation, `xsi:type` dispatch, and identity-constraint edge-case coverage remain future tasks.
 
 ## `0.4.0` Semantic Baseline
 
@@ -127,11 +127,12 @@ accepted semantic paths.
   dispatch diagnostics, deterministic diagnostic ordering, unsupported validation-category
   diagnostics, and interop comparison.
 
-Optional or repeated nillable fields, nillable attributes, complex/list/union defaults,
-ambiguous nil/default/fixed combinations, blocking/final semantics, `xsi:type` polymorphism,
-abstract complex types outside substitution-head dispatch, wildcards, mixed content, identity
-constraints, full derivation semantics, artifact publication, and full XSD 1.0 conformance remain
-out of scope with explicit diagnostics.
+At the `0.4.0` readiness gate, optional or repeated nillable fields, nillable attributes,
+complex/list/union defaults, ambiguous nil/default/fixed combinations, blocking/final semantics,
+`xsi:type` polymorphism, abstract complex types outside substitution-head dispatch, wildcards,
+mixed content, identity constraints, full derivation semantics, artifact publication, and full
+XSD 1.0 conformance remained out of scope with explicit diagnostics. Later full-XSD gates add
+selected support for several of those areas without making `XP-XSD10-FULL` executable yet.
 
 ## `0.5.0` Document-Oriented Baseline
 
@@ -165,8 +166,9 @@ Wildcards in choices, substitution branches, and unsupported group/derivation ed
 of scope. `xs:anyAttribute` is retained as `List<XmlAttribute>` for accepted shapes, and
 `processContents="lax"` or `"strict"` metadata is preserved, but full schema-known deep validation
 for lax/strict remains future work. Mixed choices, comments or processing instruction preservation,
-entity-reference semantics, DOM-backed binding, identity constraints, full derivation semantics,
-artifact publication, and full XSD 1.0 conformance remain out of scope with
+entity-reference semantics, DOM-backed binding, identity-constraint edge cases beyond accepted
+generated model shapes, full derivation semantics, artifact publication, and full XSD 1.0
+conformance remain out of scope with
 explicit diagnostics.
 
 ## `0.6.0` Hardening Readiness Baseline
@@ -200,7 +202,7 @@ support. The planned sequence is:
 - accepted in `TASK-0051`: full content-model compiler expansion for accepted shapes.
 - accepted in `TASK-0052`: full attributes and wildcards expansion for accepted shapes.
 - accepted in `TASK-0053`: derivation, substitution, and dynamic typing expansion for accepted shapes.
-- `TASK-0054`: identity constraints and document-level validation.
+- accepted in `TASK-0054`: identity constraints and document-level validation for accepted shapes.
 - `TASK-0055`: full-suite conformance harness.
 - `TASK-0056`: final full XSD 1.0 readiness review.
 

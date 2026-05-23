@@ -43,6 +43,7 @@ final class XpXsd10SemanticConformanceTest {
   // Selected fixture manifest IDs:
   // T-CONF-XP-XSD10-SEMANTIC-DEFAULTS, T-CONF-XP-XSD10-SEMANTIC-SUBSTITUTION.
   // T-CONF-XP-XSD10-SEMANTIC-SUBSTITUTION-REPEATED.
+  // T-CONF-XP-XSD10-SEMANTIC-IDENTITY.
 
   @TempDir private Path tempDirectory;
 
@@ -194,6 +195,51 @@ final class XpXsd10SemanticConformanceTest {
       assertTrue(validResult.isValid());
       assertFalse(invalidResult.isValid());
       assertFalse(invalidResult.errors().isEmpty());
+    }
+  }
+
+  @Test
+  void identityConstraintFixturesMatchJdkSchemaValidationAndGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-semantic/identity-order.xsd");
+    String validXml = resource("/xp-xsd10-semantic/identity-valid.xml");
+    String duplicateXml = resource("/xp-xsd10-semantic/identity-duplicate-invalid.xml");
+    String keyrefXml = resource("/xp-xsd10-semantic/identity-keyref-invalid.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(duplicateXml))));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(keyrefXml))));
+
+    try (CompiledGeneratedSemanticBindings bindings =
+        generateAndCompileSemanticBindings(
+            "/xp-xsd10-semantic/identity-order.xsd",
+            Map.of("urn:semantic-identity", "com.example.identity"))) {
+      Class<?> orderClass = bindings.load("com.example.identity.Order");
+      Class<?> readerClass = bindings.load("com.example.identity.xml.OrderXmlReader");
+      Class<?> validatorClass = bindings.load("com.example.identity.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult duplicateResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(duplicateXml));
+      ValidationResult keyrefResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(keyrefXml));
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-011"), codes(duplicateResult));
+      assertEquals(List.of("MXJB-GV-012"), codes(keyrefResult));
     }
   }
 

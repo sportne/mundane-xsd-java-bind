@@ -19,6 +19,10 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingValidationPlan;
 import io.github.mundanej.mxjb.generator.core.bind.BindingValueSemantics;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityConstraint;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityField;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityPath;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityStep;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import io.github.mundanej.mxjb.runtime.ValidationError;
 import io.github.mundanej.mxjb.runtime.ValidationResult;
@@ -217,6 +221,210 @@ final class GeneratedValidatorEmitterTest {
           List.of("Too few values for tag.", "Too many values for line."),
           tooManyResult.errors().stream().map(ValidationError::message).toList());
       assertEquals(XmlLocation.UNKNOWN, tooManyResult.errors().getFirst().location());
+    }
+  }
+
+  @Test
+  void generatedValidatorEnforcesIdentityConstraints()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    SchemaIrIdentityConstraint key =
+        new SchemaIrIdentityConstraint(
+            "key",
+            schemaName("lineSkuKey"),
+            null,
+            List.of(identityPath(elementStep("line"))),
+            List.of(identityField(identityPath(elementStep("sku")))));
+    SchemaIrIdentityConstraint keyref =
+        new SchemaIrIdentityConstraint(
+            "keyref",
+            schemaName("referenceSkuKeyref"),
+            schemaName("lineSkuKey"),
+            List.of(identityPath(elementStep("reference"))),
+            List.of(identityField(identityPath(elementStep("sku")))));
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"), List.of(key, keyref))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(
+                        field("element", "line", model("com.example.orders.Line"), list(), 1),
+                        field(
+                            "element",
+                            "reference",
+                            model("com.example.orders.Reference"),
+                            list(),
+                            2))),
+                type(
+                    "com.example.orders",
+                    "Line",
+                    List.of(field("element", "sku", scalar("string"), required(), 1))),
+                type(
+                    "com.example.orders",
+                    "Reference",
+                    List.of(field("element", "sku", scalar("string"), required(), 1)))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> lineClass = compiledSources.load("com.example.orders.Line");
+      Class<?> referenceClass = compiledSources.load("com.example.orders.Reference");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object firstLine = lineClass.getConstructor(String.class).newInstance("SKU-1");
+      Object secondLine = lineClass.getConstructor(String.class).newInstance("SKU-2");
+      Object duplicateLine = lineClass.getConstructor(String.class).newInstance("SKU-1");
+      Object duplicateReference = referenceClass.getConstructor(String.class).newInstance("SKU-1");
+      Object validReference = referenceClass.getConstructor(String.class).newInstance("SKU-2");
+      Object danglingReference = referenceClass.getConstructor(String.class).newInstance("SKU-9");
+      Object valid =
+          orderClass
+              .getConstructor(List.class, List.class)
+              .newInstance(List.of(firstLine, secondLine), List.of(validReference));
+      Object duplicate =
+          orderClass
+              .getConstructor(List.class, List.class)
+              .newInstance(List.of(firstLine, duplicateLine), List.of(duplicateReference));
+      Object dangling =
+          orderClass
+              .getConstructor(List.class, List.class)
+              .newInstance(List.of(firstLine), List.of(danglingReference));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult duplicateResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, duplicate);
+      ValidationResult danglingResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, dangling);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-011"), codes(duplicateResult));
+      assertEquals(List.of("MXJB-GV-012"), codes(danglingResult));
+    }
+  }
+
+  @Test
+  void generatedValidatorTreatsFieldUnionAlternativesAsOneTupleColumn()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    SchemaIrIdentityConstraint key =
+        new SchemaIrIdentityConstraint(
+            "key",
+            schemaName("lineCodeKey"),
+            null,
+            List.of(identityPath(elementStep("line"))),
+            List.of(
+                identityField(
+                    identityPath(attributeStep("sku")), identityPath(attributeStep("code")))));
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"), List.of(key))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(field("element", "line", model("com.example.orders.Line"), list(), 1))),
+                type(
+                    "com.example.orders",
+                    "Line",
+                    List.of(
+                        field("attribute", "sku", scalar("string"), optional(), 0),
+                        field("attribute", "code", scalar("string"), optional(), 0)))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> lineClass = compiledSources.load("com.example.orders.Line");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object skuLine =
+          lineClass
+              .getConstructor(Optional.class, Optional.class)
+              .newInstance(Optional.of("A"), Optional.empty());
+      Object codeLine =
+          lineClass
+              .getConstructor(Optional.class, Optional.class)
+              .newInstance(Optional.empty(), Optional.of("B"));
+      Object duplicateCodeLine =
+          lineClass
+              .getConstructor(Optional.class, Optional.class)
+              .newInstance(Optional.empty(), Optional.of("A"));
+      Object valid = orderClass.getConstructor(List.class).newInstance(List.of(skuLine, codeLine));
+      Object duplicate =
+          orderClass.getConstructor(List.class).newInstance(List.of(skuLine, duplicateCodeLine));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult duplicateResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, duplicate);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-011"), codes(duplicateResult));
+    }
+  }
+
+  @Test
+  void generatedValidatorNormalizesDecimalIdentityValues()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    SchemaIrIdentityConstraint key =
+        new SchemaIrIdentityConstraint(
+            "key",
+            schemaName("lineAmountKey"),
+            null,
+            List.of(identityPath(elementStep("line"))),
+            List.of(identityField(identityPath(elementStep("amount")))));
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"), List.of(key))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(field("element", "line", model("com.example.orders.Line"), list(), 1))),
+                type(
+                    "com.example.orders",
+                    "Line",
+                    List.of(field("element", "amount", scalar("decimal"), required(), 1)))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> lineClass = compiledSources.load("com.example.orders.Line");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object firstLine =
+          lineClass
+              .getConstructor(java.math.BigDecimal.class)
+              .newInstance(new java.math.BigDecimal("1.0"));
+      Object secondLine =
+          lineClass
+              .getConstructor(java.math.BigDecimal.class)
+              .newInstance(new java.math.BigDecimal("1.00"));
+      Object order =
+          orderClass.getConstructor(List.class).newInstance(List.of(firstLine, secondLine));
+
+      ValidationResult result =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+
+      assertEquals(List.of("MXJB-GV-011"), codes(result));
     }
   }
 
@@ -773,6 +981,29 @@ final class GeneratedValidatorEmitterTest {
 
   private BindingRootElement root(String localName, BindingTypeReference type) {
     return new BindingRootElement(schemaName(localName), type, required());
+  }
+
+  private BindingRootElement root(
+      String localName,
+      BindingTypeReference type,
+      List<SchemaIrIdentityConstraint> identityConstraints) {
+    return new BindingRootElement(schemaName(localName), type, required(), identityConstraints);
+  }
+
+  private SchemaIrIdentityPath identityPath(SchemaIrIdentityStep... steps) {
+    return new SchemaIrIdentityPath(false, false, List.of(steps));
+  }
+
+  private SchemaIrIdentityField identityField(SchemaIrIdentityPath... alternatives) {
+    return new SchemaIrIdentityField(List.of(alternatives));
+  }
+
+  private SchemaIrIdentityStep elementStep(String localName) {
+    return new SchemaIrIdentityStep(schemaName(localName), false, false);
+  }
+
+  private SchemaIrIdentityStep attributeStep(String localName) {
+    return new SchemaIrIdentityStep(schemaName(localName), false, true);
   }
 
   private BindingType type(String packageName, String simpleName, List<BindingField> fields) {

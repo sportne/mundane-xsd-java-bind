@@ -893,23 +893,6 @@ final class CoreGeneratorTest {
             <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
                 xmlns:tns="urn:orders"
                 targetNamespace="urn:orders">
-              <xs:element name="order" type="tns:Order">
-                <xs:key name="orderId">
-                  <xs:selector xpath="tns:id"/>
-                  <xs:field xpath="."/>
-                </xs:key>
-              </xs:element>
-              <xs:complexType name="Order">
-                <xs:sequence>
-                  <xs:element name="id" type="xs:string"/>
-                </xs:sequence>
-              </xs:complexType>
-            </xs:schema>
-            """,
-            """
-            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                xmlns:tns="urn:orders"
-                targetNamespace="urn:orders">
               <xs:element name="order" type="tns:Order"/>
               <xs:complexType name="Order">
                 <xs:sequence>
