@@ -201,7 +201,9 @@ profile executable. The planned verification sequence is:
 - `TASK-0055`: accepted pinned W3C XML Schema 1.0 suite classification and repeatable local
   execution through
   `./gradlew -Pmxjb.w3cXsd10SuiteDir=/path/to/xmlschema2006-11-06 w3cXsd10Conformance --console=plain`.
-- `TASK-0056`: final support-claim reconciliation. `XP-XSD10-FULL` may be advertised as executable
-  only after this evidence passes.
+- `TASK-0056`: final support-claim reconciliation for the current sequence. The accepted evidence
+  does not justify an executable `XP-XSD10-FULL` claim: the profile remains planned and
+  non-executable until a later task sequence maps remaining feature-matrix gaps and W3C rows to
+  generated-binding support.
 
 XSD 1.1 and XML 1.1 are outside this verification plan.

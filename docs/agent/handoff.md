@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, accepted serialization-policy evidence, accepted document-oriented/open-content readiness evidence, accepted hardening/release maturity planning, accepted selected interop/conformance harness expansion, accepted benchmark baseline evidence, accepted selected Native Image conformance hardening, accepted release-engineering dry-run readiness, accepted final hardening/release maturity readiness evidence, accepted `XP-XSD10-FULL` standards reset and feature matrix planning, accepted full XSD 1.0 frontend/component-model awareness, accepted full XSD 1.0 datatype/facet engine support for executable profile shapes, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, accepted serialization-policy evidence, accepted document-oriented/open-content readiness evidence, accepted hardening/release maturity planning, accepted selected interop/conformance harness expansion, accepted benchmark baseline evidence, accepted selected Native Image conformance hardening, accepted release-engineering dry-run readiness, accepted final hardening/release maturity readiness evidence, accepted `XP-XSD10-FULL` standards reset and feature matrix planning, accepted full XSD 1.0 frontend/component-model awareness, accepted full XSD 1.0 datatype/facet engine support for executable profile shapes, accepted full-XSD content-model/attribute-wildcard/derivation/identity/conformance-suite evidence, accepted full-XSD readiness reconciliation, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -66,7 +66,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 53. `TASK-0053`: Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. Completed and accepted.
 54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Completed and accepted.
 55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Completed and accepted.
-56. `TASK-0056`: Full XSD 1.0 readiness review. Next implementation gate.
+56. `TASK-0056`: Full XSD 1.0 readiness review. Completed and accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -126,7 +126,10 @@ substitution cycle diagnostics, and basic complex restriction member checks whil
 the accepted selector/field XPath subset. `TASK-0055` has accepted the opt-in W3C XML Schema 1.0
 suite intake lane for the pinned 2007-06-20 archive, classifying 24,796 W3C schema/instance
 documents with no generated-binding support claim for unmapped rows and keeping `XP-XSD10-FULL`
-execution gated by final readiness review.
+execution gated by final readiness review. `TASK-0056` has accepted the final reconciliation for
+the current sequence and records that full XSD 1.0 support is not ready to claim: `XP-XSD10-FULL`
+remains non-executable, W3C suite intake remains classification evidence, and future full-XSD gap
+closure requires a new accepted task sequence.
 
 ## Draft completion backlog
 
@@ -191,16 +194,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0053` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. |
 | `TASK-0054` | XSD 1.0 full | accepted | Implement XSD 1.0 identity constraints and document-level validation. |
 | `TASK-0055` | XSD 1.0 full | accepted | Add full XSD 1.0 conformance-suite intake. |
-| `TASK-0056` | XSD 1.0 full | next | Full XSD 1.0 readiness review. |
+| `TASK-0056` | XSD 1.0 full | accepted | Full XSD 1.0 readiness review. |
 
 ## Current implementation gate
 
-`TASK-0056` is the next implementation gate after accepted `TASK-0055` conformance-suite intake. It
-must reconcile the full XSD 1.0 feature matrix, generated-code evidence, W3C suite classification,
-quality gates, and support claims before `XP-XSD10-FULL` can become an executable advertised
-profile.
+No implementation gate is currently open. `TASK-0056` has closed the current `XP-XSD10-FULL`
+sequence as a readiness reconciliation without enabling or advertising full XSD 1.0 support.
 Future product behavior, dependency changes, release publication, signing, tags, benchmark
-thresholds, or broader schema support still require an accepted task card or ADR.
+thresholds, broader schema support, or a new full-XSD gap-closure sequence still require an
+accepted task card or ADR.
 
 Any future work must preserve:
 
@@ -322,8 +324,8 @@ Any future work must preserve:
 - `TASK-0048` accepted the full XSD 1.0 standards reset. `XP-XSD10-FULL` is now the only
   full-standard target, XSD 1.1 and XML 1.1 are not project targets, and
   `docs/verification/xsd10-full-feature-matrix.md` defines the remaining XSD 1.0 implementation
-  surface. The public `GeneratorProfile.XP_XSD10_FULL` token is intentionally non-executable until
-  `TASK-0049` through `TASK-0056` accept implementation evidence.
+  surface. The public `GeneratorProfile.XP_XSD10_FULL` token is intentionally non-executable after
+  `TASK-0056` because readiness evidence still blocks a full-support claim.
 - `TASK-0049` accepted full XSD 1.0 frontend/component-model awareness. The syntax parser now
   preserves schema defaults, annotations, appinfo/documentation, notations, include/import/redefine
   nodes, `xs:all`, `xs:anyAttribute`, identity constraints, selector/field syntax, and
@@ -336,6 +338,11 @@ Any future work must preserve:
   binary values, anyURI, and QName; generated scalar mapping covers all XML Schema 1.0 built-ins
   and derived built-ins; generated readers/writers/validators route lexical conversion and facets
   through the shared datatype engine; selected conformance compares datatype fixtures against JDK
-  XML Schema validation. `XP-XSD10-FULL` remains non-executable until later structure, derivation,
-  identity, and full-suite gates accept their evidence.
+  XML Schema validation. `XP-XSD10-FULL` remains non-executable.
+- `TASK-0051` through `TASK-0055` accepted content-model, attribute/wildcard, derivation,
+  identity-constraint, and W3C suite-intake evidence for the current full-XSD sequence.
+  `TASK-0056` reconciled that evidence and records a negative readiness decision for full XSD 1.0:
+  grouped content-list models, complete UPA coverage, complete derivation/restriction/block/final
+  and `xsi:type` behavior, strict/lax schema-known wildcard validation, wildcard choice branches,
+  and W3C rows mapped to generated-binding support remain future work.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

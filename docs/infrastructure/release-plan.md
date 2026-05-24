@@ -82,6 +82,11 @@ conformance/interop, advisory benchmark, Native Image conformance, and publicati
 agree with public documentation. It does not convert `0.6.0-alpha.0` into a released artifact,
 authorize signing or remote staging, create a release tag, or broaden supported schema claims.
 
+`TASK-0056` closes the current `XP-XSD10-FULL` readiness sequence with a negative full-support
+decision. Full XML Schema 1.0 conformance is still not a release claim because remaining feature
+matrix blockers and zero W3C generated-binding-supported rows prevent advertising the planned full
+profile as executable.
+
 ## Release gate
 
 No release may claim support for a schema feature unless the requirement, profile, conformance matrix, tests, and docs are complete.

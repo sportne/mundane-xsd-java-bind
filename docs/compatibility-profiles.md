@@ -205,7 +205,9 @@ support. The planned sequence is:
 - accepted in `TASK-0054`: identity constraints and document-level validation for accepted shapes.
 - accepted in `TASK-0055`: opt-in full-suite W3C XML Schema 1.0 intake and classification
   harness, with no generated-binding support claim for unmapped W3C rows.
-- `TASK-0056`: final full XSD 1.0 readiness review.
+- accepted in `TASK-0056`: final readiness reconciliation for the current sequence. The evidence
+  keeps `XP-XSD10-FULL` planned and non-executable because the feature matrix still has full-XSD
+  blockers and the W3C suite intake has zero generated-binding-supported rows.
 
 XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. A real publication
 workflow remains separate release-engineering work.

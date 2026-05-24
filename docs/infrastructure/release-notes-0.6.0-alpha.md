@@ -23,6 +23,8 @@ The dry-run candidate describes the accepted local evidence for these opt-in com
 - `XP-XSD10-DOCUMENT`
 
 Evidence remains selected and local. Full XSD 1.0 conformance is not claimed.
+The later `TASK-0056` readiness reconciliation keeps that non-claim in place: the W3C suite is
+classified as opt-in evidence, but no W3C rows are claimed as generated-binding-supported.
 
 ## Evidence summary
 
@@ -53,9 +55,10 @@ Evidence remains selected and local. Full XSD 1.0 conformance is not claimed.
 
 Unsupported feature claims remain explicit for wildcard `processContents="lax"` or `"strict"`
 schema-known deep validation, unsupported wildcard namespace constraints, wildcard choices, mixed
-choices, complex mixed derivation edge cases, identity-constraint edge cases beyond accepted
-generated model shapes, full derivation semantics, DOM-backed binding, parser-handle retention,
-comments/PI preservation, DTD/entity identity, XSD 1.1, and XML 1.1.
+choices, complete UPA coverage, grouped content-list models, complex mixed derivation edge cases,
+identity-constraint edge cases beyond accepted generated model shapes, complete
+derivation/restriction/block/final and `xsi:type` behavior, DOM-backed binding, parser-handle
+retention, comments/PI preservation, DTD/entity identity, XSD 1.1, and XML 1.1.
 
 ## Rollback
 

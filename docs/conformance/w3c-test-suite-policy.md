@@ -35,3 +35,8 @@ SHA-256 `902176b25e4111cf96b08663107521a4992e8ea67aad6b815592a6a5b4b9ea06`, extr
 The lane classifies W3C `.testSet` metadata as binding-supported, validation-only,
 tolerated-metadata, expected-diagnostic, product-scope-incompatible, or blocked. It writes local
 reports under `build/` and remains outside `qualityGate`.
+
+`TASK-0056` reconciles that intake as evidence only. The current suite summary has zero
+binding-supported rows, so the project does not claim a W3C full-suite generated-binding pass or
+full XML Schema 1.0 conformance. Mapping W3C rows to generated-binding execution requires a later
+accepted task sequence.

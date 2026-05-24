@@ -44,8 +44,10 @@ The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 
 - Full XML Schema 1.0 conformance is not claimed yet.
 - Grouped content-list models, complete UPA automata, full derivation/polymorphism, strict/lax
-  schema-known wildcard validation, wildcard choice branches, and full conformance-suite
-  classification are still planned work.
+  schema-known wildcard validation, wildcard choice branches, and W3C suite rows mapped to
+  generated-binding support are still planned work.
+- W3C XML Schema 1.0 suite classification exists as opt-in evidence, but no W3C rows are claimed as
+  generated-binding-supported yet.
 - XSD 1.1 and XML 1.1 are not project targets.
 - XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
   retention, DTD/entity identity preservation, and DOM-backed binding are not supported.

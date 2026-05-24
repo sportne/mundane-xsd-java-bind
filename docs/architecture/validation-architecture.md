@@ -114,6 +114,7 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   wildcard capture and continue to reject attributes that are neither declared nor accepted by the
   effective wildcard.
 - Full schema-known validation for `processContents="lax"` or `"strict"`, identity-constraint
-  edge cases beyond accepted generated model shapes,
-  comments, processing instructions, entity-reference semantics, wildcard choice branches, mixed
-  choices, and full XSD 1.0 validation remain future work.
+  edge cases beyond accepted generated model shapes, complete UPA coverage, complete
+  derivation/restriction/block/final and `xsi:type` behavior, comments, processing instructions,
+  entity-reference semantics, wildcard choice branches, mixed choices, and full XSD 1.0 validation
+  remain future work.

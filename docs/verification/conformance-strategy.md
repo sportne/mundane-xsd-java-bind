@@ -66,6 +66,10 @@ The zero `binding-supported` count is intentional until individual W3C fixtures 
 generated-binding shapes. This is repeatable classification and diagnostic evidence, not a full
 XSD 1.0 support claim.
 
+`TASK-0056` accepts this as the final readiness reconciliation for the current sequence. The
+readiness decision is that `XP-XSD10-FULL` remains planned and non-executable because the feature
+matrix still records full-XSD gaps and no W3C fixture rows are mapped to generated-binding support.
+
 ## Unsupported feature behavior
 
 Unsupported schema features must produce explicit diagnostics. Silent partial interpretation is forbidden.

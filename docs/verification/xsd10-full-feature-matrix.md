@@ -89,7 +89,7 @@ traceability artifact, not a support claim. Status values:
 | Datatype validation | supported for accepted schema shapes | `TASK-0050` | Full built-in lexical/value/facet coverage is verified for the currently executable schema shapes. |
 | Identity constraints | partially supported | `TASK-0054` | Generated validators build private document-scope identity tables for accepted model shapes, enforcing `unique`, `key`, and `keyref`; full-suite coverage and edge-case conformance classification remain `TASK-0055`. |
 | W3C XML Schema 1.0 suite intake | supported as classification evidence | `TASK-0055` | The pinned W3C 2007-06-20 suite archive is classified by the opt-in `w3cXsd10Conformance` lane. Current evidence covers 24,796 schema/instance documents with zero generated-binding support claims until rows are explicitly mapped. |
-| Full XSD 1.0 readiness claim | not implemented yet | `TASK-0056` | Only after matrix evidence passes. |
+| Full XSD 1.0 readiness claim | blocked by evidence | `TASK-0056` | `TASK-0056` reconciles the evidence and concludes that `XP-XSD10-FULL` must remain non-executable. Remaining blockers include grouped content-list models, complete UPA coverage, complete derivation/restriction/block/final and `xsi:type` behavior, strict/lax schema-known wildcard validation, wildcard choice branches, and W3C rows mapped to generated-binding support. |
 
 ## Explicit non-goals
 
