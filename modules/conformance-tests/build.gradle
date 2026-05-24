@@ -51,6 +51,9 @@ configurations {
 }
 
 dependencies {
+    // The opt-in W3C suite intake uses the public generator pipeline for diagnostic execution.
+    implementation project(':modules:generator-core')
+
     // Representative example bindings are the conformance fixtures for TASK-0017.
     testImplementation project(':examples:multi-namespace')
     testImplementation project(':examples:purchase-order')
@@ -85,6 +88,29 @@ tasks.register('benchmarkSmoke', JavaExec) {
     dependsOn tasks.named('benchmarkSmokeClasses')
     classpath = sourceSets.benchmarkSmoke.runtimeClasspath
     mainClass = 'io.github.mundanej.mxjb.conformance.benchmark.ConformanceBenchmarkSmokeMain'
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+def w3cXsd10SuiteDirectoryProperty = providers.gradleProperty('mxjb.w3cXsd10SuiteDir')
+def w3cXsd10ReportDirectory = layout.buildDirectory.dir('reports/w3c-xsd10-conformance')
+
+tasks.register('w3cXsd10Conformance', JavaExec) {
+    group = 'verification'
+    description = 'Classifies a local pinned W3C XML Schema 1.0 test suite checkout.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'io.github.mundanej.mxjb.conformance.w3c.W3cXsd10ConformanceMain'
+    outputs.dir w3cXsd10ReportDirectory
+    if (w3cXsd10SuiteDirectoryProperty.isPresent()) {
+        inputs.dir layout.projectDirectory.dir(w3cXsd10SuiteDirectoryProperty.get())
+    }
+    doFirst {
+        if (!w3cXsd10SuiteDirectoryProperty.isPresent()) {
+            throw new GradleException(
+            'Missing required property -Pmxjb.w3cXsd10SuiteDir=/path/to/xmlschema2006-11-06 for the opt-in W3C XSD 1.0 conformance lane.')
+        }
+        args w3cXsd10SuiteDirectoryProperty.get(), w3cXsd10ReportDirectory.get().asFile.absolutePath
+    }
     systemProperty 'file.encoding', 'UTF-8'
 }
 

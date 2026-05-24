@@ -24,6 +24,14 @@ classification evidence. The manifest maps existing local fixtures to declared p
 minimal local unsupported-diagnostic schemas, and records future-study/blocked rows without
 vendoring a broad W3C suite snapshot or claiming full-suite pass status.
 
-`TASK-0046` confirms the `0.6.0` closeout remains selected local evidence only. A future task that
-wants broader W3C suite intake must define license review, storage policy, fixture selection,
-profile mapping, expected diagnostics, and CI cost before adding or claiming broader coverage.
+`TASK-0046` confirms the `0.6.0` closeout remains selected local evidence only.
+
+`TASK-0055` adds the first pinned W3C XML Schema 1.0 suite intake lane without vendoring the suite.
+The accepted reference is the 2007-06-20 archive at
+`https://www.w3.org/XML/2004/xml-schema-test-suite/xmlschema2006-11-06/xsts-2007-06-20.tar.gz`,
+SHA-256 `902176b25e4111cf96b08663107521a4992e8ea67aad6b815592a6a5b4b9ea06`, extracted as
+`xmlschema2006-11-06`. Contributors run it explicitly with
+`./gradlew -Pmxjb.w3cXsd10SuiteDir=/path/to/xmlschema2006-11-06 w3cXsd10Conformance --console=plain`.
+The lane classifies W3C `.testSet` metadata as binding-supported, validation-only,
+tolerated-metadata, expected-diagnostic, product-scope-incompatible, or blocked. It writes local
+reports under `build/` and remains outside `qualityGate`.

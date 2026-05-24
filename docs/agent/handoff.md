@@ -65,8 +65,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 52. `TASK-0052`: Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. Completed and accepted.
 53. `TASK-0053`: Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. Completed and accepted.
 54. `TASK-0054`: Implement XSD 1.0 identity constraints and document-level validation. Completed and accepted.
-55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Next implementation gate.
-56. `TASK-0056`: Full XSD 1.0 readiness review. Draft.
+55. `TASK-0055`: Add full XSD 1.0 conformance-suite intake. Completed and accepted.
+56. `TASK-0056`: Full XSD 1.0 readiness review. Next implementation gate.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -123,8 +123,10 @@ substitution cycle diagnostics, and basic complex restriction member checks whil
 `xsi:type`, block/final, and complete restriction algebra for later full-XSD gates.
 `TASK-0054` has accepted generated identity-constraint validation for `xs:unique`, `xs:key`, and
 `xs:keyref` over accepted generated model shapes using private document-scope validation state and
-the accepted selector/field XPath subset. Full-suite identity edge-case classification remains part
-of `TASK-0055`.
+the accepted selector/field XPath subset. `TASK-0055` has accepted the opt-in W3C XML Schema 1.0
+suite intake lane for the pinned 2007-06-20 archive, classifying 24,796 W3C schema/instance
+documents with no generated-binding support claim for unmapped rows and keeping `XP-XSD10-FULL`
+execution gated by final readiness review.
 
 ## Draft completion backlog
 
@@ -188,14 +190,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0052` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 attributes and wildcards toward the full compiler. |
 | `TASK-0053` | XSD 1.0 full | accepted | Expand accepted XSD 1.0 derivation, substitution, and dynamic typing. |
 | `TASK-0054` | XSD 1.0 full | accepted | Implement XSD 1.0 identity constraints and document-level validation. |
-| `TASK-0055` | XSD 1.0 full | next | Add full XSD 1.0 conformance-suite intake. |
-| `TASK-0056` | XSD 1.0 full | draft | Full XSD 1.0 readiness review. |
+| `TASK-0055` | XSD 1.0 full | accepted | Add full XSD 1.0 conformance-suite intake. |
+| `TASK-0056` | XSD 1.0 full | next | Full XSD 1.0 readiness review. |
 
 ## Current implementation gate
 
-`TASK-0055` is the next implementation gate after accepted `TASK-0054` identity constraints. It
-must add a pinned, repeatable full XSD 1.0 conformance-suite intake/classification harness before
-final full-XSD readiness work begins.
+`TASK-0056` is the next implementation gate after accepted `TASK-0055` conformance-suite intake. It
+must reconcile the full XSD 1.0 feature matrix, generated-code evidence, W3C suite classification,
+quality gates, and support claims before `XP-XSD10-FULL` can become an executable advertised
+profile.
 Future product behavior, dependency changes, release publication, signing, tags, benchmark
 thresholds, or broader schema support still require an accepted task card or ADR.
 

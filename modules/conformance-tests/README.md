@@ -23,6 +23,19 @@ denial. It is separate from `check`, `qualityGate`, and the representative `nati
 `TASK-0046` treats this module as selected local readiness evidence for the `0.6.0` hardening
 slice. It is not broad W3C suite coverage and does not change supported schema behavior.
 
+`w3cXsd10Conformance` is the opt-in W3C XML Schema 1.0 suite intake lane added for `TASK-0055`.
+It requires a local extracted `xmlschema2006-11-06` directory from the pinned 2007-06-20 W3C
+archive and is run explicitly:
+
+```bash
+./gradlew -Pmxjb.w3cXsd10SuiteDir=/path/to/xmlschema2006-11-06 w3cXsd10Conformance --console=plain
+```
+
+The lane parses `.testSet` metadata, validates referenced files, rejects XSD 1.1/XML 1.1 intake,
+executes expected generator diagnostics where classified, and writes `fixtures.tsv` plus
+`summary.txt` under `build/reports/w3c-xsd10-conformance`. It is classification evidence only; the
+W3C suite archive and extracted files are not checked in.
+
 Covered behavior:
 
 - XML to object to XML round trips for representative generated bindings.

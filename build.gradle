@@ -88,6 +88,14 @@ tasks.register('benchmarkSmoke') {
     dependsOn ':modules:conformance-tests:benchmarkSmoke'
 }
 
+// w3cXsd10Conformance is intentionally opt-in because it requires a local external W3C suite
+// checkout supplied with -Pmxjb.w3cXsd10SuiteDir and is not part of the stable JVM quality gate.
+tasks.register('w3cXsd10Conformance') {
+    group = 'verification'
+    description = 'Classifies a local pinned W3C XML Schema 1.0 test suite checkout.'
+    dependsOn ':modules:conformance-tests:w3cXsd10Conformance'
+}
+
 def publicationStagingDirectory = layout.buildDirectory.dir('staging-repository')
 def publicationCandidateVersion = version.toString()
 def releaseDryRunNotes = layout.projectDirectory.file('docs/infrastructure/release-notes-0.6.0-alpha.md')

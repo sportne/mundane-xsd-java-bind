@@ -48,6 +48,24 @@ The `TASK-0042` manifest covers the current supported profile families (`XP-DATA
 `XP-XSD10-SEMANTIC`, and `XP-XSD10-DOCUMENT`) and selected unsupported-diagnostic schemas. Blocked
 and future-study rows are classification evidence only; they do not create runnable suite coverage.
 
+## Full XSD 1.0 suite intake
+
+`TASK-0055` adds the opt-in `w3cXsd10Conformance` lane for the pinned W3C XML Schema 1.0
+2007-06-20 archive. Normal checks do not download or vendor the suite; callers provide a local
+`xmlschema2006-11-06` directory with `-Pmxjb.w3cXsd10SuiteDir`.
+
+The accepted full-suite intake classifies every discovered W3C schema or instance document into one
+category: `binding-supported`, `validation-only`, `tolerated-metadata`, `expected-diagnostic`,
+`product-scope-incompatible`, or `blocked`. The current pinned-suite evidence is:
+
+```text
+w3c-xsd10-summary total=24796 binding-supported=0 validation-only=24439 tolerated-metadata=98 expected-diagnostic=2 product-scope-incompatible=167 blocked=90
+```
+
+The zero `binding-supported` count is intentional until individual W3C fixtures are mapped to
+generated-binding shapes. This is repeatable classification and diagnostic evidence, not a full
+XSD 1.0 support claim.
+
 ## Unsupported feature behavior
 
 Unsupported schema features must produce explicit diagnostics. Silent partial interpretation is forbidden.

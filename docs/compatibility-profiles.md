@@ -203,7 +203,8 @@ support. The planned sequence is:
 - accepted in `TASK-0052`: full attributes and wildcards expansion for accepted shapes.
 - accepted in `TASK-0053`: derivation, substitution, and dynamic typing expansion for accepted shapes.
 - accepted in `TASK-0054`: identity constraints and document-level validation for accepted shapes.
-- `TASK-0055`: full-suite conformance harness.
+- accepted in `TASK-0055`: opt-in full-suite W3C XML Schema 1.0 intake and classification
+  harness, with no generated-binding support claim for unmapped W3C rows.
 - `TASK-0056`: final full XSD 1.0 readiness review.
 
 XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. A real publication

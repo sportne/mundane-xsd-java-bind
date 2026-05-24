@@ -58,10 +58,13 @@ The root `nativeConformance` aggregate currently covers:
 - `TASK-0045` adds `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun --console=plain` as
   an explicit release-engineering dry-run lane. It validates local staging metadata only and must
   not publish from normal CI, sign artifacts, create tags, or require release secrets.
+- `TASK-0055` adds `./gradlew -Pmxjb.w3cXsd10SuiteDir=/path/to/xmlschema2006-11-06 w3cXsd10Conformance --console=plain`
+  as an explicit external-suite classification lane. It requires a pre-provisioned local W3C XML
+  Schema 1.0 suite checkout and remains outside `qualityGate`.
 
 `qualityGate` remains the required JVM-focused gate, `benchmarkSmoke` is advisory and opt-in, and
-`nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes. `publicationDryRun` is opt-in for
-release readiness evidence and is not wired into `qualityGate`.
+`nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes. `publicationDryRun` and
+`w3cXsd10Conformance` are opt-in evidence lanes and are not wired into `qualityGate`.
 
 `TASK-0046` confirms the hardening lanes above are evidence lanes, not new required default gates.
 Future CI changes for real publication, broader external suites, or benchmark thresholds require a
