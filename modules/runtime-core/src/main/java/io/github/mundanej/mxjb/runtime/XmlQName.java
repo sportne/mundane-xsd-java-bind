@@ -7,6 +7,9 @@ public record XmlQName(String namespaceUri, String localName, String lexicalName
   public XmlQName {
     Objects.requireNonNull(lexicalName, "lexicalName");
     XmlDatatypes.requireQNameValue(namespaceUri, localName, lexicalName);
+    if (!localName.equals(lexicalLocalName(lexicalName))) {
+      throw new IllegalArgumentException("QName lexical local name must match localName.");
+    }
   }
 
   public XmlQName(String namespaceUri, String localName) {
@@ -23,5 +26,10 @@ public record XmlQName(String namespaceUri, String localName, String lexicalName
   @Override
   public int hashCode() {
     return Objects.hash(namespaceUri, localName);
+  }
+
+  private static String lexicalLocalName(String lexicalName) {
+    int separator = lexicalName.indexOf(':');
+    return separator < 0 ? lexicalName : lexicalName.substring(separator + 1);
   }
 }

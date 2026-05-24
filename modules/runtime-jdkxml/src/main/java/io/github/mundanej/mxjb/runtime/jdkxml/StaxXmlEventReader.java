@@ -52,11 +52,13 @@ final class StaxXmlEventReader implements XmlEventReader {
 
   @Override
   public XmlName attributeName(int index) {
+    requireAttributeIndex(index);
     return xmlName(reader.getAttributeNamespace(index), reader.getAttributeLocalName(index));
   }
 
   @Override
   public String attributeValue(int index) {
+    requireAttributeIndex(index);
     return reader.getAttributeValue(index);
   }
 
@@ -104,6 +106,17 @@ final class StaxXmlEventReader implements XmlEventReader {
         new XmlDiagnostic(
             XmlDiagnosticSeverity.ERROR, code, message, xmlLocation(cause.getLocation())),
         cause);
+  }
+
+  private void requireAttributeIndex(int index) {
+    if (kind != XmlEventKind.START_ELEMENT) {
+      throw new IllegalStateException("Attributes are only available on START_ELEMENT events.");
+    }
+    int attributeCount = reader.getAttributeCount();
+    if (index < 0 || index >= attributeCount) {
+      throw new IndexOutOfBoundsException(
+          "attribute index " + index + " out of bounds for " + attributeCount + " attributes");
+    }
   }
 
   private static XmlName xmlName(String namespaceUri, String localName) {

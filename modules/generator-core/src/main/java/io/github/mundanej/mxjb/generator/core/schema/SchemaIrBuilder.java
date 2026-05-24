@@ -116,13 +116,13 @@ public final class SchemaIrBuilder {
                   state,
                   DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
                   document.resourceId(),
-                  "Global xs:sequence is not valid in profile XP-DATA-10.");
+                  "Global xs:sequence is not valid at schema scope.");
           case CHOICE ->
               diagnostic(
                   state,
                   DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
                   document.resourceId(),
-                  "Global xs:choice is not valid in profile XP-DATA-10-CHOICE.");
+                  "Global xs:choice is not valid at schema scope.");
           case RESTRICTION,
               COMPLEX_CONTENT,
               EXTENSION,

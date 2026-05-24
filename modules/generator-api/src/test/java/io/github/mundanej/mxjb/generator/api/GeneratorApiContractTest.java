@@ -44,9 +44,19 @@ final class GeneratorApiContractTest {
   void resultAndDiagnosticExposeStableStatusAndText() {
     GeneratorDiagnostic diagnostic =
         new GeneratorDiagnostic("SCHEMA_RESOURCE_NOT_FOUND", "order.xsd", "Schema not found.");
+    ArrayList<Path> generated = new ArrayList<>(List.of(Path.of("com/example/Order.java")));
+    ArrayList<GeneratorDiagnostic> diagnostics = new ArrayList<>(List.of(diagnostic));
+    GeneratorResult result = new GeneratorResult(generated, diagnostics);
+    generated.add(Path.of("com/example/Later.java"));
+    diagnostics.add(
+        new GeneratorDiagnostic("GENERATOR_INTERNAL_ERROR", "later.xsd", "Unexpected error."));
 
     assertEquals(
         "SCHEMA_RESOURCE_NOT_FOUND | order.xsd | Schema not found.", diagnostic.toManifestLine());
+    assertEquals(List.of(Path.of("com/example/Order.java")), result.generatedSources());
+    assertEquals(List.of(diagnostic), result.diagnostics());
+    assertThrows(UnsupportedOperationException.class, () -> result.generatedSources().clear());
+    assertThrows(UnsupportedOperationException.class, () -> result.diagnostics().clear());
     assertFalse(GeneratorResult.failure(List.of(diagnostic)).successful());
     assertTrue(GeneratorResult.success(List.of(Path.of("com/example/Order.java"))).successful());
     assertThrows(IllegalArgumentException.class, () -> new GeneratorDiagnostic("", "x", "message"));
@@ -74,6 +84,9 @@ final class GeneratorApiContractTest {
     assertEquals(
         GeneratorProfile.XP_XSD10_FULL,
         GeneratorProfile.fromCliToken("XP-XSD10-FULL").orElseThrow());
+    for (GeneratorProfile profile : GeneratorProfile.values()) {
+      assertEquals(profile, GeneratorProfile.fromCliToken(profile.cliToken()).orElseThrow());
+    }
     assertTrue(GeneratorProfile.fromCliToken("XP-DATA-11").isEmpty());
     assertTrue(GeneratorProfile.fromCliToken("XP-XSD11-ASSERT").isEmpty());
     assertTrue(GeneratorProfile.fromCliToken(null).isEmpty());

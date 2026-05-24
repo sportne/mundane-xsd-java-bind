@@ -51,6 +51,24 @@ final class MxjbCliTest {
   }
 
   @Test
+  void fullXsd10InlineProfileTokenIsAlsoRejectedBeforeGeneration() throws IOException {
+    Path schema = writeSchema("purchase-order-inline.xsd", purchaseOrderSchema());
+    Path output = tempDirectory.resolve("full-inline-generated");
+
+    CliResult result =
+        run(
+            "generate",
+            "--schema=" + schema,
+            "--output=" + output,
+            "--profile=XP-XSD10-FULL",
+            "--namespace-package=urn:purchase=com.example.purchase");
+
+    assertEquals(1, result.exitCode());
+    assertTrue(result.err().contains("Unsupported generator profile XP_XSD10_FULL"));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
   void generateWritesDeterministicSourcesAndPrintsRelativePaths() throws IOException {
     Path schema = writeSchema("purchase-order.xsd", purchaseOrderSchema());
     Path output = tempDirectory.resolve("generated");
