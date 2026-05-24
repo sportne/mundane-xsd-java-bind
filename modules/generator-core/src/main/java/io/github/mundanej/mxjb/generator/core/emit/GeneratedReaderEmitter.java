@@ -167,6 +167,8 @@ public final class GeneratedReaderEmitter {
   private static final class SourceState {
     private static final SchemaQName XSI_NIL =
         new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "nil");
+    private static final SchemaQName XSI_TYPE =
+        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "type");
     private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName readerName;
@@ -189,6 +191,9 @@ public final class GeneratedReaderEmitter {
       collectNames(root.xmlName(), rootType, new LinkedHashSet<>());
       if (needsNillableSupport(rootType, new LinkedHashSet<>())) {
         nameConstant(XSI_NIL);
+      }
+      if (needsXsiTypeSupport(rootType, new LinkedHashSet<>())) {
+        nameConstant(XSI_TYPE);
       }
       StringBuilder source = new StringBuilder();
       source.append("package ").append(readerName.packageName()).append(";\n\n");
@@ -243,7 +248,11 @@ public final class GeneratedReaderEmitter {
           .append(" value = ")
           .append(helperName(rootType))
           .append("(input, ")
-          .append(nameConstant(root.xmlName()))
+          .append(nameConstant(root.xmlName()));
+      if (hasXsiTypeSupport()) {
+        source.append(", false");
+      }
+      source
           .append(");\n")
           .append("    movePastWhitespace(input);\n")
           .append(
@@ -266,7 +275,12 @@ public final class GeneratedReaderEmitter {
           .append(helperName(type))
           .append("(\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
-          .append("      io.github.mundanej.mxjb.runtime.XmlName elementName)\n")
+          .append("      io.github.mundanej.mxjb.runtime.XmlName elementName");
+      if (hasXsiTypeSupport()) {
+        source.append(",\n      boolean allowXsiType");
+      }
+      source
+          .append(")\n")
           .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
           .append("    expectStart(input, elementName);\n");
       appendUnexpectedAttributeCheck(source, type);
@@ -393,6 +407,12 @@ public final class GeneratedReaderEmitter {
       source.append("    for (int index = 0; index < input.attributeCount(); index++) {\n");
       source.append(
           "      io.github.mundanej.mxjb.runtime.XmlName attributeName = input.attributeName(index);\n");
+      if (needsXsiTypeSupport(rootType, new LinkedHashSet<>())) {
+        source.append("      if (allowXsiType && ").append(nameConstant(XSI_TYPE));
+        source.append(".equals(attributeName)) {\n");
+        source.append("        continue;\n");
+        source.append("      }\n");
+      }
       List<BindingField> attributes = attributes(type);
       List<BindingField> anyAttributes = anyAttributes(type);
       List<io.github.mundanej.mxjb.generator.core.schema.SchemaQName> prohibitedNames =
@@ -579,6 +599,13 @@ public final class GeneratedReaderEmitter {
       boolean firstBranch = true;
       for (BindingField field : fields) {
         if ("choice".equals(field.kind())) {
+          if ("xsiType".equals(field.choice().modelKind())) {
+            appendDispatchPrefix(source, firstBranch);
+            source.append(nameConstant(field.xmlName())).append(".equals(input.name())) {\n");
+            appendXsiTypeChoiceRead(source, field);
+            firstBranch = false;
+            continue;
+          }
           for (BindingChoiceBranch branch : field.choice().branches()) {
             appendDispatchPrefix(source, firstBranch);
             source.append(nameConstant(branch.xmlName())).append(".equals(input.name())) {\n");
@@ -1027,6 +1054,95 @@ public final class GeneratedReaderEmitter {
       }
     }
 
+    private void appendXsiTypeChoiceRead(StringBuilder source, BindingField field) {
+      source.append("        if (").append(field.order()).append(" < lastElementOrder) {\n");
+      source.append(
+          "          throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML element.\");\n");
+      source.append("        }\n");
+      source
+          .append("        lastElementOrder = Math.max(lastElementOrder, ")
+          .append(field.order())
+          .append(");\n");
+      if ("list".equals(field.cardinality().shape())) {
+        appendMaxOccursCheck(source, field);
+      } else if ("optional".equals(field.cardinality().shape())) {
+        source.append("        if (").append(field.javaName()).append(".isPresent()) {\n");
+      } else {
+        source.append("        if (").append(field.javaName()).append(" != null) {\n");
+      }
+      if (!"list".equals(field.cardinality().shape())) {
+        source.append(
+            "          throw readException(input, \"MXJB-GR-005\", \"Repeated XML dynamic-type element.\");\n");
+        source.append("        }\n");
+      }
+      source
+          .append("        String ")
+          .append(field.javaName())
+          .append("XsiType = attribute(input, ")
+          .append(nameConstant(XSI_TYPE))
+          .append(");\n");
+      boolean first = true;
+      for (BindingChoiceBranch branch : field.choice().branches()) {
+        source
+            .append(first ? "        if (" : "        } else if (")
+            .append(xsiTypeBranchCondition(field, branch))
+            .append(") {\n");
+        appendXsiTypeBranchAssignment(source, field, branch);
+        first = false;
+      }
+      source.append("        } else {\n");
+      source.append(
+          "          throw readException(input, \"MXJB-GR-010\", \"Unsupported xsi:type value.\");\n");
+      source.append("        }\n");
+    }
+
+    private String xsiTypeBranchCondition(BindingField field, BindingChoiceBranch branch) {
+      String valueName = field.javaName() + "XsiType";
+      String typeName = nameConstant(Objects.requireNonNull(branch.dynamicTypeName()));
+      if (branch.defaultDynamicType()) {
+        return valueName + " == null || xsiTypeMatches(input, " + valueName + ", " + typeName + ")";
+      }
+      return valueName + " != null && xsiTypeMatches(input, " + valueName + ", " + typeName + ")";
+    }
+
+    private void appendXsiTypeBranchAssignment(
+        StringBuilder source, BindingField field, BindingChoiceBranch branch) {
+      String valueExpression =
+          helperInvocation(
+              Objects.requireNonNull(modelType(branch.type())),
+              "input",
+              nameConstant(branch.xmlName()),
+              true);
+      if ("list".equals(field.cardinality().shape())) {
+        source
+            .append("          ")
+            .append(field.javaName())
+            .append("Values.add(new ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append("(")
+            .append(valueExpression)
+            .append("));\n");
+      } else if ("optional".equals(field.cardinality().shape())) {
+        source
+            .append("          ")
+            .append(field.javaName())
+            .append(" = java.util.Optional.of(new ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append("(")
+            .append(valueExpression)
+            .append("));\n");
+      } else {
+        source
+            .append("          ")
+            .append(field.javaName())
+            .append(" = new ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append("(")
+            .append(valueExpression)
+            .append(");\n");
+      }
+    }
+
     private void appendMaxOccursCheck(StringBuilder source, BindingField field) {
       if ("unbounded".equals(field.cardinality().maxOccurs())) {
         return;
@@ -1081,7 +1197,7 @@ public final class GeneratedReaderEmitter {
     private String readValueExpression(BindingField field) {
       BindingType nestedType = modelType(field);
       if (nestedType != null) {
-        return helperName(nestedType) + "(input, " + nameConstant(field.xmlName()) + ")";
+        return helperInvocation(nestedType, "input", nameConstant(field.xmlName()), false);
       }
       if (field.semantics().hasDefault()) {
         return parseExpression(
@@ -1101,10 +1217,8 @@ public final class GeneratedReaderEmitter {
         return "readNilElement(input, "
             + nameConstant(field.xmlName())
             + ") ? java.util.Optional.empty() : java.util.Optional.of("
-            + helperName(nestedType)
-            + "(input, "
-            + nameConstant(field.xmlName())
-            + "))";
+            + helperInvocation(nestedType, "input", nameConstant(field.xmlName()), false)
+            + ")";
       }
       return "readNilElement(input, "
           + nameConstant(field.xmlName())
@@ -1116,7 +1230,7 @@ public final class GeneratedReaderEmitter {
     private String readBranchValueExpression(BindingChoiceBranch branch) {
       BindingType nestedType = modelType(branch.type());
       if (nestedType != null) {
-        return helperName(nestedType) + "(input, " + nameConstant(branch.xmlName()) + ")";
+        return helperInvocation(nestedType, "input", nameConstant(branch.xmlName()), false);
       }
       return readElementValueExpression(branch.type(), nameConstant(branch.xmlName()));
     }
@@ -1127,7 +1241,7 @@ public final class GeneratedReaderEmitter {
       }
       BindingType nestedType = modelType(branch.type());
       if (nestedType != null) {
-        return helperName(nestedType) + "(input, " + nameConstant(branch.xmlName()) + ")";
+        return helperInvocation(nestedType, "input", nameConstant(branch.xmlName()), false);
       }
       return readElementValueExpression(branch.type(), nameConstant(branch.xmlName()));
     }
@@ -1275,6 +1389,25 @@ public final class GeneratedReaderEmitter {
           .append("    return input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT\n")
           .append("        && input.text().isBlank();\n")
           .append("  }\n\n");
+      if (needsXsiTypeSupport(rootType, new LinkedHashSet<>())) {
+        source
+            .append("  private static boolean xsiTypeMatches(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
+            .append("      String lexical,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlName typeName) {\n")
+            .append("    String text = lexical.trim();\n")
+            .append("    int separator = text.indexOf(':');\n")
+            .append("    if (separator < 0) {\n")
+            .append(
+                "      return typeName.namespaceUri().isEmpty() && typeName.localName().equals(text);\n")
+            .append("    }\n")
+            .append("    String prefix = text.substring(0, separator);\n")
+            .append("    String local = text.substring(separator + 1);\n")
+            .append("    String namespace = input.namespaceUriForPrefix(prefix);\n")
+            .append("    return typeName.namespaceUri().equals(namespace)\n")
+            .append("        && typeName.localName().equals(local);\n")
+            .append("  }\n\n");
+      }
       if (needsWildcardSupport(rootType, new LinkedHashSet<>())) {
         source
             .append("  private static boolean wildcardMatches(\n")
@@ -1856,6 +1989,36 @@ public final class GeneratedReaderEmitter {
       return false;
     }
 
+    private boolean hasXsiTypeSupport() {
+      return needsXsiTypeSupport(rootType, new LinkedHashSet<>());
+    }
+
+    private boolean needsXsiTypeSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if ("choice".equals(field.kind())
+            && field.choice() != null
+            && "xsiType".equals(field.choice().modelKind())) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsXsiTypeSupport(nestedType, visited)) {
+          return true;
+        }
+        if ("choice".equals(field.kind()) && field.choice() != null) {
+          for (BindingChoiceBranch branch : field.choice().branches()) {
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null && needsXsiTypeSupport(branchType, visited)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     private boolean needsDefaultedElementSupport(BindingType type, Set<String> visited) {
       if (!visited.add(type.javaName().qualifiedName())) {
         return false;
@@ -2052,6 +2215,15 @@ public final class GeneratedReaderEmitter {
           .orElseThrow();
     }
 
+    private String helperInvocation(
+        BindingType type, String inputExpression, String nameExpression, boolean allowXsiType) {
+      String invocation = helperName(type) + "(" + inputExpression + ", " + nameExpression;
+      if (hasXsiTypeSupport()) {
+        invocation += ", " + allowXsiType;
+      }
+      return invocation + ")";
+    }
+
     private String wildcardMatchExpression(BindingField field) {
       return wildcardMatchExpression(field, "input.name()");
     }
@@ -2113,6 +2285,9 @@ public final class GeneratedReaderEmitter {
           type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
         for (BindingChoiceBranch branch : field.choice().branches()) {
           nameConstant(branch.xmlName());
+          if (branch.dynamicTypeName() != null) {
+            nameConstant(branch.dynamicTypeName());
+          }
           BindingType nestedType = modelType(branch.type());
           if (nestedType != null) {
             collectNames(branch.xmlName(), nestedType, visited);

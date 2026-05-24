@@ -163,6 +163,8 @@ public final class GeneratedWriterEmitter {
   private static final class SourceState {
     private static final SchemaQName XSI_NIL =
         new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "nil");
+    private static final SchemaQName XSI_TYPE =
+        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "type");
     private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName writerName;
@@ -185,6 +187,9 @@ public final class GeneratedWriterEmitter {
       collectNames(root.xmlName(), rootType, new LinkedHashSet<>());
       if (needsNillableSupport(rootType, new LinkedHashSet<>())) {
         nameConstant(XSI_NIL);
+      }
+      if (needsXsiTypeSupport(rootType, new LinkedHashSet<>())) {
+        nameConstant(XSI_TYPE);
       }
       StringBuilder source = new StringBuilder();
       source.append("package ").append(writerName.packageName()).append(";\n\n");
@@ -233,8 +238,11 @@ public final class GeneratedWriterEmitter {
           .append(helperName(rootType))
           .append("(output, ")
           .append(nameConstant(root.xmlName()))
-          .append(", value);\n")
-          .append("  }\n\n");
+          .append(", value");
+      if (hasXsiTypeSupport()) {
+        source.append(", null");
+      }
+      source.append(");\n").append("  }\n\n");
     }
 
     private void appendHelper(StringBuilder source, BindingType type) {
@@ -249,9 +257,22 @@ public final class GeneratedWriterEmitter {
           .append("      io.github.mundanej.mxjb.runtime.XmlName elementName,\n")
           .append("      ")
           .append(typeText(type))
-          .append(" value)\n")
+          .append(" value");
+      if (hasXsiTypeSupport()) {
+        source.append(",\n      String xsiType");
+      }
+      source
+          .append(")\n")
           .append("      throws io.github.mundanej.mxjb.runtime.XmlWriteException {\n")
           .append("    output.startElement(elementName);\n");
+      if (hasXsiTypeSupport()) {
+        source
+            .append("    if (xsiType != null) {\n")
+            .append("      output.attribute(")
+            .append(nameConstant(XSI_TYPE))
+            .append(", xsiType);\n")
+            .append("    }\n");
+      }
       for (BindingField field : attributes(type)) {
         appendFieldWrite(source, field);
       }
@@ -346,6 +367,10 @@ public final class GeneratedWriterEmitter {
     private void appendSingleValueWrite(
         StringBuilder source, BindingField field, String valueExpression, String indent) {
       if ("choice".equals(field.kind())) {
+        if ("xsiType".equals(field.choice().modelKind())) {
+          appendXsiTypeChoiceValueWrite(source, field, valueExpression, indent);
+          return;
+        }
         appendChoiceValueWrite(source, field, valueExpression, indent);
         return;
       }
@@ -399,7 +424,8 @@ public final class GeneratedWriterEmitter {
             .append(name)
             .append(", ")
             .append(valueExpression)
-            .append(");\n");
+            .append(helperInvocationSuffix("null"))
+            .append(";\n");
         return;
       }
       source.append(indent).append("output.startElement(").append(name).append(");\n");
@@ -447,7 +473,8 @@ public final class GeneratedWriterEmitter {
             .append(name)
             .append(", ")
             .append(valueExpression)
-            .append(");\n");
+            .append(helperInvocationSuffix("null"))
+            .append(";\n");
         return;
       }
       source.append(indent).append("output.startElement(").append(name).append(");\n");
@@ -633,6 +660,9 @@ public final class GeneratedWriterEmitter {
           type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
         for (BindingChoiceBranch branch : field.choice().branches()) {
           nameConstant(branch.xmlName());
+          if (branch.dynamicTypeName() != null) {
+            nameConstant(branch.dynamicTypeName());
+          }
           BindingType nestedType = modelType(branch.type());
           if (nestedType != null) {
             collectNames(branch.xmlName(), nestedType, visited);
@@ -709,6 +739,40 @@ public final class GeneratedWriterEmitter {
       return false;
     }
 
+    private boolean hasXsiTypeSupport() {
+      return needsXsiTypeSupport(rootType, new LinkedHashSet<>());
+    }
+
+    private boolean needsXsiTypeSupport(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return false;
+      }
+      for (BindingField field : type.fields()) {
+        if ("choice".equals(field.kind())
+            && field.choice() != null
+            && "xsiType".equals(field.choice().modelKind())) {
+          return true;
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null && needsXsiTypeSupport(nestedType, visited)) {
+          return true;
+        }
+        if ("choice".equals(field.kind()) && field.choice() != null) {
+          for (BindingChoiceBranch branch : field.choice().branches()) {
+            BindingType branchType = modelType(branch.type());
+            if (branchType != null && needsXsiTypeSupport(branchType, visited)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    private String helperInvocationSuffix(String xsiTypeExpression) {
+      return hasXsiTypeSupport() ? ", " + xsiTypeExpression + ")" : ")";
+    }
+
     private void appendChoiceValueWrite(
         StringBuilder source, BindingField field, String valueExpression, String indent) {
       for (int indexValue = 0; indexValue < field.choice().branches().size(); indexValue++) {
@@ -743,6 +807,57 @@ public final class GeneratedWriterEmitter {
           .append("}\n");
     }
 
+    private void appendXsiTypeChoiceValueWrite(
+        StringBuilder source, BindingField field, String valueExpression, String indent) {
+      for (int indexValue = 0; indexValue < field.choice().branches().size(); indexValue++) {
+        BindingChoiceBranch branch = field.choice().branches().get(indexValue);
+        source
+            .append(indent)
+            .append(indexValue == 0 ? "if (" : "} else if (")
+            .append(valueExpression)
+            .append(" instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch) {\n");
+        String xsiType =
+            branch.defaultDynamicType()
+                ? "null"
+                : "output.qNameText(new io.github.mundanej.mxjb.runtime.XmlQName(\""
+                    + escape(branch.dynamicTypeName().namespace())
+                    + "\", \""
+                    + escape(branch.dynamicTypeName().localName())
+                    + "\", \""
+                    + escape(branch.dynamicTypeName().localName())
+                    + "\"))";
+        BindingType nestedType = Objects.requireNonNull(modelType(branch.type()));
+        source
+            .append(indent)
+            .append("  ")
+            .append(helperName(nestedType))
+            .append("(output, ")
+            .append(nameConstant(field.xmlName()))
+            .append(", branch.value(), ")
+            .append(xsiType)
+            .append(");\n");
+      }
+      source
+          .append(indent)
+          .append("} else {\n")
+          .append(indent)
+          .append("  throw new io.github.mundanej.mxjb.runtime.XmlWriteException(\n")
+          .append(indent)
+          .append("      new io.github.mundanej.mxjb.runtime.XmlDiagnostic(\n")
+          .append(indent)
+          .append("          io.github.mundanej.mxjb.runtime.XmlDiagnosticSeverity.ERROR,\n")
+          .append(indent)
+          .append("          \"MXJB-GW-001\",\n")
+          .append(indent)
+          .append("          \"Unsupported XML xsi:type branch.\",\n")
+          .append(indent)
+          .append("          io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN));\n")
+          .append(indent)
+          .append("}\n");
+    }
+
     private void appendBranchSingleValueWrite(
         StringBuilder source, BindingChoiceBranch branch, String valueExpression, String indent) {
       String name = nameConstant(branch.xmlName());
@@ -755,7 +870,8 @@ public final class GeneratedWriterEmitter {
             .append(name)
             .append(", ")
             .append(valueExpression)
-            .append(");\n");
+            .append(helperInvocationSuffix("null"))
+            .append(";\n");
         return;
       }
       source.append(indent).append("output.startElement(").append(name).append(");\n");

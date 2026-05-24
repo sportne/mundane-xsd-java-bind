@@ -689,6 +689,193 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsDeclaredComplexBaseElementAsKnownXsiTypeBranches() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Payment">
+                  <xs:sequence>
+                    <xs:element name="amount" type="xs:decimal"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="CardPayment">
+                  <xs:complexContent>
+                    <xs:extension base="tns:Payment">
+                      <xs:sequence>
+                        <xs:element name="cardLast4" type="xs:string"/>
+                      </xs:sequence>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="payment" type="tns:Payment"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains(
+            "choice payment xml={urn:orders}payment "
+                + "type=choice:io.github.mundanej.mxjb.generated.orders.PaymentDynamicType "
+                + "cardinality=required 1..1"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "xsiTypeType io.github.mundanej.mxjb.generated.orders.PaymentDynamicType"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "branch payment xml={urn:orders}payment "
+                + "type=model:io.github.mundanej.mxjb.generated.orders.Payment "
+                + "model=io.github.mundanej.mxjb.generated.orders.PaymentDynamicTypeBranch "
+                + "dynamicType={urn:orders}Payment defaultDynamicType=true"),
+        bindingText);
+    assertTrue(
+        bindingText.contains(
+            "branch cardpayment xml={urn:orders}payment "
+                + "type=model:io.github.mundanej.mxjb.generated.orders.Cardpayment "
+                + "model=io.github.mundanej.mxjb.generated.orders.CardpaymentDynamicTypeBranch "
+                + "dynamicType={urn:orders}CardPayment"),
+        bindingText);
+  }
+
+  @Test
+  void complexTypeBlockPreventsXsiTypeBranches() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Payment" block="extension">
+                  <xs:sequence>
+                    <xs:element name="amount" type="xs:decimal"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="CardPayment">
+                  <xs:complexContent>
+                    <xs:extension base="tns:Payment">
+                      <xs:sequence>
+                        <xs:element name="cardLast4" type="xs:string"/>
+                      </xs:sequence>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="payment" type="tns:Payment"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains(
+            "element payment xml={urn:orders}payment "
+                + "type=model:io.github.mundanej.mxjb.generated.orders.Payment"),
+        bindingText);
+    assertFalse(bindingText.contains("PaymentDynamicType"), bindingText);
+    assertFalse(bindingText.contains("CardpaymentDynamicTypeBranch"), bindingText);
+  }
+
+  @Test
+  void schemaBlockDefaultPreventsXsiTypeBranches() throws IOException {
+    write(
+        "main.xsd",
+        """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                xmlns:tns="urn:orders" targetNamespace="urn:orders" blockDefault="extension">
+              <xs:element name="order" type="tns:Order"/>
+              <xs:complexType name="Payment">
+                <xs:sequence>
+                  <xs:element name="amount" type="xs:decimal"/>
+                </xs:sequence>
+              </xs:complexType>
+              <xs:complexType name="CardPayment">
+                <xs:complexContent>
+                  <xs:extension base="tns:Payment">
+                    <xs:sequence>
+                      <xs:element name="cardLast4" type="xs:string"/>
+                    </xs:sequence>
+                  </xs:extension>
+                </xs:complexContent>
+              </xs:complexType>
+              <xs:complexType name="Order">
+                <xs:sequence>
+                  <xs:element name="payment" type="tns:Payment"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:schema>
+            """);
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains(
+            "element payment xml={urn:orders}payment "
+                + "type=model:io.github.mundanej.mxjb.generated.orders.Payment"),
+        bindingText);
+    assertFalse(bindingText.contains("PaymentDynamicType"), bindingText);
+  }
+
+  @Test
+  void elementBlockStopsAtDeclaredDynamicBase() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="RootPayment">
+                  <xs:sequence>
+                    <xs:element name="id" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+                <xs:complexType name="Payment">
+                  <xs:complexContent>
+                    <xs:restriction base="tns:RootPayment">
+                      <xs:sequence>
+                        <xs:element name="id" type="xs:string"/>
+                      </xs:sequence>
+                    </xs:restriction>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="CardPayment">
+                  <xs:complexContent>
+                    <xs:extension base="tns:Payment">
+                      <xs:sequence>
+                        <xs:element name="cardLast4" type="xs:string"/>
+                      </xs:sequence>
+                    </xs:extension>
+                  </xs:complexContent>
+                </xs:complexType>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="payment" type="tns:Payment" block="restriction"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    assertTrue(result.model().toText().contains("dynamicType={urn:orders}CardPayment"));
+  }
+
+  @Test
   void reportsUnsupportedBuiltInScalarTypesWithoutPartialModel() throws IOException {
     write("main.xsd", schema("urn:orders", "<xs:element name=\"when\" type=\"xs:anyType\"/>"));
 

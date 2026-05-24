@@ -13,6 +13,7 @@ public record SchemaIrElement(
     SchemaIrValueSemantics semantics,
     SchemaQName substitutionGroup,
     boolean abstractElement,
+    List<String> blockControls,
     List<SchemaIrIdentityConstraint> identityConstraints,
     boolean reference)
     implements SchemaIrParticle {
@@ -31,6 +32,7 @@ public record SchemaIrElement(
         null,
         false,
         List.of(),
+        List.of(),
         reference);
   }
 
@@ -39,6 +41,7 @@ public record SchemaIrElement(
     Objects.requireNonNull(type, "type");
     Objects.requireNonNull(cardinality, "cardinality");
     semantics = semantics == null ? SchemaIrValueSemantics.NONE : semantics;
+    blockControls = blockControls == null ? List.of() : List.copyOf(blockControls);
     identityConstraints =
         identityConstraints == null ? List.of() : List.copyOf(identityConstraints);
   }
@@ -56,6 +59,7 @@ public record SchemaIrElement(
             + cardinality.toText()
             + (substitutionGroup == null ? "" : " substitutionGroup=" + substitutionGroup.toText())
             + (abstractElement ? " abstract=true" : "")
+            + (blockControls.isEmpty() ? "" : " block=" + String.join(" ", blockControls))
             + semantics.toText();
     String identityText =
         identityConstraints.stream()

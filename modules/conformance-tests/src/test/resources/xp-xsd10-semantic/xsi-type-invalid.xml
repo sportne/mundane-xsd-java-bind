@@ -1,0 +1,7 @@
+<order xmlns="urn:semantic-xsitype"
+    xmlns:tns="urn:semantic-xsitype"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <payment xsi:type="tns:UnknownPayment">
+    <amount>12.50</amount>
+  </payment>
+</order>

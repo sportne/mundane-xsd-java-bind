@@ -12,7 +12,12 @@ public record SchemaIrComplexType(
     SchemaIrAnyAttribute anyAttribute,
     List<SchemaIrSequence> sequences,
     boolean mixed,
-    boolean anonymous) {
+    boolean anonymous,
+    boolean abstractType,
+    SchemaQName derivationBase,
+    String derivationKind,
+    List<String> blockControls,
+    List<String> finalControls) {
   public SchemaIrComplexType(
       SchemaQName name,
       List<SchemaIrAttribute> attributes,
@@ -32,12 +37,38 @@ public record SchemaIrComplexType(
     this(name, null, attributes, anyAttribute, sequences, mixed, anonymous);
   }
 
+  public SchemaIrComplexType(
+      SchemaQName name,
+      SchemaIrSimpleContent simpleContent,
+      List<SchemaIrAttribute> attributes,
+      SchemaIrAnyAttribute anyAttribute,
+      List<SchemaIrSequence> sequences,
+      boolean mixed,
+      boolean anonymous) {
+    this(
+        name,
+        simpleContent,
+        attributes,
+        anyAttribute,
+        sequences,
+        mixed,
+        anonymous,
+        false,
+        null,
+        "",
+        List.of(),
+        List.of());
+  }
+
   public SchemaIrComplexType {
     if (!anonymous) {
       Objects.requireNonNull(name, "name");
     }
     attributes = List.copyOf(attributes);
     sequences = List.copyOf(sequences);
+    derivationKind = derivationKind == null ? "" : derivationKind;
+    blockControls = blockControls == null ? List.of() : List.copyOf(blockControls);
+    finalControls = finalControls == null ? List.of() : List.copyOf(finalControls);
   }
 
   public String toText(String indent) {
@@ -45,7 +76,13 @@ public record SchemaIrComplexType(
         indent
             + "complexType "
             + (anonymous ? "anonymous" : name.toText())
-            + (mixed ? " mixed=true" : "");
+            + (mixed ? " mixed=true" : "")
+            + (abstractType ? " abstract=true" : "")
+            + (derivationBase == null
+                ? ""
+                : " " + derivationKind + "Base=" + derivationBase.toText())
+            + (blockControls.isEmpty() ? "" : " block=" + String.join(" ", blockControls))
+            + (finalControls.isEmpty() ? "" : " final=" + String.join(" ", finalControls));
     String sequenceText =
         sequences.stream()
             .map(sequence -> sequence.toText(indent + "  "))

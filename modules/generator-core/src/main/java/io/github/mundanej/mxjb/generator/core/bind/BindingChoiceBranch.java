@@ -8,7 +8,17 @@ public record BindingChoiceBranch(
     SchemaQName xmlName,
     String javaName,
     BindingTypeReference type,
-    BindingJavaName branchJavaName) {
+    BindingJavaName branchJavaName,
+    SchemaQName dynamicTypeName,
+    boolean defaultDynamicType) {
+  public BindingChoiceBranch(
+      SchemaQName xmlName,
+      String javaName,
+      BindingTypeReference type,
+      BindingJavaName branchJavaName) {
+    this(xmlName, javaName, type, branchJavaName, null, false);
+  }
+
   public BindingChoiceBranch {
     Objects.requireNonNull(xmlName, "xmlName");
     Objects.requireNonNull(javaName, "javaName");
@@ -25,6 +35,8 @@ public record BindingChoiceBranch(
         + " type="
         + type.toText()
         + " model="
-        + branchJavaName.qualifiedName();
+        + branchJavaName.qualifiedName()
+        + (dynamicTypeName == null ? "" : " dynamicType=" + dynamicTypeName.toText())
+        + (defaultDynamicType ? " defaultDynamicType=true" : "");
   }
 }

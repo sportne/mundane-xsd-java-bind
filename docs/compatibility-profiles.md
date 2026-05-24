@@ -100,8 +100,10 @@ Generated readers, writers, and validators use the same dependency-free runtime 
 `xs:anyAttribute` values as `List<XmlAttribute>`, wildcard namespace-token handling, and
 `processContents` metadata. `TASK-0053` adds accepted simpleContent text-with-attributes binding,
 basic complexContent restriction member checks, and selected derivation/substitution diagnostics.
-Complete derivation algebra, strict/lax schema-known wildcard deep validation, `xsi:type` dispatch,
-and identity-constraint edge-case coverage remain future tasks.
+`TASK-0061` adds accepted known `xsi:type` dynamic dispatch for declared complex-base fields and
+final/block checks for accepted derivation/substitution paths. Direct root-element `xsi:type`
+dispatch, strict/lax schema-known wildcard deep validation, and identity-constraint edge-case
+coverage remain future tasks.
 
 ## `0.4.0` Semantic Baseline
 
@@ -135,7 +137,8 @@ complex/list/union defaults, ambiguous nil/default/fixed combinations, blocking/
 `xsi:type` polymorphism, abstract complex types outside substitution-head dispatch, wildcards,
 mixed content, identity constraints, full derivation semantics, artifact publication, and full
 XSD 1.0 conformance remained out of scope with explicit diagnostics. Later full-XSD gates add
-selected support for several of those areas without making `XP-XSD10-FULL` executable yet.
+selected support for several of those areas, including `TASK-0061` known `xsi:type` branches,
+without making `XP-XSD10-FULL` executable yet.
 
 ## `0.5.0` Document-Oriented Baseline
 
@@ -221,8 +224,7 @@ workflow remains separate release-engineering work.
 requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
 The public token remains non-executable until `TASK-0065`.
 
-The planned blocker sequence is `TASK-0061` through `TASK-0066`: derivation/dynamic typing,
-strict/lax wildcard deep validation,
-remaining datatype/nil/identity edges, W3C generated-binding row mapping, full-profile enablement,
-and final release workflow/readiness. Until those gates are accepted, public docs must keep full
-XSD 1.0 and `1.0.0` release claims out of scope.
+The remaining blocker sequence is `TASK-0062` through `TASK-0066`: strict/lax wildcard deep
+validation, remaining datatype/nil/identity edges, W3C generated-binding row mapping,
+full-profile enablement, and final release workflow/readiness. Until those gates are accepted,
+public docs must keep full XSD 1.0 and `1.0.0` release claims out of scope.

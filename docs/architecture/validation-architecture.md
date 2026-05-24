@@ -74,7 +74,8 @@ attribute namespace qualification, prohibited-attribute rejection, retained `xs:
 validation, wildcard namespace-token matching, and `processContents` metadata. `TASK-0053` adds
 accepted simpleContent text validation, basic complex restriction member checks before emission,
 and generated validation recursion through repeated/nested/abstract substitution branch values.
-Full restriction algebra, block/final, `xsi:type`, strict/lax schema-known wildcard validation,
+`TASK-0061` adds accepted final/block derivation diagnostics plus generated validation recursion
+through known declared-base `xsi:type` branch values. Full strict/lax schema-known wildcard validation,
 identity-constraint edge cases beyond accepted generated model shapes, and `XP-XSD10-FULL`
 execution remain future gates.
 
@@ -91,6 +92,8 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
 - `TASK-0053` extends substitution validation to accepted abstract heads, nested substitution
   members, and repeated head references. Abstract head elements are not accepted as concrete
   branch values; generated validators recurse through each concrete branch value in list order.
+- `TASK-0061` validates known `xsi:type` dynamic branches by reusing generated sealed branch
+  validation and reports unsupported XML `xsi:type` values as deterministic reader diagnostics.
 - `TASK-0034` verifies deterministic semantic object diagnostics, location-aware XML diagnostics
   for nil-content and fixed-value reader failures, substitution branch value recursion, and
   explicit schema diagnostics for unsupported validation categories.
@@ -119,6 +122,6 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   validators agree for nested choice positions in grouped sequences, plus deterministic
   wildcard/wildcard UPA diagnostics.
 - Full schema-known validation for `processContents="lax"` or `"strict"`, identity-constraint
-  edge cases beyond accepted generated model shapes, complete derivation/restriction/block/final and
-  `xsi:type` behavior, comments, processing instructions, entity-reference semantics, and full XSD
-  1.0 validation remain future work.
+  edge cases beyond accepted generated model shapes, strict/lax schema-known wildcard validation,
+  comments, processing instructions, entity-reference semantics, and full XSD 1.0 validation remain
+  future work.

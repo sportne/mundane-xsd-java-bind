@@ -193,8 +193,11 @@ profile executable. The planned verification sequence is:
 - `TASK-0053`: accepted derivation and substitution tests for simpleContent
   text-with-attributes binding, basic complex restriction member checks, abstract/nested/repeated
   substitution heads, substitution cycle diagnostics, generated read/write/validate behavior, and
-  selected JDK XML Schema comparison fixtures. Full block/final, complete restriction algebra, and
-  `xsi:type` dispatch remain later full-XSD evidence.
+  selected JDK XML Schema comparison fixtures.
+- `TASK-0061`: accepted derivation/dynamic typing tests for preserved derivation metadata,
+  final/block diagnostics, declared-base sealed branch models, known `xsi:type` generated
+  read/write/validate behavior, and selected JDK XML Schema comparison fixture
+  `T-CONF-XP-XSD10-SEMANTIC-XSI-TYPE`.
 - `TASK-0054`: accepted identity-constraint selector/field XPath tests, document-scope generated
   validator tests for `xs:unique`, `xs:key`, and `xs:keyref`, and selected JDK XML Schema
   comparison fixture `T-CONF-XP-XSD10-SEMANTIC-IDENTITY`.
@@ -219,7 +222,8 @@ The remaining verification sequence is:
 - `TASK-0060`: accepted content-model automata and UPA tests proving generated readers and
   validators share grouped-content position metadata for nested choice positions and wildcard
   overlap diagnostics.
-- `TASK-0061`: derivation, restriction, block/final, abstract type, and `xsi:type` tests.
+- `TASK-0061`: accepted derivation, final/block, abstract type metadata, and known `xsi:type`
+  generated-binding tests.
 - `TASK-0062`: strict/lax wildcard deep-validation and wildcard composition tests.
 - `TASK-0063`: datatype/list/union, NOTATION, `xsi:nil`, and identity-constraint edge tests needed
   before W3C row mapping.

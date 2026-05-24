@@ -1,0 +1,8 @@
+<order xmlns="urn:semantic-xsitype"
+    xmlns:tns="urn:semantic-xsitype"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <payment xsi:type="tns:CardPayment">
+    <amount>12.50</amount>
+    <cardLast4>1111</cardLast4>
+  </payment>
+</order>

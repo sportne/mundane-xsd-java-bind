@@ -71,8 +71,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 58. `TASK-0058`: Plan the 1.0.0 full-XSD blocker closure sequence. Completed and accepted.
 59. `TASK-0059`: Implement grouped content-list models for remaining full-XSD content shapes. Completed and accepted.
 60. `TASK-0060`: Add accepted grouped-position automata and wildcard-conflict evidence. Completed and accepted.
-61. `TASK-0061`: Complete derivation, restriction, block/final, and dynamic typing. Next implementation gate.
-62. `TASK-0062`: Complete strict/lax wildcard deep validation and wildcard composition. Draft.
+61. `TASK-0061`: Complete accepted derivation and dynamic typing for executable shapes. Completed and accepted.
+62. `TASK-0062`: Complete strict/lax wildcard deep validation and wildcard composition. Next implementation gate.
 63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Draft.
 64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Draft.
 65. `TASK-0065`: Enable executable `XP-XSD10-FULL`. Draft.
@@ -129,8 +129,8 @@ qualification, `use="prohibited"`, retained `xs:anyAttribute` values, wildcard n
 handling, and `processContents` metadata while keeping strict/lax schema-known deep validation and
 derivation interactions for later gates. `TASK-0053` has accepted simpleContent
 text-with-attributes binding, repeated/nested/abstract substitution heads, deterministic
-substitution cycle diagnostics, and basic complex restriction member checks while leaving full
-`xsi:type`, block/final, and complete restriction algebra for later full-XSD gates.
+substitution cycle diagnostics, and basic complex restriction member checks. `TASK-0061` has
+accepted known `xsi:type` dynamic branches and final/block checks for accepted paths.
 `TASK-0054` has accepted generated identity-constraint validation for `xs:unique`, `xs:key`, and
 `xs:keyref` over accepted generated model shapes using private document-scope validation state and
 the accepted selector/field XPath subset. `TASK-0055` has accepted the opt-in W3C XML Schema 1.0
@@ -212,8 +212,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0058` | 1.0.0 | accepted | Plan the full-XSD blocker closure sequence. |
 | `TASK-0059` | 1.0.0 | accepted | Implement grouped content-list models for remaining full-XSD content shapes. |
 | `TASK-0060` | 1.0.0 | accepted | Add accepted grouped-position automata and wildcard-conflict evidence. |
-| `TASK-0061` | 1.0.0 | next | Complete derivation, restriction, block/final, and dynamic typing. |
-| `TASK-0062` | 1.0.0 | draft | Complete strict/lax wildcard deep validation and wildcard composition. |
+| `TASK-0061` | 1.0.0 | accepted | Complete accepted derivation and dynamic typing for executable shapes. |
+| `TASK-0062` | 1.0.0 | next | Complete strict/lax wildcard deep validation and wildcard composition. |
 | `TASK-0063` | 1.0.0 | draft | Close remaining datatype, nil, and identity-validation edges. |
 | `TASK-0064` | 1.0.0 | draft | Map W3C XML Schema 1.0 rows to generated-binding execution. |
 | `TASK-0065` | 1.0.0 | draft | Enable executable `XP-XSD10-FULL`. |
@@ -221,10 +221,10 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0061` is the next implementation gate. It may complete derivation, restriction, block/final,
-abstract type, declared-base polymorphism, and known `xsi:type` behavior for the full-XSD blocker
-sequence. It must not enable `XP-XSD10-FULL`, add release workflow behavior, bump versions, create
-tags, publish artifacts, add dependencies, weaken `qualityGate`, or claim full XSD 1.0 support.
+`TASK-0062` is the next implementation gate. It may complete strict/lax schema-known wildcard deep
+validation and wildcard composition for the full-XSD blocker sequence. It must not enable
+`XP-XSD10-FULL`, add release workflow behavior, bump versions, create tags, publish artifacts, add
+dependencies, weaken `qualityGate`, or claim full XSD 1.0 support.
 
 Any future work must preserve:
 
@@ -364,12 +364,15 @@ Any future work must preserve:
 - `TASK-0051` through `TASK-0055` accepted content-model, attribute/wildcard, derivation,
   identity-constraint, and W3C suite-intake evidence for the current full-XSD sequence.
   `TASK-0056` reconciled that evidence and records a negative readiness decision for full XSD 1.0:
-  complete derivation/restriction/block/final and `xsi:type` behavior, strict/lax schema-known
-  wildcard validation, and W3C rows mapped to generated-binding support remain future work.
+  strict/lax schema-known wildcard validation and W3C rows mapped to generated-binding support
+  remain future work.
   `TASK-0059` accepted generated grouped content-list shapes for
   repeated/optional multi-particle groups whose members are singleton particles, optional
   all-groups with required children, mixed choices, and wildcard choices while keeping deeper
   automata semantics in `TASK-0060`. `TASK-0060` accepted shared grouped-content position metadata,
   nested-choice sequence automata for generated readers/validators, and deterministic wildcard UPA
-  diagnostics; derivation/dynamic typing remains `TASK-0061`.
+  diagnostics. `TASK-0061` accepted derivation metadata, final/block checks for accepted
+  derivation/substitution paths, declared-base `xsi:type` sealed branch models, known `xsi:type`
+  read/write/validate behavior, and deterministic unknown `xsi:type` diagnostics. Strict/lax
+  wildcard deep validation remains `TASK-0062`.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

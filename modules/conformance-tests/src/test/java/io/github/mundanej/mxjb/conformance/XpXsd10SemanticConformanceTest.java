@@ -13,6 +13,8 @@ import io.github.mundanej.mxjb.generator.api.GeneratorResult;
 import io.github.mundanej.mxjb.generator.core.CoreGenerator;
 import io.github.mundanej.mxjb.runtime.ValidationResult;
 import io.github.mundanej.mxjb.runtime.XmlEventReader;
+import io.github.mundanej.mxjb.runtime.XmlOutput;
+import io.github.mundanej.mxjb.runtime.XmlWriteException;
 import io.github.mundanej.mxjb.runtime.jdkxml.JdkXmlAdapters;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,8 +32,10 @@ import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -43,6 +47,7 @@ final class XpXsd10SemanticConformanceTest {
   // Selected fixture manifest IDs:
   // T-CONF-XP-XSD10-SEMANTIC-DEFAULTS, T-CONF-XP-XSD10-SEMANTIC-SUBSTITUTION.
   // T-CONF-XP-XSD10-SEMANTIC-SUBSTITUTION-REPEATED.
+  // T-CONF-XP-XSD10-SEMANTIC-XSI-TYPE.
   // T-CONF-XP-XSD10-SEMANTIC-IDENTITY.
 
   @TempDir private Path tempDirectory;
@@ -199,6 +204,56 @@ final class XpXsd10SemanticConformanceTest {
   }
 
   @Test
+  void xsiTypeFixturesMatchJdkSchemaValidationAndGeneratedBindings()
+      throws IOException,
+          SAXException,
+          ReflectiveOperationException,
+          XMLStreamException,
+          XmlWriteException {
+    Schema schema = jdkSchema("/xp-xsd10-semantic/xsi-type-order.xsd");
+    String validXml = resource("/xp-xsd10-semantic/xsi-type-valid.xml");
+    String invalidXml = resource("/xp-xsd10-semantic/xsi-type-invalid.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidXml))));
+
+    try (CompiledGeneratedSemanticBindings bindings =
+        generateAndCompileSemanticBindings(
+            "/xp-xsd10-semantic/xsi-type-order.xsd",
+            Map.of("urn:semantic-xsitype", "com.example.xsitype"))) {
+      Class<?> orderClass = bindings.load("com.example.xsitype.Order");
+      Class<?> readerClass = bindings.load("com.example.xsitype.xml.OrderXmlReader");
+      Class<?> writerClass = bindings.load("com.example.xsitype.xml.OrderXmlWriter");
+      Class<?> validatorClass = bindings.load("com.example.xsitype.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      Object payment = orderClass.getMethod("payment").invoke(order);
+      assertTrue(payment.getClass().getName().endsWith("CardpaymentDynamicTypeBranch"));
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult invalidResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(invalidXml));
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GR-010"), codes(invalidResult));
+
+      String writtenXml = writeGenerated(writerClass, orderClass, order);
+      assertTrue(writtenXml.contains("xsi:type=") || writtenXml.contains(":type="), writtenXml);
+      schema.newValidator().validate(new StreamSource(new StringReader(writtenXml)));
+      Object reread =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(writtenXml));
+      Object rereadPayment = orderClass.getMethod("payment").invoke(reread);
+      assertTrue(rereadPayment.getClass().getName().endsWith("CardpaymentDynamicTypeBranch"));
+    }
+  }
+
+  @Test
   void identityConstraintFixturesMatchJdkSchemaValidationAndGeneratedBindings()
       throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
     Schema schema = jdkSchema("/xp-xsd10-semantic/identity-order.xsd");
@@ -311,6 +366,18 @@ final class XpXsd10SemanticConformanceTest {
     XMLInputFactory factory = JdkXmlAdapters.secureInputFactory();
     XMLStreamReader streamReader = factory.createXMLStreamReader(new StringReader(xml));
     return JdkXmlAdapters.eventReader(streamReader);
+  }
+
+  private String writeGenerated(Class<?> writerClass, Class<?> valueClass, Object value)
+      throws ReflectiveOperationException, XMLStreamException, XmlWriteException {
+    ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+    XMLStreamWriter streamWriter =
+        XMLOutputFactory.newFactory()
+            .createXMLStreamWriter(outputBytes, StandardCharsets.UTF_8.name());
+    XmlOutput output = JdkXmlAdapters.output(streamWriter);
+    writerClass.getMethod("write", XmlOutput.class, valueClass).invoke(null, output, value);
+    output.flush();
+    return outputBytes.toString(StandardCharsets.UTF_8);
   }
 
   private Path resourcePath(String resourceName) {

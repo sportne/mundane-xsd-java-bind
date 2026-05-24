@@ -308,6 +308,14 @@ public final class SchemaIrBuilder {
             "Substitution group head " + headName.toText() + " is not declared.");
         continue;
       }
+      if (head.blockControls().contains("substitution")) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            "schema-ir",
+            "Substitution group head " + headName.toText() + " blocks substitution members.");
+        continue;
+      }
       if (head.cardinality().minOccurs() != 1 || !"1".equals(head.cardinality().maxOccurs())) {
         diagnostic(
             state,
@@ -384,14 +392,6 @@ public final class SchemaIrBuilder {
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state, boolean global) {
     SchemaCardinality cardinality = cardinality(document, node, state);
     if (cardinality == null) {
-      return null;
-    }
-    if (node.attributes().containsKey("block") || node.attributes().containsKey("final")) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:element block/final substitution controls are not supported in profile XP-XSD10-SEMANTIC.");
       return null;
     }
     String ref = node.attributes().get("ref");
@@ -479,6 +479,13 @@ public final class SchemaIrBuilder {
         semantics,
         substitutionGroup,
         abstractElement,
+        derivationControls(
+            document,
+            state,
+            node.attributes().containsKey("block") ? "element block" : "schema blockDefault",
+            node.attributes()
+                .getOrDefault("block", document.schemaAttributes().get("blockDefault")),
+            List.of("extension", "restriction", "substitution")),
         identityConstraints,
         false);
   }
@@ -747,22 +754,23 @@ public final class SchemaIrBuilder {
       }
       name = new SchemaQName(schemaNamespace(document), localName);
     }
-    if ("true".equals(node.attributes().get("abstract"))) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "abstract complexType is not supported in profile XP-XSD10-COMPOSED.");
-      return null;
-    }
-    if (node.attributes().containsKey("block") || node.attributes().containsKey("final")) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "complexType block/final derivation controls are not supported in profile XP-XSD10-FULL.");
-      return null;
-    }
+    boolean abstractType = "true".equals(node.attributes().get("abstract"));
+    List<String> blockControls =
+        derivationControls(
+            document,
+            state,
+            node.attributes().containsKey("block") ? "complexType block" : "schema blockDefault",
+            node.attributes()
+                .getOrDefault("block", document.schemaAttributes().get("blockDefault")),
+            List.of("extension", "restriction"));
+    List<String> finalControls =
+        derivationControls(
+            document,
+            state,
+            node.attributes().containsKey("final") ? "complexType final" : "schema finalDefault",
+            node.attributes()
+                .getOrDefault("final", document.schemaAttributes().get("finalDefault")),
+            List.of("extension", "restriction"));
     boolean mixed = "true".equals(node.attributes().get("mixed"));
     List<XsdSyntaxNode> complexContentChildren =
         node.children().stream()
@@ -793,7 +801,14 @@ public final class SchemaIrBuilder {
             "xs:complexContent must be the only child of complexType in profile XP-XSD10-COMPOSED.");
         return null;
       }
-      return normalizeComplexContent(document, complexContentChildren.getFirst(), name, state);
+      return normalizeComplexContent(
+          document,
+          complexContentChildren.getFirst(),
+          name,
+          state,
+          abstractType,
+          blockControls,
+          finalControls);
     }
     List<XsdSyntaxNode> simpleContentChildren =
         node.children().stream()
@@ -817,13 +832,31 @@ public final class SchemaIrBuilder {
         return null;
       }
       return normalizeSimpleContentComplexType(
-          document, simpleContentChildren.getFirst(), name, anonymous, state);
+          document,
+          simpleContentChildren.getFirst(),
+          name,
+          anonymous,
+          state,
+          abstractType,
+          blockControls,
+          finalControls);
     }
 
     ComplexTypeContent content =
         normalizeComplexTypeContent(document, node.children(), state, mixed);
     return new SchemaIrComplexType(
-        name, content.attributes(), content.anyAttribute(), content.sequences(), mixed, anonymous);
+        name,
+        null,
+        content.attributes(),
+        content.anyAttribute(),
+        content.sequences(),
+        mixed,
+        anonymous,
+        abstractType,
+        null,
+        "",
+        blockControls,
+        finalControls);
   }
 
   private SchemaIrComplexType normalizeSimpleContentComplexType(
@@ -831,7 +864,10 @@ public final class SchemaIrBuilder {
       XsdSyntaxNode node,
       SchemaQName typeName,
       boolean anonymous,
-      BuildState state) {
+      BuildState state,
+      boolean abstractType,
+      List<String> blockControls,
+      List<String> finalControls) {
     if (node.children().size() != 1) {
       diagnostic(
           state,
@@ -888,7 +924,12 @@ public final class SchemaIrBuilder {
         attributes.anyAttribute(),
         List.of(),
         false,
-        anonymous);
+        anonymous,
+        abstractType,
+        simpleContent.valueType().name(),
+        derivation.kind() == XsdSyntaxKind.EXTENSION ? "extension" : "restriction",
+        blockControls,
+        finalControls);
   }
 
   private SchemaIrSimpleContent normalizeSimpleContentExtension(
@@ -964,6 +1005,57 @@ public final class SchemaIrBuilder {
           true;
       default -> false;
     };
+  }
+
+  private List<String> derivationControls(
+      XsdSyntaxDocument document,
+      BuildState state,
+      String source,
+      String value,
+      List<String> allowedControls) {
+    if (value == null || value.isBlank()) {
+      return List.of();
+    }
+    Set<String> controls = new LinkedHashSet<>();
+    for (String token : whitespaceTokens(value)) {
+      if ("#all".equals(token)) {
+        controls.addAll(allowedControls);
+      } else if (allowedControls.contains(token)) {
+        controls.add(token);
+      } else {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Invalid derivation control token '"
+                + token
+                + "' in "
+                + source
+                + "; allowed values are #all, "
+                + String.join(", ", allowedControls)
+                + ".");
+      }
+    }
+    return List.copyOf(controls);
+  }
+
+  private List<String> whitespaceTokens(String value) {
+    List<String> tokens = new ArrayList<>();
+    int start = -1;
+    for (int index = 0; index < value.length(); index++) {
+      if (Character.isWhitespace(value.charAt(index))) {
+        if (start >= 0) {
+          tokens.add(value.substring(start, index));
+          start = -1;
+        }
+      } else if (start < 0) {
+        start = index;
+      }
+    }
+    if (start >= 0) {
+      tokens.add(value.substring(start));
+    }
+    return tokens;
   }
 
   private ComplexTypeContent normalizeComplexTypeContent(
@@ -1073,7 +1165,13 @@ public final class SchemaIrBuilder {
   }
 
   private SchemaIrComplexType normalizeComplexContent(
-      XsdSyntaxDocument document, XsdSyntaxNode node, SchemaQName typeName, BuildState state) {
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      SchemaQName typeName,
+      BuildState state,
+      boolean abstractType,
+      List<String> blockControls,
+      List<String> finalControls) {
     if ("true".equals(node.attributes().get("mixed"))) {
       diagnostic(
           state,
@@ -1092,7 +1190,8 @@ public final class SchemaIrBuilder {
     }
     XsdSyntaxNode child = node.children().getFirst();
     if (child.kind() == XsdSyntaxKind.RESTRICTION) {
-      return normalizeComplexRestriction(document, child, typeName, state);
+      return normalizeComplexRestriction(
+          document, child, typeName, state, abstractType, blockControls, finalControls);
     }
     if (child.kind() != XsdSyntaxKind.EXTENSION) {
       diagnostic(
@@ -1102,11 +1201,18 @@ public final class SchemaIrBuilder {
           "xs:complexContent supports only xs:extension in profile XP-XSD10-COMPOSED.");
       return null;
     }
-    return normalizeComplexExtension(document, child, typeName, state);
+    return normalizeComplexExtension(
+        document, child, typeName, state, abstractType, blockControls, finalControls);
   }
 
   private SchemaIrComplexType normalizeComplexRestriction(
-      XsdSyntaxDocument document, XsdSyntaxNode node, SchemaQName typeName, BuildState state) {
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      SchemaQName typeName,
+      BuildState state,
+      boolean abstractType,
+      List<String> blockControls,
+      List<String> finalControls) {
     String baseText = node.attributes().get("base");
     if (baseText == null || baseText.isBlank()) {
       diagnostic(
@@ -1131,14 +1237,21 @@ public final class SchemaIrBuilder {
     if (baseType == null) {
       return null;
     }
+    validateDerivationAllowed(document, baseType, "restriction", state);
     validateComplexRestriction(document, baseType, restrictedContent, state);
     return new SchemaIrComplexType(
         typeName,
+        null,
         restrictedContent.attributes(),
         restrictedContent.anyAttribute(),
         restrictedContent.sequences(),
         false,
-        false);
+        false,
+        abstractType,
+        baseName,
+        "restriction",
+        blockControls,
+        finalControls);
   }
 
   private void validateComplexRestriction(
@@ -1178,8 +1291,32 @@ public final class SchemaIrBuilder {
     }
   }
 
+  private void validateDerivationAllowed(
+      XsdSyntaxDocument document,
+      SchemaIrComplexType baseType,
+      String derivationKind,
+      BuildState state) {
+    if (baseType.finalControls().contains(derivationKind)) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Derivation by "
+              + derivationKind
+              + " is final for base type "
+              + baseType.name().toText()
+              + ".");
+    }
+  }
+
   private SchemaIrComplexType normalizeComplexExtension(
-      XsdSyntaxDocument document, XsdSyntaxNode node, SchemaQName typeName, BuildState state) {
+      XsdSyntaxDocument document,
+      XsdSyntaxNode node,
+      SchemaQName typeName,
+      BuildState state,
+      boolean abstractType,
+      List<String> blockControls,
+      List<String> finalControls) {
     String baseText = node.attributes().get("base");
     if (baseText == null || baseText.isBlank()) {
       diagnostic(
@@ -1204,6 +1341,7 @@ public final class SchemaIrBuilder {
     if (baseType == null) {
       return null;
     }
+    validateDerivationAllowed(document, baseType, "extension", state);
     List<SchemaIrAttribute> attributes = new ArrayList<>(baseType.attributes());
     attributes.addAll(extensionContent.attributes());
     SchemaIrAnyAttribute anyAttribute =
@@ -1213,7 +1351,19 @@ public final class SchemaIrBuilder {
     sequences.addAll(extensionContent.sequences());
     validateDuplicateElementNames(document, sequences, state);
     validateDuplicateAttributeNames(document, attributes, state);
-    return new SchemaIrComplexType(typeName, attributes, anyAttribute, sequences, false, false);
+    return new SchemaIrComplexType(
+        typeName,
+        null,
+        attributes,
+        anyAttribute,
+        sequences,
+        false,
+        false,
+        abstractType,
+        baseName,
+        "extension",
+        blockControls,
+        finalControls);
   }
 
   private SchemaIrComplexType normalizeNamedComplexType(
@@ -1411,6 +1561,7 @@ public final class SchemaIrBuilder {
           element.semantics(),
           element.substitutionGroup(),
           element.abstractElement(),
+          element.blockControls(),
           element.identityConstraints(),
           element.reference());
     }

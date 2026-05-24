@@ -864,7 +864,7 @@ final class SchemaIrBuilderTest {
                     <xs:length value="5"/>
                   </xs:restriction>
                 </xs:simpleType>
-                <xs:complexType name="AbstractOrder" abstract="true"/>
+                <xs:complexType name="AbstractOrder" abstract="true" final="restriction"/>
                 <xs:complexType name="MissingBaseOrder">
                   <xs:complexContent>
                     <xs:extension/>
@@ -885,9 +885,33 @@ final class SchemaIrBuilderTest {
     assertTrue(
         result.diagnostics().stream()
             .anyMatch(d -> d.message().contains("incompatible length facets")));
-    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("abstract")));
     assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("missing a base")));
-    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("restriction")));
+    assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("final")));
+  }
+
+  @Test
+  void reportsInvalidBlockAndFinalTokens() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="xs:string" block="extensoin"/>
+                <xs:complexType name="Order" final="restrict"/>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
+
+    assertEquals(
+        List.of(
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
+        diagnosticCodes(result));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(d -> d.message().contains("Invalid derivation control token 'extensoin'")));
+    assertTrue(
+        result.diagnostics().stream()
+            .anyMatch(d -> d.message().contains("Invalid derivation control token 'restrict'")));
   }
 
   @Test
@@ -1405,19 +1429,20 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
-  void rejectsElementSubstitutionControls() throws IOException {
+  void rejectsBlockedSubstitutionMembers() throws IOException {
     write(
         "main.xsd",
         schema(
             "urn:orders",
             """
                 <xs:element name="payment" type="xs:string" block="substitution"/>
+                <xs:element name="cardPayment" type="xs:string" substitutionGroup="tns:payment"/>
                 """));
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_SEMANTIC);
 
     assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
-    assertTrue(result.diagnostics().getFirst().message().contains("block/final"));
+    assertTrue(result.diagnostics().getFirst().message().contains("blocks substitution"));
   }
 
   @Test

@@ -34,6 +34,9 @@ writer, and validator architecture.
 - `TASK-0053` adds simpleContent value metadata for accepted text-with-attributes models and
   performs basic complex restriction member checks before binding. Complete XSD restriction algebra
   remains a later full-XSD task.
+- `TASK-0061` preserves derivation base/kind, abstract complex type metadata, and block/final
+  controls in IR so binding can emit known declared-base dynamic branches without enabling
+  `XP-XSD10-FULL`.
 - Recursive groups or derivation chains, unsupported composition depth, and out-of-scope constructs
   must fail with deterministic diagnostics before source emission.
 
@@ -47,8 +50,10 @@ The `XP-XSD10-SEMANTIC` profile keeps semantic expansion inside the same compile
   then emits an explicit sealed branch model instead of runtime polymorphic lookup.
 - `TASK-0053` expands normalized substitution groups to accepted abstract heads, nested members,
   and repeated head references. Branches are still generated statically from known declarations.
-- Substitution cycles, unsupported blocking/final semantics, and unsupported semantic combinations
-  must fail with deterministic diagnostics before source emission.
+- `TASK-0061` adds deterministic blocked substitution and final derivation diagnostics, then emits
+  static known `xsi:type` branches for declared complex-base fields.
+- Substitution cycles and unsupported semantic combinations must fail with deterministic diagnostics
+  before source emission.
 
 ## `TASK-0037` document/open-content normalization
 
