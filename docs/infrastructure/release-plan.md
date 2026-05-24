@@ -87,6 +87,29 @@ decision. Full XML Schema 1.0 conformance is still not a release claim because r
 matrix blockers and zero W3C generated-binding-supported rows prevent advertising the planned full
 profile as executable.
 
+## `1.0.0` full-XSD release sequence
+
+`TASK-0058` defines the `1.0.0` release bar as full practical XML Schema 1.0 generated-binding
+support for this Java binding generator. A stable-subset release is not sufficient for `1.0.0`.
+
+Before any `1.0.0` release workflow, version update, tag, or GitHub Release artifact upload is
+allowed, the following gates must be accepted:
+
+- `TASK-0059`: grouped content-list models for remaining full-XSD content shapes.
+- `TASK-0060`: complete content-model automata and UPA validation.
+- `TASK-0061`: complete derivation, restriction, block/final, and `xsi:type` behavior.
+- `TASK-0062`: strict/lax wildcard deep validation and wildcard composition.
+- `TASK-0063`: remaining datatype, nil, and identity-validation edges.
+- `TASK-0064`: W3C XML Schema 1.0 generated-binding row mapping and executable evidence.
+- `TASK-0065`: executable `XP-XSD10-FULL` profile enablement.
+- `TASK-0066`: final readiness reconciliation, version metadata, release notes, and GitHub Release
+  workflow.
+
+The `TASK-0066` release workflow must publish only GitHub Release assets from `v1.0.0` tags:
+a zipped Maven-layout `build/staging-repository`, checksums, release notes, and an artifact
+manifest. It must not publish to Maven Central or package registries, require signing, or introduce
+release secrets.
+
 ## Release gate
 
 No release may claim support for a schema feature unless the requirement, profile, conformance matrix, tests, and docs are complete.

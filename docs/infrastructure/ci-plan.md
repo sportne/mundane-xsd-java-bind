@@ -69,3 +69,20 @@ The root `nativeConformance` aggregate currently covers:
 `TASK-0046` confirms the hardening lanes above are evidence lanes, not new required default gates.
 Future CI changes for real publication, broader external suites, or benchmark thresholds require a
 new accepted task and must not be inferred from the `0.6.0` readiness closeout.
+
+## `1.0.0` release workflow plan
+
+`TASK-0058` defines the `1.0.0` release bar as executable `XP-XSD10-FULL` generated-binding support
+with W3C generated-binding evidence. The CI/release sequence remains planned until `TASK-0066`:
+
+- `qualityGate` remains the JVM correctness gate throughout `TASK-0059` through `TASK-0065`.
+- `w3cXsd10Conformance` becomes release-blocking only after `TASK-0064` maps in-scope W3C rows to
+  generated-binding execution.
+- `XP-XSD10-FULL` becomes executable only in `TASK-0065`.
+- The GitHub Release workflow is added only in `TASK-0066`, after full-XSD evidence passes.
+
+The planned release workflow should trigger on `v1.0.0` tags, run final validation, execute
+`publicationDryRun` with `-Pmxjb.version=1.0.0`, zip `build/staging-repository`, create checksums
+and an artifact manifest, and upload those files to GitHub Release assets. It must not publish to
+Maven Central or package registries, add signing, or require release secrets beyond the default
+GitHub token.

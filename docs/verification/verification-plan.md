@@ -207,3 +207,24 @@ profile executable. The planned verification sequence is:
   generated-binding support.
 
 XSD 1.1 and XML 1.1 are outside this verification plan.
+
+## `1.0.0` full-XSD verification plan
+
+`TASK-0058` defines `1.0.0` as a full-XSD generated-binding release, not a stable-subset release.
+The remaining verification sequence is:
+
+- `TASK-0059`: generated content-list tests for repeated/optional multi-particle groups, optional
+  `xs:all` with required children, mixed choices, and wildcard choices.
+- `TASK-0060`: content-model automata and UPA tests proving generated readers and validators share
+  the same deterministic model.
+- `TASK-0061`: derivation, restriction, block/final, abstract type, and `xsi:type` tests.
+- `TASK-0062`: strict/lax wildcard deep-validation and wildcard composition tests.
+- `TASK-0063`: datatype/list/union, NOTATION, `xsi:nil`, and identity-constraint edge tests needed
+  before W3C row mapping.
+- `TASK-0064`: W3C XML Schema 1.0 generated-binding mapping and executable row evidence.
+- `TASK-0065`: profile/API/CLI/Gradle tests proving `XP-XSD10-FULL` is executable.
+- `TASK-0066`: final `1.0.0` gates: clean quality gate, benchmark smoke, Native Image lanes, W3C
+  generated-binding lane, `publicationDryRun -Pmxjb.version=1.0.0`, and GitHub Release workflow
+  validation.
+
+The release claim remains blocked until every gate above is accepted.

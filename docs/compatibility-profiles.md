@@ -211,3 +211,15 @@ support. The planned sequence is:
 
 XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. A real publication
 workflow remains separate release-engineering work.
+
+## `1.0.0` Full-XSD Release Bar
+
+`TASK-0058` rejects a stable-subset interpretation for `1.0.0`. The `1.0.0` compatibility posture
+requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
+The public token remains non-executable until `TASK-0065`.
+
+The planned blocker sequence is `TASK-0059` through `TASK-0066`: grouped content-list models,
+content-model automata and UPA, derivation/dynamic typing, strict/lax wildcard deep validation,
+remaining datatype/nil/identity edges, W3C generated-binding row mapping, full-profile enablement,
+and final release workflow/readiness. Until those gates are accepted, public docs must keep full
+XSD 1.0 and `1.0.0` release claims out of scope.
