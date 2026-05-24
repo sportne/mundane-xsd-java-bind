@@ -69,9 +69,9 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 56. `TASK-0056`: Full XSD 1.0 readiness review. Completed and accepted.
 57. `TASK-0057`: Delta test hardening after the last broad hardening cycle. Completed and accepted.
 58. `TASK-0058`: Plan the 1.0.0 full-XSD blocker closure sequence. Completed and accepted.
-59. `TASK-0059`: Implement grouped content-list models for remaining full-XSD content shapes. Next implementation gate.
-60. `TASK-0060`: Complete content-model automata and UPA validation. Draft.
-61. `TASK-0061`: Complete derivation, restriction, block/final, and dynamic typing. Draft.
+59. `TASK-0059`: Implement grouped content-list models for remaining full-XSD content shapes. Completed and accepted.
+60. `TASK-0060`: Add accepted grouped-position automata and wildcard-conflict evidence. Completed and accepted.
+61. `TASK-0061`: Complete derivation, restriction, block/final, and dynamic typing. Next implementation gate.
 62. `TASK-0062`: Complete strict/lax wildcard deep validation and wildcard composition. Draft.
 63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Draft.
 64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Draft.
@@ -211,8 +211,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0057` | QA hardening | accepted | Delta test hardening after the last broad hardening cycle. |
 | `TASK-0058` | 1.0.0 | accepted | Plan the full-XSD blocker closure sequence. |
 | `TASK-0059` | 1.0.0 | accepted | Implement grouped content-list models for remaining full-XSD content shapes. |
-| `TASK-0060` | 1.0.0 | next | Complete content-model automata and UPA validation. |
-| `TASK-0061` | 1.0.0 | draft | Complete derivation, restriction, block/final, and dynamic typing. |
+| `TASK-0060` | 1.0.0 | accepted | Add accepted grouped-position automata and wildcard-conflict evidence. |
+| `TASK-0061` | 1.0.0 | next | Complete derivation, restriction, block/final, and dynamic typing. |
 | `TASK-0062` | 1.0.0 | draft | Complete strict/lax wildcard deep validation and wildcard composition. |
 | `TASK-0063` | 1.0.0 | draft | Close remaining datatype, nil, and identity-validation edges. |
 | `TASK-0064` | 1.0.0 | draft | Map W3C XML Schema 1.0 rows to generated-binding execution. |
@@ -221,10 +221,10 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0060` is the next implementation gate. It may complete content-model automata and UPA
-validation so generated readers and validators share deterministic content-model semantics. It must
-not enable `XP-XSD10-FULL`, add release workflow behavior, bump versions, create tags, publish
-artifacts, add dependencies, weaken `qualityGate`, or claim full XSD 1.0 support.
+`TASK-0061` is the next implementation gate. It may complete derivation, restriction, block/final,
+abstract type, declared-base polymorphism, and known `xsi:type` behavior for the full-XSD blocker
+sequence. It must not enable `XP-XSD10-FULL`, add release workflow behavior, bump versions, create
+tags, publish artifacts, add dependencies, weaken `qualityGate`, or claim full XSD 1.0 support.
 
 Any future work must preserve:
 
@@ -364,10 +364,12 @@ Any future work must preserve:
 - `TASK-0051` through `TASK-0055` accepted content-model, attribute/wildcard, derivation,
   identity-constraint, and W3C suite-intake evidence for the current full-XSD sequence.
   `TASK-0056` reconciled that evidence and records a negative readiness decision for full XSD 1.0:
-  complete UPA coverage, complete derivation/restriction/block/final and `xsi:type` behavior,
-  strict/lax schema-known wildcard validation, and W3C rows mapped to generated-binding support
-  remain future work. `TASK-0059` accepted generated grouped content-list shapes for
+  complete derivation/restriction/block/final and `xsi:type` behavior, strict/lax schema-known
+  wildcard validation, and W3C rows mapped to generated-binding support remain future work.
+  `TASK-0059` accepted generated grouped content-list shapes for
   repeated/optional multi-particle groups whose members are singleton particles, optional
   all-groups with required children, mixed choices, and wildcard choices while keeping deeper
-  automata semantics in `TASK-0060`.
+  automata semantics in `TASK-0060`. `TASK-0060` accepted shared grouped-content position metadata,
+  nested-choice sequence automata for generated readers/validators, and deterministic wildcard UPA
+  diagnostics; derivation/dynamic typing remains `TASK-0061`.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

@@ -90,12 +90,19 @@ final class XpXsd10ComposedConformanceTest {
     String allValidXml = resource("/xp-xsd10-composed/content-model-all-valid.xml");
     String allInvalidXml = resource("/xp-xsd10-composed/content-model-all-invalid.xml");
     String choiceValidXml = resource("/xp-xsd10-composed/content-model-choice-valid.xml");
+    String automataValidXml = resource("/xp-xsd10-composed/content-model-automata-valid.xml");
+    String automataInvalidXml = resource("/xp-xsd10-composed/content-model-automata-invalid.xml");
 
     schema.newValidator().validate(new StreamSource(new StringReader(allValidXml)));
     schema.newValidator().validate(new StreamSource(new StringReader(choiceValidXml)));
+    schema.newValidator().validate(new StreamSource(new StringReader(automataValidXml)));
     assertThrows(
         SAXException.class,
         () -> schema.newValidator().validate(new StreamSource(new StringReader(allInvalidXml))));
+    assertThrows(
+        SAXException.class,
+        () ->
+            schema.newValidator().validate(new StreamSource(new StringReader(automataInvalidXml))));
 
     try (CompiledGeneratedComposedBindings bindings =
         generateAndCompileComposedBindings("/xp-xsd10-composed/content-model.xsd", "content")) {
@@ -106,6 +113,11 @@ final class XpXsd10ComposedConformanceTest {
       Class<?> choiceReaderClass = bindings.load("com.example.content.xml.ChoiceorderXmlReader");
       Class<?> choiceValidatorClass =
           bindings.load("com.example.content.xml.ChoiceorderXmlValidator");
+      Class<?> automataOrderClass = bindings.load("com.example.content.Automataorder");
+      Class<?> automataReaderClass =
+          bindings.load("com.example.content.xml.AutomataorderXmlReader");
+      Class<?> automataValidatorClass =
+          bindings.load("com.example.content.xml.AutomataorderXmlValidator");
 
       Object allOrder =
           allReaderClass
@@ -115,6 +127,10 @@ final class XpXsd10ComposedConformanceTest {
           choiceReaderClass
               .getMethod("read", XmlEventReader.class)
               .invoke(null, readerFor(choiceValidXml));
+      Object automataOrder =
+          automataReaderClass
+              .getMethod("read", XmlEventReader.class)
+              .invoke(null, readerFor(automataValidXml));
       ValidationResult allValidResult =
           (ValidationResult)
               allValidatorClass.getMethod("validate", allOrderClass).invoke(null, allOrder);
@@ -123,16 +139,29 @@ final class XpXsd10ComposedConformanceTest {
               choiceValidatorClass
                   .getMethod("validate", choiceOrderClass)
                   .invoke(null, choiceOrder);
+      ValidationResult automataValidResult =
+          (ValidationResult)
+              automataValidatorClass
+                  .getMethod("validate", automataOrderClass)
+                  .invoke(null, automataOrder);
       ValidationResult allInvalidResult =
           (ValidationResult)
               allValidatorClass
                   .getMethod("validate", XmlEventReader.class)
                   .invoke(null, readerFor(allInvalidXml));
+      ValidationResult automataInvalidResult =
+          (ValidationResult)
+              automataValidatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(automataInvalidXml));
 
       assertTrue(allValidResult.isValid());
       assertTrue(choiceValidResult.isValid());
+      assertTrue(automataValidResult.isValid());
       assertFalse(allInvalidResult.isValid());
       assertFalse(allInvalidResult.errors().isEmpty());
+      assertFalse(automataInvalidResult.isValid());
+      assertFalse(automataInvalidResult.errors().isEmpty());
     }
   }
 

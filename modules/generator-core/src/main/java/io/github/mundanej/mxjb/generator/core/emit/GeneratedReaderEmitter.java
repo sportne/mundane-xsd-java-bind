@@ -2,6 +2,7 @@ package io.github.mundanej.mxjb.generator.core.emit;
 
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentPosition;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -784,6 +785,10 @@ public final class GeneratedReaderEmitter {
         source.append("      }\n");
       }
       source.append("    }\n");
+      String groupPresenceName = field.javaName() + "All" + groupIndex + "GroupCount";
+      source.append("    int ").append(groupPresenceName).append(" = ");
+      source.append(totalName).append(" > 0 ? 1 : 0;\n");
+      appendGroupedCountReadChecks(source, group, groupPresenceName);
     }
 
     private void appendSequenceGroupReadValidation(
@@ -791,34 +796,71 @@ public final class GeneratedReaderEmitter {
         BindingField field,
         io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
         int groupIndex) {
-      String expectedName = field.javaName() + "ExpectedOrder" + groupIndex;
       String groupCountName = field.javaName() + "Group" + groupIndex + "Count";
-      source.append("    int ").append(expectedName).append(" = 1;\n");
-      source.append("    int ").append(groupCountName).append(" = 0;\n");
+      String groupItemsName = field.javaName() + "Group" + groupIndex + "Items";
+      String indexName = field.javaName() + "Group" + groupIndex + "Index";
+      String startName = field.javaName() + "Group" + groupIndex + "Start";
+      source
+          .append("    java.util.List<")
+          .append(localType(field))
+          .append("> ")
+          .append(groupItemsName)
+          .append(" = new java.util.ArrayList<>();\n");
       source.append("    for (").append(localType(field)).append(" item : ");
       source.append(field.javaName()).append("Values) {\n");
-      for (int indexValue = 0; indexValue < group.branches().size(); indexValue++) {
-        BindingContentBranch branch = group.branches().get(indexValue);
-        source.append(indexValue == 0 ? "      if (" : "      } else if (");
-        source.append("item instanceof ").append(branch.branchJavaName().qualifiedName());
-        source.append(") {\n");
-        source.append("        if (").append(expectedName).append(" != ");
-        source.append(indexValue + 1).append(") {\n");
-        source.append(
-            "          throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML grouped content.\");\n");
-        source.append("        }\n");
-        if (indexValue == group.branches().size() - 1) {
-          source.append("        ").append(groupCountName).append("++;\n");
-          source.append("        ").append(expectedName).append(" = 1;\n");
-        } else {
-          source.append("        ").append(expectedName).append("++;\n");
-        }
-      }
+      source.append("      if (");
+      appendInstanceOfAny(source, "item", group.branches());
+      source.append(") {\n");
+      source.append("        ").append(groupItemsName).append(".add(item);\n");
       source.append("      }\n");
       source.append("    }\n");
-      source.append("    if (").append(expectedName).append(" != 1) {\n");
+      source.append("    int ").append(indexName).append(" = 0;\n");
+      source.append("    int ").append(groupCountName).append(" = 0;\n");
+      source.append("    while (").append(indexName).append(" < ");
+      source.append(groupItemsName).append(".size()) {\n");
+      source.append("      int ").append(startName).append(" = ").append(indexName).append(";\n");
+      for (int indexValue = 0; indexValue < group.positions().size(); indexValue++) {
+        BindingContentPosition position = group.positions().get(indexValue);
+        String positionCountName =
+            field.javaName() + "Group" + groupIndex + "Position" + indexValue + "Count";
+        source.append("      int ").append(positionCountName).append(" = 0;\n");
+        source.append("      while (").append(indexName).append(" < ");
+        source.append(groupItemsName).append(".size() && (");
+        appendInstanceOfAny(
+            source, groupItemsName + ".get(" + indexName + ")", position.branches());
+        source.append(")) {\n");
+        if (!"unbounded".equals(position.cardinality().maxOccurs())) {
+          source.append("        if (").append(positionCountName).append(" >= ");
+          source.append(Integer.parseInt(position.cardinality().maxOccurs())).append(") {\n");
+          source.append(
+              "          throw readException(input, \"MXJB-GR-005\", \"Too many XML grouped content values.\");\n");
+          source.append("        }\n");
+        }
+        source.append("        ").append(indexName).append("++;\n");
+        source.append("        ").append(positionCountName).append("++;\n");
+        source.append("      }\n");
+        if (position.cardinality().minOccurs() > 0) {
+          source.append("      if (").append(positionCountName).append(" < ");
+          source.append(position.cardinality().minOccurs()).append(") {\n");
+          source.append(
+              "        throw readException(input, \"MXJB-GR-004\", \"Incomplete XML grouped content.\");\n");
+          source.append("      }\n");
+        }
+      }
+      source
+          .append("      if (")
+          .append(indexName)
+          .append(" == ")
+          .append(startName)
+          .append(") {\n");
+      source.append("        break;\n");
+      source.append("      }\n");
+      source.append("      ").append(groupCountName).append("++;\n");
+      source.append("    }\n");
+      source.append("    if (").append(indexName).append(" < ");
+      source.append(groupItemsName).append(".size()) {\n");
       source.append(
-          "      throw readException(input, \"MXJB-GR-004\", \"Incomplete XML grouped content.\");\n");
+          "      throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML grouped content.\");\n");
       source.append("    }\n");
       appendGroupedCountReadChecks(source, group, groupCountName);
     }

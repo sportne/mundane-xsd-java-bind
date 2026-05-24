@@ -1299,7 +1299,7 @@ public final class SchemaIrBuilder {
       } else if (child.kind() == XsdSyntaxKind.SEQUENCE) {
         SchemaIrSequence nested = normalizeSequence(document, child, state, allowGroupReferences);
         if (nested != null) {
-          addFlattenedNestedSequence(document, particles, nested, state);
+          addFlattenedNestedSequence(particles, nested);
         }
       } else if (child.kind() == XsdSyntaxKind.ANY) {
         addIfPresent(particles, normalizeWildcard(document, child, state));
@@ -1388,10 +1388,7 @@ public final class SchemaIrBuilder {
   }
 
   private void addFlattenedNestedSequence(
-      XsdSyntaxDocument document,
-      List<SchemaIrParticle> particles,
-      SchemaIrSequence nested,
-      BuildState state) {
+      List<SchemaIrParticle> particles, SchemaIrSequence nested) {
     if (nested.cardinality().minOccurs() == 1 && "1".equals(nested.cardinality().maxOccurs())) {
       particles.addAll(nested.particles());
       return;
@@ -1400,42 +1397,7 @@ public final class SchemaIrBuilder {
       particles.add(withCardinality(nested.particles().getFirst(), nested.cardinality()));
       return;
     }
-    if (nested.particles().stream().anyMatch(particle -> !isSingletonParticle(particle))) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "Repeated or optional nested xs:sequence with non-singleton child particles "
-              + "requires content-model automata.");
-      return;
-    }
     particles.add(new SchemaIrGroup("sequence", nested.cardinality(), nested.particles()));
-  }
-
-  private boolean isSingletonParticle(SchemaIrParticle particle) {
-    SchemaCardinality cardinality = particleCardinality(particle);
-    return cardinality != null
-        && cardinality.minOccurs() == 1
-        && "1".equals(cardinality.maxOccurs());
-  }
-
-  private SchemaCardinality particleCardinality(SchemaIrParticle particle) {
-    if (particle instanceof SchemaIrElement element) {
-      return element.cardinality();
-    }
-    if (particle instanceof SchemaIrChoice choice) {
-      return choice.cardinality();
-    }
-    if (particle instanceof SchemaIrWildcard wildcard) {
-      return wildcard.cardinality();
-    }
-    if (particle instanceof SchemaIrAll all) {
-      return all.cardinality();
-    }
-    if (particle instanceof SchemaIrGroup group) {
-      return group.cardinality();
-    }
-    return null;
   }
 
   private SchemaIrParticle withCardinality(
@@ -1504,6 +1466,19 @@ public final class SchemaIrBuilder {
         }
       }
     }
+    for (int left = 0; left < wildcards.size(); left++) {
+      for (int right = left + 1; right < wildcards.size(); right++) {
+        if (wildcardsOverlap(
+            wildcards.get(left).namespaceConstraint(),
+            wildcards.get(right).namespaceConstraint())) {
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              document.resourceId(),
+              "xs:any namespace constraints overlap in the same sequence.");
+        }
+      }
+    }
   }
 
   private void collectWildcardAmbiguityInputs(
@@ -1536,6 +1511,25 @@ public final class SchemaIrBuilder {
       case "other" -> !namespace.namespaces().contains(elementName.namespace());
       default -> namespace.namespaces().contains(elementName.namespace());
     };
+  }
+
+  private boolean wildcardsOverlap(
+      SchemaIrWildcardNamespace left, SchemaIrWildcardNamespace right) {
+    if ("any".equals(left.kind()) || "any".equals(right.kind())) {
+      return true;
+    }
+    if ("other".equals(left.kind()) && "other".equals(right.kind())) {
+      return true;
+    }
+    if ("other".equals(left.kind())) {
+      return right.namespaces().stream()
+          .anyMatch(namespace -> !left.namespaces().contains(namespace));
+    }
+    if ("other".equals(right.kind())) {
+      return left.namespaces().stream()
+          .anyMatch(namespace -> !right.namespaces().contains(namespace));
+    }
+    return left.namespaces().stream().anyMatch(right.namespaces()::contains);
   }
 
   private SchemaIrWildcard normalizeWildcard(
@@ -1736,15 +1730,6 @@ public final class SchemaIrBuilder {
       return new SchemaIrSequence(
           SchemaCardinality.ONE,
           List.of(withCardinality(group.sequence().particles().getFirst(), cardinality)));
-    }
-    if (group.sequence().particles().stream()
-        .anyMatch(particle -> !isSingletonParticle(particle))) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "Repeated or optional xs:group ref with non-singleton child particles requires content-model automata.");
-      return null;
     }
     return new SchemaIrSequence(
         SchemaCardinality.ONE,

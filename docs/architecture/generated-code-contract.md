@@ -162,7 +162,8 @@ The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and ge
   nodes deterministically. Generated writers serialize the content list exactly in list order.
 - `TASK-0059` reuses the generated content-list shape for grouped element/wildcard branches. These
   records expose immutable `List<<ContainingTypeSimpleName><GroupKind>Content>` fields and writers
-  emit entries in list order. Complete shared automata validation remains `TASK-0060`.
+  emit entries in list order. `TASK-0060` adds shared grouped-content position metadata so reader
+  and validator generated code agree on nested choice positions inside grouped sequences.
 - `TASK-0039` verifies stable project XML output for generated and retained content. Generated
   writers emit attributes immediately after `startElement`, ordinary child content in binding order,
   repeated content in list order, and mixed-content branches in content-list order. Retained

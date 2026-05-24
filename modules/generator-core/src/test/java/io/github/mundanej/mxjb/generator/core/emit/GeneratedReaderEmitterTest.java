@@ -11,6 +11,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContent;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentPosition;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -297,7 +298,42 @@ final class GeneratedReaderEmitterTest {
       Object content = orderClass.getMethod("orderSequenceContent").invoke(order);
       assertInstanceOf(List.class, content);
       assertEquals(4, ((List<?>) content).size());
-      assertReadDiagnostic(readerClass, groupedSequenceBadOrderInput(), "MXJB-GR-002");
+      assertReadDiagnostic(readerClass, groupedSequenceBadOrderInput(), "MXJB-GR-005");
+    }
+  }
+
+  @Test
+  void generatedReaderUsesAutomataPositionsForNestedChoiceInGroupedSequence()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(
+                type("com.example.orders", "Order", List.of(groupedSequenceWithChoiceField()))));
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+
+      Object order =
+          readerClass
+              .getMethod("read", XmlEventReader.class)
+              .invoke(null, groupedSequenceWithChoiceInput());
+
+      Object content = orderClass.getMethod("orderSequenceContent").invoke(order);
+      assertInstanceOf(List.class, content);
+      assertEquals(4, ((List<?>) content).size());
+      assertReadDiagnostic(readerClass, groupedSequenceWithChoiceBadOrderInput(), "MXJB-GR-005");
     }
   }
 
@@ -757,6 +793,43 @@ final class GeneratedReaderEmitterTest {
         event(XmlEventKind.END_DOCUMENT, null));
   }
 
+  private EventXmlReader groupedSequenceWithChoiceInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        elementTextStart("card"),
+        text("visa"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "card")),
+        elementTextStart("line"),
+        text("L-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        elementTextStart("cash"),
+        text("cash"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "cash")),
+        elementTextStart("line"),
+        text("L-2"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader groupedSequenceWithChoiceBadOrderInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        elementTextStart("card"),
+        text("visa"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "card")),
+        elementTextStart("cash"),
+        text("cash"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "cash")),
+        elementTextStart("line"),
+        text("L-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
   private EventXmlReader groupedAllOmittedInput() {
     return reader(
         event(XmlEventKind.START_DOCUMENT, null),
@@ -987,13 +1060,50 @@ final class GeneratedReaderEmitterTest {
     BindingContentBranch id =
         contentBranch("element", "id", scalar("string"), optional(), 1, "IdContent");
     BindingContentBranch line =
-        contentBranch("element", "line", scalar("string"), optional(), 2, "LineContent");
+        contentBranch("element", "line", scalar("string"), required(), 2, "LineContent");
     BindingContent content =
         new BindingContent(
             contentName,
             List.of(id, line),
             "sequence",
             List.of(new BindingContentGroup("sequence", list(), List.of(id, line))));
+    return new BindingField(
+        "content",
+        schemaName("orderSequenceContent"),
+        "orderSequenceContent",
+        new BindingTypeReference("choice", contentName.qualifiedName()),
+        list(),
+        1,
+        false,
+        content);
+  }
+
+  private BindingField groupedSequenceWithChoiceField() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderSequenceContent");
+    BindingContentBranch card =
+        contentBranch("element", "card", scalar("string"), optional(), 1, "CardContent");
+    BindingContentBranch cash =
+        contentBranch("element", "cash", scalar("string"), optional(), 1, "CashContent");
+    BindingContentBranch line =
+        contentBranch("element", "line", scalar("string"), required(), 2, "LineContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(card, cash, line),
+            "sequence",
+            List.of(
+                new BindingContentGroup(
+                    "choice",
+                    list(),
+                    List.of(card, cash),
+                    List.of(new BindingContentPosition(list(), List.of(card, cash)))),
+                new BindingContentGroup(
+                    "sequence",
+                    list(),
+                    List.of(card, cash, line),
+                    List.of(
+                        new BindingContentPosition(required(), List.of(card, cash)),
+                        new BindingContentPosition(required(), List.of(line))))));
     return new BindingField(
         "content",
         schemaName("orderSequenceContent"),

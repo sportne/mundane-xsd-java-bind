@@ -8,7 +8,7 @@ Validation is a first-class generated-code concern.
 |---|---|---|
 | Well-formedness | Delegated to XML event source. | Same unless custom parser is introduced. |
 | Namespace correctness | Required for supported constructs. | Expanded edge cases. |
-| Structural content model | Required for supported sequences/cardinality, legal `xs:all`, and repeated element-only choices. | Grouped content-list models, complete UPA automata, and derivation. |
+| Structural content model | Required for supported sequences/cardinality, legal `xs:all`, repeated choices, and grouped content-list models. | Derivation composition and W3C generated-binding row mapping. |
 | Simple lexical conversion | Full XSD 1.0 built-ins for accepted schema shapes. | Broader schema shapes through later full-XSD gates. |
 | Simple restrictions | XSD 1.0 facets for accepted schema shapes. | Integration with full derivation/content-model semantics. |
 | Identity constraints | Generated document-scope validation for accepted model shapes. | Full-suite edge-case classification. |
@@ -115,8 +115,10 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   effective wildcard.
 - `TASK-0059` validates generated grouped content-list fields for null-free structure, per-branch
   cardinality, retained wildcard namespace constraints, and deterministic list-order writer
-  behavior. Complete reader/validator automata agreement and full UPA coverage remain `TASK-0060`.
+  behavior. `TASK-0060` adds shared grouped-content position metadata so generated readers and
+  validators agree for nested choice positions in grouped sequences, plus deterministic
+  wildcard/wildcard UPA diagnostics.
 - Full schema-known validation for `processContents="lax"` or `"strict"`, identity-constraint
-  edge cases beyond accepted generated model shapes, complete UPA coverage, complete
-  derivation/restriction/block/final and `xsi:type` behavior, comments, processing instructions,
-  entity-reference semantics, and full XSD 1.0 validation remain future work.
+  edge cases beyond accepted generated model shapes, complete derivation/restriction/block/final and
+  `xsi:type` behavior, comments, processing instructions, entity-reference semantics, and full XSD
+  1.0 validation remain future work.

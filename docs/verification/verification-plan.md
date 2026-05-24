@@ -216,8 +216,9 @@ The remaining verification sequence is:
 - `TASK-0059`: accepted generated content-list tests for repeated/optional multi-particle groups
   whose child particles are singleton particles, optional `xs:all` with required children, mixed
   choices, and wildcard choices.
-- `TASK-0060`: content-model automata and UPA tests proving generated readers and validators share
-  the same deterministic model.
+- `TASK-0060`: accepted content-model automata and UPA tests proving generated readers and
+  validators share grouped-content position metadata for nested choice positions and wildcard
+  overlap diagnostics.
 - `TASK-0061`: derivation, restriction, block/final, abstract type, and `xsi:type` tests.
 - `TASK-0062`: strict/lax wildcard deep-validation and wildcard composition tests.
 - `TASK-0063`: datatype/list/union, NOTATION, `xsi:nil`, and identity-constraint edge tests needed

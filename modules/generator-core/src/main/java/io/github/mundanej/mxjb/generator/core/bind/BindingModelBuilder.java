@@ -518,11 +518,19 @@ public final class BindingModelBuilder {
                 "choice",
                 new BindingCardinality(
                     "list", choice.cardinality().minOccurs(), choice.cardinality().maxOccurs()),
-                groupBranches));
+                groupBranches,
+                List.of(
+                    new BindingContentPosition(
+                        new BindingCardinality(
+                            "list",
+                            choice.cardinality().minOccurs(),
+                            choice.cardinality().maxOccurs()),
+                        groupBranches))));
         return branchOrder;
       }
       if (particle instanceof SchemaIrAll all) {
         List<BindingContentBranch> groupBranches = new ArrayList<>();
+        List<BindingContentPosition> groupPositions = new ArrayList<>();
         for (SchemaIrElement element : all.elements()) {
           BindingContentBranch branch =
               bindElementContentBranch(
@@ -532,6 +540,7 @@ public final class BindingModelBuilder {
                   branchOrder);
           branches.add(branch);
           groupBranches.add(branch);
+          groupPositions.add(new BindingContentPosition(branch.cardinality(), List.of(branch)));
           branchOrder++;
         }
         groups.add(
@@ -539,17 +548,45 @@ public final class BindingModelBuilder {
                 "all",
                 new BindingCardinality(
                     "list", all.cardinality().minOccurs(), all.cardinality().maxOccurs()),
-                groupBranches));
+                groupBranches,
+                groupPositions));
         return branchOrder - 1;
       }
       if (particle instanceof SchemaIrGroup group) {
         List<BindingContentBranch> groupBranches = new ArrayList<>();
+        List<BindingContentPosition> groupPositions = new ArrayList<>();
         for (SchemaIrParticle nested : group.particles()) {
+          if (nested instanceof SchemaIrChoice choice) {
+            List<BindingContentBranch> positionBranches = new ArrayList<>();
+            BindingCardinality positionCardinality = BindingCardinality.from(choice.cardinality());
+            SchemaCardinality effectiveChoiceCardinality =
+                composeCardinality(group.cardinality(), choice.cardinality());
+            for (SchemaIrParticle choiceBranch : choice.branches()) {
+              int beforeSize = branches.size();
+              addContentBranches(
+                  withChoiceBranchCardinality(choiceBranch, effectiveChoiceCardinality),
+                  packageName,
+                  ownerSimpleName,
+                  branchNames,
+                  branches,
+                  groups,
+                  branchOrder);
+              positionBranches.addAll(branches.subList(beforeSize, branches.size()));
+            }
+            groupBranches.addAll(positionBranches);
+            groupPositions.add(new BindingContentPosition(positionCardinality, positionBranches));
+            branchOrder++;
+            continue;
+          }
           int beforeSize = branches.size();
           branchOrder =
               addContentBranches(
                   nested, packageName, ownerSimpleName, branchNames, branches, groups, branchOrder);
-          groupBranches.addAll(branches.subList(beforeSize, branches.size()));
+          List<BindingContentBranch> positionBranches =
+              new ArrayList<>(branches.subList(beforeSize, branches.size()));
+          groupBranches.addAll(positionBranches);
+          groupPositions.add(
+              new BindingContentPosition(positionCardinality(nested), positionBranches));
           branchOrder++;
         }
         groups.add(
@@ -557,7 +594,8 @@ public final class BindingModelBuilder {
                 group.modelKind(),
                 new BindingCardinality(
                     "list", group.cardinality().minOccurs(), group.cardinality().maxOccurs()),
-                groupBranches));
+                groupBranches,
+                groupPositions));
         return branchOrder - 1;
       }
       diagnostic(
@@ -573,6 +611,25 @@ public final class BindingModelBuilder {
       return withBranchCardinality(particle, effective);
     }
 
+    private BindingCardinality positionCardinality(SchemaIrParticle particle) {
+      if (particle instanceof SchemaIrElement element) {
+        return BindingCardinality.from(element.cardinality());
+      }
+      if (particle instanceof SchemaIrWildcard wildcard) {
+        return BindingCardinality.from(wildcard.cardinality());
+      }
+      if (particle instanceof SchemaIrChoice choice) {
+        return BindingCardinality.from(choice.cardinality());
+      }
+      if (particle instanceof SchemaIrAll all) {
+        return BindingCardinality.from(all.cardinality());
+      }
+      if (particle instanceof SchemaIrGroup group) {
+        return BindingCardinality.from(group.cardinality());
+      }
+      return new BindingCardinality("required", 1, "1");
+    }
+
     private SchemaIrParticle withBranchCardinality(
         SchemaIrParticle particle, SchemaCardinality cardinality) {
       if (particle instanceof SchemaIrElement element) {
@@ -583,6 +640,10 @@ public final class BindingModelBuilder {
             composeCardinality(cardinality, wildcard.cardinality()),
             wildcard.namespaceConstraint(),
             wildcard.processContents());
+      }
+      if (particle instanceof SchemaIrChoice choice) {
+        return new SchemaIrChoice(
+            composeCardinality(cardinality, choice.cardinality()), choice.branches());
       }
       return particle;
     }

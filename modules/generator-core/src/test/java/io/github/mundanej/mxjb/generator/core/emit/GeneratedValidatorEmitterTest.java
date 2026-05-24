@@ -10,6 +10,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContent;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentPosition;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -568,6 +569,7 @@ final class GeneratedValidatorEmitterTest {
       Class<?> orderClass = compiledSources.load("com.example.orders.Order");
       Class<?> idContentClass = compiledSources.load("com.example.orders.IdContent");
       Class<?> lineContentClass = compiledSources.load("com.example.orders.LineContent");
+      Class<?> allIdContentClass = compiledSources.load("com.example.orders.AllIdContent");
       Class<?> noteContentClass = compiledSources.load("com.example.orders.AllNoteContent");
       Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
       Object valid =
@@ -580,6 +582,14 @@ final class GeneratedValidatorEmitterTest {
                       idContentClass.getConstructor(String.class).newInstance("A-2"),
                       lineContentClass.getConstructor(String.class).newInstance("L-2")),
                   List.of());
+      Object validAllPresent =
+          orderClass
+              .getConstructor(List.class, List.class)
+              .newInstance(
+                  List.of(),
+                  List.of(
+                      allIdContentClass.getConstructor(String.class).newInstance("A-1"),
+                      noteContentClass.getConstructor(String.class).newInstance("gift")));
       Object invalidSequence =
           orderClass
               .getConstructor(List.class, List.class)
@@ -597,6 +607,9 @@ final class GeneratedValidatorEmitterTest {
 
       ValidationResult validResult =
           (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult validAllPresentResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, validAllPresent);
       ValidationResult invalidSequenceResult =
           (ValidationResult)
               validatorClass.getMethod("validate", orderClass).invoke(null, invalidSequence);
@@ -605,8 +618,59 @@ final class GeneratedValidatorEmitterTest {
               validatorClass.getMethod("validate", orderClass).invoke(null, invalidAll);
 
       assertTrue(validResult.isValid());
-      assertTrue(codes(invalidSequenceResult).contains("MXJB-GV-009"));
+      assertTrue(validAllPresentResult.isValid());
+      assertTrue(codes(invalidSequenceResult).contains("MXJB-GV-003"));
       assertEquals(List.of("MXJB-GV-002"), codes(invalidAllResult));
+    }
+  }
+
+  @Test
+  void generatedValidatorUsesAutomataPositionsForNestedChoiceInGroupedSequence()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(
+                type("com.example.orders", "Order", List.of(groupedSequenceWithChoiceField()))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> cardContentClass = compiledSources.load("com.example.orders.CardContent");
+      Class<?> cashContentClass = compiledSources.load("com.example.orders.CashContent");
+      Class<?> lineContentClass = compiledSources.load("com.example.orders.LineContent");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object valid =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(
+                  List.of(
+                      cardContentClass.getConstructor(String.class).newInstance("visa"),
+                      lineContentClass.getConstructor(String.class).newInstance("L-1"),
+                      cashContentClass.getConstructor(String.class).newInstance("cash"),
+                      lineContentClass.getConstructor(String.class).newInstance("L-2")));
+      Object invalid =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(
+                  List.of(
+                      cardContentClass.getConstructor(String.class).newInstance("visa"),
+                      cashContentClass.getConstructor(String.class).newInstance("cash"),
+                      lineContentClass.getConstructor(String.class).newInstance("L-1")));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult invalidResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, invalid);
+
+      assertTrue(validResult.isValid());
+      assertTrue(codes(invalidResult).contains("MXJB-GV-003"));
     }
   }
 
@@ -1195,13 +1259,42 @@ final class GeneratedValidatorEmitterTest {
     BindingContentBranch id =
         contentBranch("element", "id", scalar("string"), optional(), 1, "IdContent");
     BindingContentBranch line =
-        contentBranch("element", "line", scalar("string"), optional(), 2, "LineContent");
+        contentBranch("element", "line", scalar("string"), required(), 2, "LineContent");
     BindingContent content =
         new BindingContent(
             contentName,
             List.of(id, line),
             "sequence",
             List.of(new BindingContentGroup("sequence", list(), List.of(id, line))));
+    return contentField("orderSequenceContent", contentName, content, list(), 1);
+  }
+
+  private BindingField groupedSequenceWithChoiceField() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderSequenceContent");
+    BindingContentBranch card =
+        contentBranch("element", "card", scalar("string"), optional(), 1, "CardContent");
+    BindingContentBranch cash =
+        contentBranch("element", "cash", scalar("string"), optional(), 1, "CashContent");
+    BindingContentBranch line =
+        contentBranch("element", "line", scalar("string"), required(), 2, "LineContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(card, cash, line),
+            "sequence",
+            List.of(
+                new BindingContentGroup(
+                    "choice",
+                    list(),
+                    List.of(card, cash),
+                    List.of(new BindingContentPosition(list(), List.of(card, cash)))),
+                new BindingContentGroup(
+                    "sequence",
+                    list(),
+                    List.of(card, cash, line),
+                    List.of(
+                        new BindingContentPosition(required(), List.of(card, cash)),
+                        new BindingContentPosition(required(), List.of(line))))));
     return contentField("orderSequenceContent", contentName, content, list(), 1);
   }
 

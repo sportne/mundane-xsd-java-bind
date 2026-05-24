@@ -68,3 +68,5 @@ instead of introducing DOM-backed runtime binding.
   particles, optional all-groups with required children, mixed choices, and wildcard choices as
   explicit grouped IR particles or content-list binding metadata instead of flattening them into
   misleading independent fields.
+- `TASK-0060` extends grouped content metadata with deterministic position lists so nested choice
+  alternatives share one sequence step in both generated reader and validator plans.

@@ -1,0 +1,5 @@
+<automataOrder xmlns="urn:content-model">
+  <card>visa</card>
+  <cash>cash</cash>
+  <line>L-1</line>
+</automataOrder>

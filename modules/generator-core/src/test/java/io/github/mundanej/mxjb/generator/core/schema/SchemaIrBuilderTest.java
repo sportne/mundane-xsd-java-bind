@@ -626,7 +626,7 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
-  void rejectsGroupedSequenceWithNonSingletonChildrenUntilAutomataSupport() throws IOException {
+  void buildsIrForRepeatedNestedSequenceWithOptionalChildrenAsGroupedContent() throws IOException {
     write(
         "main.xsd",
         schema(
@@ -644,8 +644,11 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
 
-    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
-    assertTrue(result.diagnostics().getFirst().message().contains("content-model automata"));
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("sequenceGroup cardinality=0..unbounded"), irText);
+    assertTrue(irText.contains("element {urn:orders}id type=xs:string cardinality=0..1"), irText);
+    assertTrue(irText.contains("element {urn:orders}line type=xs:string cardinality=1..1"), irText);
   }
 
   @Test
@@ -1834,6 +1837,33 @@ final class SchemaIrBuilderTest {
             .getFirst()
             .message()
             .contains("xs:any namespace constraint overlaps XML element {urn:orders}card"));
+  }
+
+  @Test
+  void rejectsOverlappingWildcardChoiceBranches() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:choice>
+                      <xs:any namespace="##local" processContents="skip"/>
+                      <xs:any namespace="##any" processContents="skip"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(1, result.diagnostics().size());
+    assertEquals(
+        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, result.diagnostics().getFirst().code());
+    assertEquals(
+        "xs:any namespace constraints overlap in the same sequence.",
+        result.diagnostics().getFirst().message());
   }
 
   private SchemaIrResult build(String primarySchema) {

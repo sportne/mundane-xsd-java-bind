@@ -4,6 +4,7 @@
     elementFormDefault="qualified">
   <xs:element name="allOrder" type="tns:AllOrder"/>
   <xs:element name="choiceOrder" type="tns:ChoiceOrder"/>
+  <xs:element name="automataOrder" type="tns:AutomataOrder"/>
   <xs:complexType name="AllOrder">
     <xs:all>
       <xs:element name="id" type="xs:string"/>
@@ -19,6 +20,17 @@
         <xs:element name="domestic" type="xs:string"/>
         <xs:element name="international" type="xs:string"/>
       </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="AutomataOrder">
+    <xs:sequence>
+      <xs:sequence minOccurs="0" maxOccurs="unbounded">
+        <xs:choice>
+          <xs:element name="card" type="xs:string"/>
+          <xs:element name="cash" type="xs:string"/>
+        </xs:choice>
+        <xs:element name="line" type="xs:string"/>
+      </xs:sequence>
     </xs:sequence>
   </xs:complexType>
 </xs:schema>
