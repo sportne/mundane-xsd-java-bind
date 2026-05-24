@@ -422,6 +422,27 @@ final class GeneratedReaderEmitterTest {
   }
 
   @Test
+  void generatedReaderRejectsStrictWildcardElementsWithoutKnownDeclaration()
+      throws IOException, ClassNotFoundException, NoSuchMethodException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(type("com.example.orders", "Order", List.of(strictKnownWildcardField()))));
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+
+      assertReadDiagnostic(readerClass, strictWildcardInput(false), "MXJB-GR-002");
+    }
+  }
+
+  @Test
   void generatedReaderReportsDeterministicDiagnostics()
       throws IOException, ClassNotFoundException, NoSuchMethodException {
     BindingModel model = orderModel();
@@ -1170,6 +1191,38 @@ final class GeneratedReaderEmitterTest {
                 "any", List.of()),
             "lax",
             List.of(new SchemaQName("", "blocked"))));
+  }
+
+  private BindingField strictKnownWildcardField() {
+    return new BindingField(
+        "wildcard",
+        new SchemaQName("", "*"),
+        "wildcardContent",
+        new BindingTypeReference("fragment", "io.github.mundanej.mxjb.runtime.XmlFragment"),
+        list(),
+        1,
+        false,
+        new io.github.mundanej.mxjb.generator.core.bind.BindingWildcard(
+            new io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace(
+                "explicit", List.of("urn:orders")),
+            "strict",
+            List.of(),
+            List.of(
+                new io.github.mundanej.mxjb.generator.core.bind.BindingWildcardElement(
+                    schemaName("discount"), scalar("int"))),
+            List.of()));
+  }
+
+  private EventXmlReader strictWildcardInput(boolean known) {
+    String localName = known ? "discount" : "unknown";
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", localName)),
+        text("10"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", localName)),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
   }
 
   private BindingTypeReference scalar(String name) {

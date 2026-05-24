@@ -9,7 +9,9 @@ import java.util.Objects;
 public record BindingWildcard(
     SchemaIrWildcardNamespace namespaceConstraint,
     String processContents,
-    List<SchemaQName> excludedNames) {
+    List<SchemaQName> excludedNames,
+    List<BindingWildcardElement> knownElements,
+    List<BindingWildcardAttribute> knownAttributes) {
   public BindingWildcard(SchemaIrWildcardNamespace namespaceConstraint) {
     this(namespaceConstraint, "strict", List.of());
   }
@@ -18,11 +20,20 @@ public record BindingWildcard(
     this(namespaceConstraint, processContents, List.of());
   }
 
+  public BindingWildcard(
+      SchemaIrWildcardNamespace namespaceConstraint,
+      String processContents,
+      List<SchemaQName> excludedNames) {
+    this(namespaceConstraint, processContents, excludedNames, List.of(), List.of());
+  }
+
   public BindingWildcard {
     Objects.requireNonNull(namespaceConstraint, "namespaceConstraint");
     processContents =
         processContents == null || processContents.isBlank() ? "strict" : processContents;
     excludedNames = List.copyOf(excludedNames == null ? List.of() : excludedNames);
+    knownElements = List.copyOf(knownElements == null ? List.of() : knownElements);
+    knownAttributes = List.copyOf(knownAttributes == null ? List.of() : knownAttributes);
   }
 
   public String toText(String indent) {

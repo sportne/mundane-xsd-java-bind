@@ -186,7 +186,9 @@ The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and ge
   prohibited/excluded attribute names.
 - `TASK-0052` carries `processContents` metadata for retained element and attribute wildcards and
   defaults omitted values to XSD 1.0 `strict`. `TASK-0059` adds wildcard choice branch generation.
-  Full schema-known deep validation for `lax`/`strict` wildcards remains future work.
+  `TASK-0062` adds schema-known `lax`/`strict` validation for accepted retained element and
+  attribute wildcards: strict unknown matching names are rejected, lax unknown matching names remain
+  retained, and known declarations are validated through generated scalar/model helpers.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, DOM-backed
   binding, and external resource access.

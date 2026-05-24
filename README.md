@@ -22,9 +22,11 @@ The current executable profiles are:
 - `XP-XSD10-SEMANTIC`: accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution
   groups, `xs:unique`/`xs:key`/`xs:keyref` identity constraints for accepted generated model
   shapes, and expanded generated validation for those paths.
-- `XP-XSD10-DOCUMENT`: accepted direct `xs:any` wildcard/open-content retention, accepted
-  `xs:anyAttribute` retention, accepted `mixed="true"` sequence content, retained `XmlFragment`
-  and `XmlAttribute` values, and stable project serialization policy.
+- `XP-XSD10-DOCUMENT`: accepted `xs:any` wildcard/open-content retention, accepted
+  `xs:anyAttribute` retention, accepted wildcard choices, accepted `mixed="true"` sequence and
+  mixed choice content, retained `XmlFragment` and `XmlAttribute` values, strict/lax
+  schema-known wildcard validation for accepted retained declarations, and stable project
+  serialization policy.
 
 Across the executable profiles, accepted scalar element and attribute positions use the shared XSD
 1.0 datatype engine: string, numeric, float/double, temporal, duration, binary, anyURI,
@@ -32,9 +34,10 @@ QName/NOTATION, list-valued built-ins, and restriction facets are supported for 
 the profiles already accept.
 
 Content-model coverage now includes required `xs:all` groups, all-optional `xs:all` groups,
-repeated element-only choices, nested singleton sequences, and single-particle repeated/optional
-group refs in the currently executable profiles. More complex grouped content-list shapes remain
-planned.
+optional all-groups with required children, repeated element-only choices, repeated/optional
+multi-particle groups, nested singleton sequences, single-particle repeated/optional group refs,
+mixed choices, wildcard choices, and shared grouped-position reader/validator checks in the
+currently executable profiles.
 
 The planned full XML Schema 1.0 target is `XP-XSD10-FULL`. The public profile token exists for
 planning, but generation intentionally rejects it until the follow-on implementation tasks complete.
@@ -43,9 +46,9 @@ The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 ## Not supported
 
 - Full XML Schema 1.0 conformance is not claimed yet.
-- Grouped content-list models, complete UPA automata, full derivation/polymorphism, strict/lax
-  schema-known wildcard validation, wildcard choice branches, and W3C suite rows mapped to
-  generated-binding support are still planned work.
+- Remaining datatype/list/union, NOTATION, `xsi:nil`, identity-constraint edge cases, W3C suite
+  rows mapped to generated-binding support, executable `XP-XSD10-FULL`, and final release workflow
+  readiness are still planned work.
 - W3C XML Schema 1.0 suite classification exists as opt-in evidence, but no W3C rows are claimed as
   generated-binding-supported yet.
 - XSD 1.1 and XML 1.1 are not project targets.

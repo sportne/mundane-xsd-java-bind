@@ -349,7 +349,9 @@ public final class BindingModelBuilder {
           new BindingWildcard(
               anyAttribute.namespaceConstraint(),
               anyAttribute.processContents(),
-              prohibitedAttributes));
+              prohibitedAttributes,
+              List.of(),
+              knownWildcardAttributes(anyAttribute.namespaceConstraint(), prohibitedAttributes)));
     }
 
     private BindingField bindElementField(
@@ -827,7 +829,12 @@ public final class BindingModelBuilder {
           new BindingCardinality(
               "list", wildcard.cardinality().minOccurs(), wildcard.cardinality().maxOccurs()),
           order,
-          new BindingWildcard(wildcard.namespaceConstraint(), wildcard.processContents()));
+          new BindingWildcard(
+              wildcard.namespaceConstraint(),
+              wildcard.processContents(),
+              List.of(),
+              knownWildcardElements(wildcard.namespaceConstraint()),
+              List.of()));
     }
 
     private BindingField bindWildcardField(
@@ -844,7 +851,48 @@ public final class BindingModelBuilder {
           cardinality,
           order,
           wildcard.cardinality().minOccurs() > 0,
-          new BindingWildcard(wildcard.namespaceConstraint(), wildcard.processContents()));
+          new BindingWildcard(
+              wildcard.namespaceConstraint(),
+              wildcard.processContents(),
+              List.of(),
+              knownWildcardElements(wildcard.namespaceConstraint()),
+              List.of()));
+    }
+
+    private List<BindingWildcardElement> knownWildcardElements(
+        io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace namespace) {
+      return globalElements.values().stream()
+          .filter(element -> !element.abstractElement())
+          .filter(element -> wildcardMatches(element.name(), namespace))
+          .map(
+              element ->
+                  new BindingWildcardElement(
+                      element.name(), bindTypeReference(element.type(), element, element.name())))
+          .toList();
+    }
+
+    private List<BindingWildcardAttribute> knownWildcardAttributes(
+        io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace namespace,
+        List<SchemaQName> excludedNames) {
+      return globalAttributes.values().stream()
+          .filter(attribute -> !excludedNames.contains(attribute.name()))
+          .filter(attribute -> wildcardMatches(attribute.name(), namespace))
+          .map(
+              attribute ->
+                  new BindingWildcardAttribute(
+                      attribute.name(),
+                      bindTypeReference(attribute.type(), null, attribute.name())))
+          .toList();
+    }
+
+    private boolean wildcardMatches(
+        SchemaQName name,
+        io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace namespace) {
+      return switch (namespace.kind()) {
+        case "any" -> true;
+        case "other" -> !namespace.namespaces().contains(name.namespace());
+        default -> namespace.namespaces().contains(name.namespace());
+      };
     }
 
     private BindingField bindSubstitutionField(

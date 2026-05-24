@@ -75,3 +75,6 @@ instead of introducing DOM-backed runtime binding.
   misleading independent fields.
 - `TASK-0060` extends grouped content metadata with deterministic position lists so nested choice
   alternatives share one sequence step in both generated reader and validator plans.
+- `TASK-0062` binds schema-known global element and attribute declarations that match accepted
+  wildcard namespace constraints so generated readers and validators can enforce strict/lax
+  retained wildcard validation without DOM-backed binding or lexical-prefix preservation.

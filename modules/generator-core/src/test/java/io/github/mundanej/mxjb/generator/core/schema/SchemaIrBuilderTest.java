@@ -1751,6 +1751,56 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
+  void reportsAnyAttributeRestrictionOutsideBaseWildcard() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Base">
+                  <xs:anyAttribute namespace="urn:allowed" processContents="lax"/>
+                </xs:complexType>
+                <xs:complexType name="Restricted">
+                  <xs:complexContent>
+                    <xs:restriction base="tns:Base">
+                      <xs:anyAttribute namespace="urn:blocked" processContents="lax"/>
+                    </xs:restriction>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("not a subset"));
+  }
+
+  @Test
+  void reportsAnyAttributeRestrictionThatWeakensProcessContents() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Base">
+                  <xs:anyAttribute namespace="##any" processContents="strict"/>
+                </xs:complexType>
+                <xs:complexType name="Restricted">
+                  <xs:complexContent>
+                    <xs:restriction base="tns:Base">
+                      <xs:anyAttribute namespace="##targetNamespace" processContents="lax"/>
+                    </xs:restriction>
+                  </xs:complexContent>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
+    assertTrue(result.diagnostics().getFirst().message().contains("processContents cannot weaken"));
+  }
+
+  @Test
   void reportsInvalidAnyAttributeProcessContentsAndNamespaceComposition() throws IOException {
     write(
         "main.xsd",

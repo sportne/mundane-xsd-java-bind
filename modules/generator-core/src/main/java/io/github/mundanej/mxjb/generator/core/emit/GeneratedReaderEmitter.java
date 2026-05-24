@@ -10,6 +10,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingResult;
 import io.github.mundanej.mxjb.generator.core.bind.BindingRootElement;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
+import io.github.mundanej.mxjb.generator.core.bind.BindingWildcard;
 import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
@@ -462,6 +463,7 @@ public final class GeneratedReaderEmitter {
           source.append(wildcardMatchExpression(anyAttributes.get(indexValue), "attributeName"));
         }
         source.append(") {\n");
+        appendStrictAnyAttributeKnownCheck(source, anyAttributes.getFirst(), attributes.isEmpty());
         source
             .append(attributes.isEmpty() ? "        " : "          ")
             .append(anyAttributes.getFirst().javaName())
@@ -689,10 +691,46 @@ public final class GeneratedReaderEmitter {
           .append(field.order())
           .append(");\n");
       appendMaxOccursCheck(source, field);
+      appendStrictWildcardKnownCheck(source, field.wildcard(), "        ");
       source
           .append("        ")
           .append(field.javaName())
           .append("Values.add(readFragment(input));\n");
+    }
+
+    private void appendStrictAnyAttributeKnownCheck(
+        StringBuilder source, BindingField field, boolean noDeclaredAttributes) {
+      if (!"strict".equals(field.wildcard().processContents())) {
+        return;
+      }
+      String indent = noDeclaredAttributes ? "        " : "          ";
+      source
+          .append(indent)
+          .append("if (!(")
+          .append(wildcardKnownAttributeMatchExpression(field.wildcard(), "attributeName"))
+          .append(")) {\n")
+          .append(indent)
+          .append("  throw readException(input, \"MXJB-GR-003\", ")
+          .append("\"Strict wildcard attribute has no matching declaration.\");\n")
+          .append(indent)
+          .append("}\n");
+    }
+
+    private void appendStrictWildcardKnownCheck(
+        StringBuilder source, BindingWildcard wildcard, String indent) {
+      if (!"strict".equals(wildcard.processContents())) {
+        return;
+      }
+      source
+          .append(indent)
+          .append("if (!(")
+          .append(wildcardKnownElementMatchExpression(wildcard, "input.name()"))
+          .append(")) {\n")
+          .append(indent)
+          .append("  throw readException(input, \"MXJB-GR-002\", ")
+          .append("\"Strict wildcard element has no matching declaration.\");\n")
+          .append(indent)
+          .append("}\n");
     }
 
     private void appendContentBranchRead(
@@ -716,6 +754,9 @@ public final class GeneratedReaderEmitter {
             .append(branch.order())
             .append(");\n");
         appendContentMaxOccursCheck(source, field, branch);
+      }
+      if ("wildcard".equals(branch.kind())) {
+        appendStrictWildcardKnownCheck(source, branch.wildcard(), "          ");
       }
       source
           .append("          ")
@@ -2250,6 +2291,26 @@ public final class GeneratedReaderEmitter {
           + "))";
     }
 
+    private String wildcardKnownElementMatchExpression(
+        BindingWildcard wildcard, String nameExpression) {
+      if (wildcard.knownElements().isEmpty()) {
+        return "false";
+      }
+      return wildcard.knownElements().stream()
+          .map(element -> nameConstant(element.xmlName()) + ".equals(" + nameExpression + ")")
+          .collect(java.util.stream.Collectors.joining(" || "));
+    }
+
+    private String wildcardKnownAttributeMatchExpression(
+        BindingWildcard wildcard, String nameExpression) {
+      if (wildcard.knownAttributes().isEmpty()) {
+        return "false";
+      }
+      return wildcard.knownAttributes().stream()
+          .map(attribute -> nameConstant(attribute.xmlName()) + ".equals(" + nameExpression + ")")
+          .collect(java.util.stream.Collectors.joining(" || "));
+    }
+
     private BindingType modelType(BindingField field) {
       return modelType(field.type());
     }
@@ -2273,6 +2334,7 @@ public final class GeneratedReaderEmitter {
         for (SchemaQName excludedName : field.wildcard().excludedNames()) {
           nameConstant(excludedName);
         }
+        field.wildcard().knownAttributes().forEach(attribute -> nameConstant(attribute.xmlName()));
       }
       for (BindingField field : elements(type)) {
         nameConstant(field.xmlName());
@@ -2302,12 +2364,18 @@ public final class GeneratedReaderEmitter {
           }
           if (!"wildcard".equals(branch.kind())) {
             nameConstant(branch.xmlName());
+          } else {
+            branch.wildcard().knownElements().forEach(element -> nameConstant(element.xmlName()));
           }
           BindingType nestedType = modelType(branch.type());
           if (nestedType != null) {
             collectNames(branch.xmlName(), nestedType, visited);
           }
         }
+      }
+      for (BindingField field :
+          type.fields().stream().filter(value -> "wildcard".equals(value.kind())).toList()) {
+        field.wildcard().knownElements().forEach(element -> nameConstant(element.xmlName()));
       }
     }
 

@@ -12,6 +12,8 @@ import io.github.mundanej.mxjb.generator.core.resolver.SchemaResolver;
 import io.github.mundanej.mxjb.generator.core.resolver.SchemaResolverPolicy;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrBuilder;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrResult;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import io.github.mundanej.mxjb.generator.core.schema.XsdSyntaxParser;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,6 +25,38 @@ import org.junit.jupiter.api.io.TempDir;
 
 final class BindingModelBuilderTest {
   @TempDir private Path tempDirectory;
+
+  @Test
+  void wildcardMetadataNormalizesDefaultsAndKnownDeclarations() {
+    BindingWildcard wildcard =
+        new BindingWildcard(
+            new SchemaIrWildcardNamespace("any", null),
+            " ",
+            null,
+            List.of(
+                new BindingWildcardElement(
+                    new SchemaQName("urn:known", "discount"), BindingTypeReference.scalar("int"))),
+            List.of(
+                new BindingWildcardAttribute(
+                    new SchemaQName("urn:known", "rating"),
+                    BindingTypeReference.scalar("decimal"))));
+
+    assertEquals("strict", wildcard.processContents());
+    assertEquals(List.of(), wildcard.excludedNames());
+    assertEquals(
+        List.of(new SchemaQName("urn:known", "discount")),
+        wildcard.knownElements().stream().map(BindingWildcardElement::xmlName).toList());
+    assertEquals(
+        List.of(new SchemaQName("urn:known", "rating")),
+        wildcard.knownAttributes().stream().map(BindingWildcardAttribute::xmlName).toList());
+    assertEquals("  wildcard namespace=any processContents=strict", wildcard.toText("  "));
+    assertEquals(
+        "strict",
+        new BindingWildcard(new SchemaIrWildcardNamespace("any", null)).processContents());
+    assertEquals(
+        "lax",
+        new BindingWildcard(new SchemaIrWildcardNamespace("any", null), "lax").processContents());
+  }
 
   @Test
   void bindsRootElementComplexTypeFieldsAndValidationPlan() throws IOException {
@@ -1134,6 +1168,54 @@ final class BindingModelBuilderTest {
         text);
     assertTrue(text.contains("wildcard namespace=any processContents=lax"), text);
     assertFalse(text.contains("attribute blocked xml="), text);
+  }
+
+  @Test
+  void bindsWildcardSchemaKnownDeclarationsForStrictAndLaxValidation() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:element name="order" type="tns:Order"/>
+                <xs:element name="discount" type="xs:int"/>
+                <xs:attribute name="rating" type="xs:int"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:any namespace="##targetNamespace" processContents="strict" minOccurs="0"/>
+                  </xs:sequence>
+                  <xs:anyAttribute namespace="##targetNamespace" processContents="lax"/>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    BindingType order =
+        result.model().types().stream()
+            .filter(type -> type.javaName().simpleName().equals("Order"))
+            .findFirst()
+            .orElseThrow();
+    BindingField wildcardContent =
+        order.fields().stream()
+            .filter(field -> "wildcard".equals(field.kind()))
+            .findFirst()
+            .orElseThrow();
+    BindingField wildcardAttributes =
+        order.fields().stream()
+            .filter(field -> "anyAttribute".equals(field.kind()))
+            .findFirst()
+            .orElseThrow();
+    assertTrue(
+        wildcardContent.wildcard().knownElements().stream()
+            .map(BindingWildcardElement::xmlName)
+            .toList()
+            .contains(new SchemaQName("urn:orders", "discount")));
+    assertEquals(
+        List.of(new SchemaQName("urn:orders", "rating")),
+        wildcardAttributes.wildcard().knownAttributes().stream()
+            .map(BindingWildcardAttribute::xmlName)
+            .toList());
   }
 
   private BindingResult bind(String primarySchema) {

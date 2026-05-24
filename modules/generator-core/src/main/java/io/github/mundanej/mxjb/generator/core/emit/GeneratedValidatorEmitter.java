@@ -11,6 +11,9 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingRootElement;
 import io.github.mundanej.mxjb.generator.core.bind.BindingSimpleRestriction;
 import io.github.mundanej.mxjb.generator.core.bind.BindingType;
 import io.github.mundanej.mxjb.generator.core.bind.BindingTypeReference;
+import io.github.mundanej.mxjb.generator.core.bind.BindingWildcard;
+import io.github.mundanej.mxjb.generator.core.bind.BindingWildcardAttribute;
+import io.github.mundanej.mxjb.generator.core.bind.BindingWildcardElement;
 import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
@@ -18,6 +21,7 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityConstraint;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityField;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityPath;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityStep;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -649,7 +653,9 @@ public final class GeneratedValidatorEmitter {
                 branch.wildcard().namespaceConstraint().namespaces().stream()
                     .map(value -> "\"" + escape(value) + "\"")
                     .collect(java.util.stream.Collectors.joining(", ")))
-            .append("), location, errors);\n");
+            .append("), \"")
+            .append(escape(branch.wildcard().processContents()))
+            .append("\", location, errors);\n");
       } else {
         BindingType nestedType = modelType(branch.type());
         if (nestedType != null) {
@@ -887,7 +893,9 @@ public final class GeneratedValidatorEmitter {
                 branch.wildcard().namespaceConstraint().namespaces().stream()
                     .map(value -> "\"" + escape(value) + "\"")
                     .collect(java.util.stream.Collectors.joining(", ")))
-            .append("), location, errors);\n");
+            .append("), \"")
+            .append(escape(branch.wildcard().processContents()))
+            .append("\", location, errors);\n");
       } else {
         BindingType nestedType = modelType(branch.type());
         if (nestedType != null) {
@@ -1004,7 +1012,9 @@ public final class GeneratedValidatorEmitter {
               field.wildcard().namespaceConstraint().namespaces().stream()
                   .map(value -> "\"" + escape(value) + "\"")
                   .collect(java.util.stream.Collectors.joining(", ")))
-          .append("), location, errors);\n")
+          .append("), \"")
+          .append(escape(field.wildcard().processContents()))
+          .append("\", location, errors);\n")
           .append("      }\n")
           .append("    }\n");
     }
@@ -1041,8 +1051,19 @@ public final class GeneratedValidatorEmitter {
                               + "\")")
                   .collect(java.util.stream.Collectors.joining(", ")))
           .append("), location, errors);\n");
+      appendWildcardAttributeKnownValidation(source, field);
       source.append("      }\n");
       source.append("    }\n");
+    }
+
+    private void appendWildcardAttributeKnownValidation(StringBuilder source, BindingField field) {
+      if ("skip".equals(field.wildcard().processContents())) {
+        return;
+      }
+      source
+          .append("        validateKnownWildcardAttribute(item, \"")
+          .append(escape(field.wildcard().processContents()))
+          .append("\", location, errors);\n");
     }
 
     private void appendIdentityHelper(StringBuilder source, BindingType type) {
@@ -1711,6 +1732,7 @@ public final class GeneratedValidatorEmitter {
             .append("      io.github.mundanej.mxjb.runtime.XmlFragment fragment,\n")
             .append("      String wildcardKind,\n")
             .append("      java.util.Set<String> namespaces,\n")
+            .append("      String processContents,\n")
             .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
             .append(
                 "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
@@ -1724,17 +1746,36 @@ public final class GeneratedValidatorEmitter {
                 "      addError(errors, \"MXJB-GV-009\", "
                     + "\"Wildcard fragment namespace is not accepted.\", location);\n")
             .append("    }\n")
+            .append("    boolean known = false;\n")
+            .append("    if (!\"skip\".equals(processContents)) {\n")
+            .append("      known = validateKnownWildcardElement(fragment, location, errors);\n")
+            .append("    }\n")
+            .append("    if (!known && \"strict\".equals(processContents)) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-009\", "
+                    + "\"Strict wildcard element has no matching declaration.\", location);\n")
+            .append("    }\n")
             .append(
                 "    for (io.github.mundanej.mxjb.runtime.XmlFragmentContent content : fragment.content()) {\n")
             .append(
                 "      if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentElement element) {\n")
             .append(
-                "        validateFragment(element.fragment(), \"any\", java.util.Set.of(), location, errors);\n")
+                "        validateFragment(element.fragment(), \"any\", java.util.Set.of(), "
+                    + "\"skip\", location, errors);\n")
             .append("      } else if (content == null) {\n")
             .append(
                 "        addError(errors, \"MXJB-GV-001\", \"Missing required wildcard content.\", location);\n")
             .append("      }\n")
             .append("    }\n")
+            .append("  }\n\n")
+            .append("  private static boolean validateKnownWildcardElement(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlFragment fragment,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
+            .append(
+                "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n");
+        appendKnownWildcardElementBranches(source);
+        source
+            .append("    return false;\n")
             .append("  }\n\n")
             .append("  private static void validateWildcardAttribute(\n")
             .append("      io.github.mundanej.mxjb.runtime.XmlAttribute attribute,\n")
@@ -1759,6 +1800,175 @@ public final class GeneratedValidatorEmitter {
                     + "\"Wildcard attribute namespace is not accepted.\", location);\n")
             .append("    }\n")
             .append("  }\n\n")
+            .append("  private static void validateKnownWildcardAttribute(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlAttribute attribute,\n")
+            .append("      String processContents,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
+            .append(
+                "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+            .append("    if (attribute == null || attribute.name() == null) {\n")
+            .append("      return;\n")
+            .append("    }\n");
+        appendKnownWildcardAttributeBranches(source);
+        source
+            .append("    if (\"strict\".equals(processContents)) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-009\", "
+                    + "\"Strict wildcard attribute has no matching declaration.\", location);\n")
+            .append("    }\n")
+            .append("  }\n\n")
+            .append("  private static void validateScalarWildcardElement(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlFragment fragment,\n")
+            .append("      String type,\n")
+            .append("      java.util.List<String> enumerations,\n")
+            .append("      Integer length,\n")
+            .append("      Integer minLength,\n")
+            .append("      Integer maxLength,\n")
+            .append("      String minInclusive,\n")
+            .append("      String maxInclusive,\n")
+            .append("      String minExclusive,\n")
+            .append("      String maxExclusive,\n")
+            .append("      Integer totalDigits,\n")
+            .append("      Integer fractionDigits,\n")
+            .append("      java.util.List<String> patterns,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
+            .append(
+                "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+            .append("    StringBuilder text = new StringBuilder();\n")
+            .append(
+                "    for (io.github.mundanej.mxjb.runtime.XmlFragmentContent content : fragment.content()) {\n")
+            .append(
+                "      if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentText item) {\n")
+            .append("        text.append(item.text());\n")
+            .append(
+                "      } else if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentElement) {\n")
+            .append(
+                "        addError(errors, \"MXJB-GV-009\", "
+                    + "\"Wildcard scalar element contains child elements.\", location);\n")
+            .append("        return;\n")
+            .append("      }\n")
+            .append("    }\n")
+            .append("    Object parsed;\n")
+            .append("    try {\n")
+            .append(
+                "      parsed = io.github.mundanej.mxjb.runtime.XmlDatatypes.parse("
+                    + "type, text.toString(), new FragmentXmlEventReader(fragment), location);\n")
+            .append("    } catch (io.github.mundanej.mxjb.runtime.XmlReadException exception) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-004\", "
+                    + "\"Wildcard element value does not satisfy datatype facets.\", location);\n")
+            .append("      return;\n")
+            .append("    }\n")
+            .append(
+                "    if (!io.github.mundanej.mxjb.runtime.XmlDatatypes.matchesFacets("
+                    + "type, parsed, enumerations, length, minLength, maxLength, minInclusive, "
+                    + "maxInclusive, minExclusive, maxExclusive, totalDigits, fractionDigits, "
+                    + "patterns)) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-004\", "
+                    + "\"Wildcard element value does not satisfy datatype facets.\", location);\n")
+            .append("    }\n")
+            .append("  }\n\n")
+            .append("  private static void validateScalarWildcardAttribute(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlAttribute attribute,\n")
+            .append("      String type,\n")
+            .append("      java.util.List<String> enumerations,\n")
+            .append("      Integer length,\n")
+            .append("      Integer minLength,\n")
+            .append("      Integer maxLength,\n")
+            .append("      String minInclusive,\n")
+            .append("      String maxInclusive,\n")
+            .append("      String minExclusive,\n")
+            .append("      String maxExclusive,\n")
+            .append("      Integer totalDigits,\n")
+            .append("      Integer fractionDigits,\n")
+            .append("      java.util.List<String> patterns,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
+            .append(
+                "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n")
+            .append("    Object parsed;\n")
+            .append("    try {\n")
+            .append(
+                "      parsed = io.github.mundanej.mxjb.runtime.XmlDatatypes.parse("
+                    + "type, attribute.value(), null, location);\n")
+            .append("    } catch (io.github.mundanej.mxjb.runtime.XmlReadException exception) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-004\", "
+                    + "\"Wildcard attribute value does not satisfy datatype facets.\", location);\n")
+            .append("      return;\n")
+            .append("    }\n")
+            .append(
+                "    if (!io.github.mundanej.mxjb.runtime.XmlDatatypes.matchesFacets("
+                    + "type, parsed, enumerations, length, minLength, maxLength, minInclusive, "
+                    + "maxInclusive, minExclusive, maxExclusive, totalDigits, fractionDigits, "
+                    + "patterns)) {\n")
+            .append(
+                "      addError(errors, \"MXJB-GV-004\", "
+                    + "\"Wildcard attribute value does not satisfy datatype facets.\", location);\n")
+            .append("    }\n")
+            .append("  }\n\n")
+            .append("  private static final class FragmentXmlEventReader\n")
+            .append("      implements io.github.mundanej.mxjb.runtime.XmlEventReader {\n")
+            .append("    private final java.util.List<Event> events;\n")
+            .append("    private int index;\n\n")
+            .append(
+                "    private FragmentXmlEventReader(io.github.mundanej.mxjb.runtime.XmlFragment fragment) {\n")
+            .append("      this.events = new java.util.ArrayList<>();\n")
+            .append("      addFragment(fragment);\n")
+            .append(
+                "      this.events.add(new Event(io.github.mundanej.mxjb.runtime."
+                    + "XmlEventKind.END_DOCUMENT, null, null, java.util.List.of()));\n")
+            .append("    }\n\n")
+            .append(
+                "    private void addFragment(io.github.mundanej.mxjb.runtime.XmlFragment fragment) {\n")
+            .append(
+                "      events.add(new Event(io.github.mundanej.mxjb.runtime."
+                    + "XmlEventKind.START_ELEMENT, fragment.name(), null, fragment.attributes()));\n")
+            .append(
+                "      for (io.github.mundanej.mxjb.runtime.XmlFragmentContent content : fragment.content()) {\n")
+            .append(
+                "        if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentText text) {\n")
+            .append(
+                "          events.add(new Event(io.github.mundanej.mxjb.runtime."
+                    + "XmlEventKind.TEXT, null, text.text(), java.util.List.of()));\n")
+            .append(
+                "        } else if (content instanceof io.github.mundanej.mxjb.runtime.XmlFragmentElement element) {\n")
+            .append("          addFragment(element.fragment());\n")
+            .append("        }\n")
+            .append("      }\n")
+            .append(
+                "      events.add(new Event(io.github.mundanej.mxjb.runtime."
+                    + "XmlEventKind.END_ELEMENT, fragment.name(), null, java.util.List.of()));\n")
+            .append("    }\n\n")
+            .append(
+                "    @Override public io.github.mundanej.mxjb.runtime.XmlEventKind kind() "
+                    + "{ return events.get(index).kind(); }\n")
+            .append(
+                "    @Override public io.github.mundanej.mxjb.runtime.XmlName name() "
+                    + "{ return events.get(index).name(); }\n")
+            .append("    @Override public String text() { return events.get(index).text(); }\n")
+            .append(
+                "    @Override public int attributeCount() { return events.get(index).attributes().size(); }\n")
+            .append(
+                "    @Override public io.github.mundanej.mxjb.runtime.XmlName "
+                    + "attributeName(int attributeIndex) { return events.get(index).attributes()"
+                    + ".get(attributeIndex).name(); }\n")
+            .append(
+                "    @Override public String attributeValue(int attributeIndex) { "
+                    + "return events.get(index).attributes().get(attributeIndex).value(); }\n")
+            .append(
+                "    @Override public io.github.mundanej.mxjb.runtime.XmlLocation location() "
+                    + "{ return io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN; }\n")
+            .append(
+                "    @Override public boolean next() { if (index + 1 < events.size()) { "
+                    + "index++; return true; } return false; }\n")
+            .append("  }\n\n")
+            .append("  private record Event(\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlEventKind kind,\n")
+            .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
+            .append("      String text,\n")
+            .append(
+                "      java.util.List<io.github.mundanej.mxjb.runtime.XmlAttribute> attributes) {}\n\n")
             .append("  private static boolean wildcardMatches(\n")
             .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
             .append("      String kind,\n")
@@ -1816,6 +2026,133 @@ public final class GeneratedValidatorEmitter {
           .append("      return null;\n")
           .append("    }\n")
           .append("  }\n");
+    }
+
+    private void appendKnownWildcardElementBranches(StringBuilder source) {
+      for (BindingWildcardElement element : knownWildcardElements()) {
+        source
+            .append("    if (")
+            .append(xmlNameExpression(element.xmlName()))
+            .append(".equals(fragment.name())) {\n");
+        if ("model".equals(element.type().kind())) {
+          BindingType modelType = modelType(element.type());
+          if (modelType != null) {
+            source
+                .append("      io.github.mundanej.mxjb.runtime.ValidationResult result = ")
+                .append(validatorName(modelType.javaName()).qualifiedName())
+                .append(".validate(new FragmentXmlEventReader(fragment));\n")
+                .append("      errors.addAll(result.errors());\n");
+          }
+        } else if ("scalar".equals(element.type().kind())) {
+          source.append("      validateScalarWildcardElement(fragment, ");
+          appendWildcardScalarValidationArguments(source, element.type());
+          source.append(", location, errors);\n");
+        }
+        source.append("      return true;\n").append("    }\n");
+      }
+    }
+
+    private void appendKnownWildcardAttributeBranches(StringBuilder source) {
+      for (BindingWildcardAttribute attribute : knownWildcardAttributes()) {
+        source
+            .append("    if (")
+            .append(xmlNameExpression(attribute.xmlName()))
+            .append(".equals(attribute.name())) {\n");
+        if ("scalar".equals(attribute.type().kind())) {
+          source.append("      validateScalarWildcardAttribute(attribute, ");
+          appendWildcardScalarValidationArguments(source, attribute.type());
+          source.append(", location, errors);\n");
+        }
+        source.append("      return;\n").append("    }\n");
+      }
+    }
+
+    private void appendWildcardScalarValidationArguments(
+        StringBuilder source, BindingTypeReference reference) {
+      BindingSimpleRestriction restriction = reference.restriction();
+      String type = restriction == null ? reference.name() : restriction.baseScalar();
+      source
+          .append("\"")
+          .append(escape(type))
+          .append("\", ")
+          .append(
+              stringListExpression(restriction == null ? List.of() : restriction.enumerations()))
+          .append(", ")
+          .append(integerLiteral(restriction == null ? null : restriction.length()))
+          .append(", ")
+          .append(integerLiteral(restriction == null ? null : restriction.minLength()))
+          .append(", ")
+          .append(integerLiteral(restriction == null ? null : restriction.maxLength()))
+          .append(", ")
+          .append(stringLiteral(restriction == null ? null : restriction.minInclusive()))
+          .append(", ")
+          .append(stringLiteral(restriction == null ? null : restriction.maxInclusive()))
+          .append(", ")
+          .append(stringLiteral(restriction == null ? null : restriction.minExclusive()))
+          .append(", ")
+          .append(stringLiteral(restriction == null ? null : restriction.maxExclusive()))
+          .append(", ")
+          .append(integerLiteral(restriction == null ? null : restriction.totalDigits()))
+          .append(", ")
+          .append(integerLiteral(restriction == null ? null : restriction.fractionDigits()))
+          .append(", ")
+          .append(stringListExpression(restriction == null ? List.of() : restriction.patterns()));
+    }
+
+    private List<BindingWildcardElement> knownWildcardElements() {
+      Map<String, BindingWildcardElement> elements = new LinkedHashMap<>();
+      for (BindingWildcard wildcard : wildcards(rootType, new LinkedHashSet<>())) {
+        for (BindingWildcardElement element : wildcard.knownElements()) {
+          elements.putIfAbsent(element.xmlName().toText(), element);
+        }
+      }
+      return new ArrayList<>(elements.values());
+    }
+
+    private List<BindingWildcardAttribute> knownWildcardAttributes() {
+      Map<String, BindingWildcardAttribute> attributes = new LinkedHashMap<>();
+      for (BindingWildcard wildcard : wildcards(rootType, new LinkedHashSet<>())) {
+        for (BindingWildcardAttribute attribute : wildcard.knownAttributes()) {
+          attributes.putIfAbsent(attribute.xmlName().toText(), attribute);
+        }
+      }
+      return new ArrayList<>(attributes.values());
+    }
+
+    private List<BindingWildcard> wildcards(BindingType type, Set<String> visited) {
+      if (!visited.add(type.javaName().qualifiedName())) {
+        return List.of();
+      }
+      List<BindingWildcard> wildcards = new ArrayList<>();
+      for (BindingField field : type.fields()) {
+        if (field.wildcard() != null) {
+          wildcards.add(field.wildcard());
+        }
+        if (field.content() != null) {
+          for (BindingContentBranch branch : field.content().branches()) {
+            if (branch.wildcard() != null) {
+              wildcards.add(branch.wildcard());
+            }
+            BindingType nestedType = modelType(branch.type());
+            if (nestedType != null) {
+              wildcards.addAll(wildcards(nestedType, visited));
+            }
+          }
+        }
+        BindingType nestedType = modelType(field);
+        if (nestedType != null) {
+          wildcards.addAll(wildcards(nestedType, visited));
+        }
+      }
+      return wildcards;
+    }
+
+    private String xmlNameExpression(SchemaQName name) {
+      return "new io.github.mundanej.mxjb.runtime.XmlName(\""
+          + escape(name.namespace())
+          + "\", \""
+          + escape(name.localName())
+          + "\")";
     }
 
     private void appendIdentitySharedHelpers(StringBuilder source) {
@@ -2235,6 +2572,11 @@ public final class GeneratedValidatorEmitter {
     private BindingJavaName readerName(BindingJavaName modelName) {
       return new BindingJavaName(
           modelName.packageName() + ".xml", modelName.simpleName() + "XmlReader");
+    }
+
+    private BindingJavaName validatorName(BindingJavaName modelName) {
+      return new BindingJavaName(
+          modelName.packageName() + ".xml", modelName.simpleName() + "XmlValidator");
     }
 
     private String escape(String value) {

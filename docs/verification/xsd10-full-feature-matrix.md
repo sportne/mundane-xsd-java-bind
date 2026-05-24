@@ -34,7 +34,7 @@ traceability artifact, not a support claim. Status values:
 | `xs:sequence` | supported for accepted shapes | `TASK-0051`, `TASK-0059`, `TASK-0060` | Direct sequences, nested singleton sequences, single-particle repeated/optional nested sequences, repeated/optional multi-particle groups, and nested choice positions inside grouped sequences are accepted for current generated shapes. |
 | `xs:choice` | partially supported | `TASK-0051`, `TASK-0059` | Required, optional, and repeated element-only choices are generated; mixed choices and wildcard choice forms now bind as generated content lists where the surrounding profile accepts those branches. |
 | `xs:all` | partially supported | `TASK-0049`, `TASK-0051`, `TASK-0059` | Required all-groups and optional all-groups whose members are all optional are generated with ordinary fields; optional all-groups with required children now bind as generated content-list models. |
-| `xs:any` | partially supported | `TASK-0052`, `TASK-0059` | Retained element fragments support accepted locations, namespace-token handling, process metadata, and wildcard choice branch binding; strict/lax schema-known deep validation and derivation interactions remain future. |
+| `xs:any` | partially supported | `TASK-0052`, `TASK-0059`, `TASK-0062` | Retained element fragments support accepted locations, namespace-token handling, process metadata, wildcard choice branch binding, and strict/lax schema-known validation for accepted retained declarations; remaining derivation interactions and W3C row mapping stay future. |
 | `minOccurs`, `maxOccurs` | partially supported | `TASK-0051`, `TASK-0059`, `TASK-0060` | Cardinality composition is verified for single-particle nested sequences/group refs, repeated choices, grouped content-list shapes, and nested choice positions in grouped sequences. |
 | UPA validation | partially supported | `TASK-0051`, `TASK-0060` | Element/wildcard and wildcard/wildcard overlap diagnostics are deterministic for accepted content-model positions; remaining full-suite UPA edge mapping continues under W3C generated-binding work. |
 | Mixed content | partially supported | `TASK-0051`, `TASK-0053`, `TASK-0059` | Sequence mixed content and mixed choices now use generated content-list models; mixed derivation interactions remain future. |
@@ -49,7 +49,7 @@ traceability artifact, not a support claim. Status values:
 | `xs:anyAttribute` | partially supported | `TASK-0049`, `TASK-0052` | Retained unknown attributes bind as immutable `List<XmlAttribute>` values for accepted shapes. |
 | Wildcard namespace constraints | partially supported | `TASK-0052` | `##any`, `##other`, `##local`, `##targetNamespace`, and explicit URI-list matching are supported; full derivation algebra remains future. |
 | `processContents=skip` | partially supported | `TASK-0052` | Supported for retained element and attribute wildcards in accepted shapes. |
-| `processContents=lax` and `strict` | partially supported | `TASK-0052` | Metadata is parsed, bound, emitted, and tested for accepted retention paths; full schema-known deep validation remains future. |
+| `processContents=lax` and `strict` | partially supported | `TASK-0052`, `TASK-0062` | Metadata is parsed, bound, emitted, and tested for accepted retention paths; strict unknown matching names are rejected, lax unknown names are retained, and known retained element/attribute declarations are schema-validated through generated helpers. |
 
 ## Simple types and facets
 
@@ -72,7 +72,7 @@ traceability artifact, not a support claim. Status values:
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
 | `complexContent/extension` | partially supported | `TASK-0053` | Accepted named extensions flatten base-before-derived particles and attributes. |
-| `complexContent/restriction` | partially supported | `TASK-0053` | Basic restricted member checks are implemented; complete particle, wildcard, default/fixed, and attribute restriction algebra remains future. |
+| `complexContent/restriction` | partially supported | `TASK-0053`, `TASK-0062` | Basic restricted member checks and supported anyAttribute wildcard namespace narrowing diagnostics are implemented; complete particle, default/fixed, and broader attribute restriction algebra remains future. |
 | `simpleContent/extension` | supported for accepted shapes | `TASK-0053` | Binds text value plus declared attributes for accepted simple bases. |
 | `simpleContent/restriction` | partially supported | `TASK-0053` | Normalizes restrictions over accepted simple bases; full restriction against complex simple-content bases remains future. |
 | Simple restriction derivation chains | partially supported | `TASK-0050`, `TASK-0053` | Accepted scalar/list/union datatype chains use the datatype engine; anonymous and deeper composition rules remain future. |
@@ -89,7 +89,7 @@ traceability artifact, not a support claim. Status values:
 | Datatype validation | supported for accepted schema shapes | `TASK-0050` | Full built-in lexical/value/facet coverage is verified for the currently executable schema shapes. |
 | Identity constraints | partially supported | `TASK-0054` | Generated validators build private document-scope identity tables for accepted model shapes, enforcing `unique`, `key`, and `keyref`; full-suite coverage and edge-case conformance classification remain `TASK-0055`. |
 | W3C XML Schema 1.0 suite intake | supported as classification evidence | `TASK-0055` | The pinned W3C 2007-06-20 suite archive is classified by the opt-in `w3cXsd10Conformance` lane. Current evidence covers 24,796 schema/instance documents with zero generated-binding support claims until rows are explicitly mapped. |
-| Full XSD 1.0 readiness claim | blocked by evidence | `TASK-0056`, `TASK-0058` | `TASK-0056` reconciles the evidence and concludes that `XP-XSD10-FULL` must remain non-executable. `TASK-0058` defines the 1.0.0 blocker sequence: grouped content-list models (`TASK-0059`), accepted automata/UPA closure (`TASK-0060`), derivation/dynamic typing (`TASK-0061`), wildcard deep validation (`TASK-0062`), datatype/nil/identity edges (`TASK-0063`), W3C generated-binding mapping (`TASK-0064`), profile enablement (`TASK-0065`), and final release workflow/readiness (`TASK-0066`). |
+| Full XSD 1.0 readiness claim | blocked by evidence | `TASK-0056`, `TASK-0058`, `TASK-0062` | `TASK-0056` reconciles the evidence and concludes that `XP-XSD10-FULL` must remain non-executable. `TASK-0058` defines the 1.0.0 blocker sequence. `TASK-0059` through `TASK-0062` have accepted grouped content-list, automata/UPA, dynamic typing, and wildcard deep-validation gates; datatype/nil/identity edges (`TASK-0063`), W3C generated-binding mapping (`TASK-0064`), profile enablement (`TASK-0065`), and final release workflow/readiness (`TASK-0066`) remain before a full claim. |
 
 ## Explicit non-goals
 

@@ -1,0 +1,13 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:document" targetNamespace="urn:document" elementFormDefault="qualified">
+  <xs:import namespace="urn:extension" schemaLocation="wildcard-deep-extension.xsd"/>
+  <xs:element name="order" type="tns:Order"/>
+
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="id" type="xs:string"/>
+      <xs:any namespace="urn:extension" processContents="strict" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:anyAttribute namespace="urn:extension" processContents="lax"/>
+  </xs:complexType>
+</xs:schema>

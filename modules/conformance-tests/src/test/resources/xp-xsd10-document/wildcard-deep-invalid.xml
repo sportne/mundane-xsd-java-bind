@@ -1,0 +1,4 @@
+<doc:order xmlns:doc="urn:document" xmlns:ext="urn:extension" ext:rating="bad">
+  <doc:id>A-100</doc:id>
+  <ext:discount>not-int</ext:discount>
+</doc:order>

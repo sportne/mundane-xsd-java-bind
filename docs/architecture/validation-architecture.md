@@ -75,9 +75,9 @@ validation, wildcard namespace-token matching, and `processContents` metadata. `
 accepted simpleContent text validation, basic complex restriction member checks before emission,
 and generated validation recursion through repeated/nested/abstract substitution branch values.
 `TASK-0061` adds accepted final/block derivation diagnostics plus generated validation recursion
-through known declared-base `xsi:type` branch values. Full strict/lax schema-known wildcard validation,
-identity-constraint edge cases beyond accepted generated model shapes, and `XP-XSD10-FULL`
-execution remain future gates.
+through known declared-base `xsi:type` branch values. `TASK-0062` adds strict/lax schema-known
+validation for accepted retained element and attribute wildcards. Identity-constraint edge cases
+beyond accepted generated model shapes and `XP-XSD10-FULL` execution remain future gates.
 
 ## `TASK-0032` semantic validation
 
@@ -121,7 +121,8 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   behavior. `TASK-0060` adds shared grouped-content position metadata so generated readers and
   validators agree for nested choice positions in grouped sequences, plus deterministic
   wildcard/wildcard UPA diagnostics.
-- Full schema-known validation for `processContents="lax"` or `"strict"`, identity-constraint
-  edge cases beyond accepted generated model shapes, strict/lax schema-known wildcard validation,
-  comments, processing instructions, entity-reference semantics, and full XSD 1.0 validation remain
-  future work.
+- `TASK-0062` validates known retained wildcard declarations for `processContents="lax"` or
+  `"strict"` in accepted shapes. Strict unknown matching names are deterministic reader/object
+  validation diagnostics; lax unknown matching names stay retained without schema validation.
+- Identity-constraint edge cases beyond accepted generated model shapes, comments, processing
+  instructions, entity-reference semantics, and full XSD 1.0 validation remain future work.

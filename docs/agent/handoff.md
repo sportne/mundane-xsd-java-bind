@@ -72,8 +72,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 59. `TASK-0059`: Implement grouped content-list models for remaining full-XSD content shapes. Completed and accepted.
 60. `TASK-0060`: Add accepted grouped-position automata and wildcard-conflict evidence. Completed and accepted.
 61. `TASK-0061`: Complete accepted derivation and dynamic typing for executable shapes. Completed and accepted.
-62. `TASK-0062`: Complete strict/lax wildcard deep validation and wildcard composition. Next implementation gate.
-63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Draft.
+62. `TASK-0062`: Complete strict/lax wildcard deep validation and wildcard composition. Completed and accepted.
+63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Next implementation gate.
 64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Draft.
 65. `TASK-0065`: Enable executable `XP-XSD10-FULL`. Draft.
 66. `TASK-0066`: Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. Draft.
@@ -126,11 +126,14 @@ deterministic diagnostics for non-flattenable repeated/optional multi-particle g
 `xs:all` groups with required children.
 `TASK-0052` has accepted attribute and wildcard expansion for local/global attribute namespace
 qualification, `use="prohibited"`, retained `xs:anyAttribute` values, wildcard namespace-token
-handling, and `processContents` metadata while keeping strict/lax schema-known deep validation and
-derivation interactions for later gates. `TASK-0053` has accepted simpleContent
+handling, and `processContents` metadata for later schema-known validation and derivation
+interactions. `TASK-0053` has accepted simpleContent
 text-with-attributes binding, repeated/nested/abstract substitution heads, deterministic
 substitution cycle diagnostics, and basic complex restriction member checks. `TASK-0061` has
-accepted known `xsi:type` dynamic branches and final/block checks for accepted paths.
+accepted known `xsi:type` dynamic branches and final/block checks for accepted paths. `TASK-0062`
+has accepted strict/lax schema-known validation for retained element and attribute wildcards, plus
+accepted wildcard restriction-composition diagnostics for supported `xs:anyAttribute` namespace
+narrowing.
 `TASK-0054` has accepted generated identity-constraint validation for `xs:unique`, `xs:key`, and
 `xs:keyref` over accepted generated model shapes using private document-scope validation state and
 the accepted selector/field XPath subset. `TASK-0055` has accepted the opt-in W3C XML Schema 1.0
@@ -213,16 +216,16 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0059` | 1.0.0 | accepted | Implement grouped content-list models for remaining full-XSD content shapes. |
 | `TASK-0060` | 1.0.0 | accepted | Add accepted grouped-position automata and wildcard-conflict evidence. |
 | `TASK-0061` | 1.0.0 | accepted | Complete accepted derivation and dynamic typing for executable shapes. |
-| `TASK-0062` | 1.0.0 | next | Complete strict/lax wildcard deep validation and wildcard composition. |
-| `TASK-0063` | 1.0.0 | draft | Close remaining datatype, nil, and identity-validation edges. |
+| `TASK-0062` | 1.0.0 | accepted | Complete strict/lax wildcard deep validation and wildcard composition. |
+| `TASK-0063` | 1.0.0 | next | Close remaining datatype, nil, and identity-validation edges. |
 | `TASK-0064` | 1.0.0 | draft | Map W3C XML Schema 1.0 rows to generated-binding execution. |
 | `TASK-0065` | 1.0.0 | draft | Enable executable `XP-XSD10-FULL`. |
 | `TASK-0066` | 1.0.0 | draft | Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. |
 
 ## Current implementation gate
 
-`TASK-0062` is the next implementation gate. It may complete strict/lax schema-known wildcard deep
-validation and wildcard composition for the full-XSD blocker sequence. It must not enable
+`TASK-0063` is the next implementation gate. It may close remaining datatype, nil, and
+identity-validation edges for the full-XSD blocker sequence. It must not enable
 `XP-XSD10-FULL`, add release workflow behavior, bump versions, create tags, publish artifacts, add
 dependencies, weaken `qualityGate`, or claim full XSD 1.0 support.
 
@@ -303,10 +306,10 @@ Any future work must preserve:
   claims, conformance/interop evidence, Native Image smoke coverage, release posture, and
   unsupported-document limitations. `TASK-0052` later added retained `xs:anyAttribute` support,
   broader wildcard namespace-token handling, and `processContents` metadata for accepted shapes.
-  Full strict/lax schema-known wildcard validation, wildcard choices, substitution-branch
-  wildcards, DOM-backed binding, parser-handle retention, comments/PI preservation,
-  entity-reference semantics, identity constraints, full derivation semantics, release tags, and
-  publication claims remain out of scope.
+  `TASK-0059` later added wildcard choices, and `TASK-0062` added strict/lax schema-known retained
+  wildcard validation for accepted shapes. Substitution-branch wildcards, DOM-backed binding,
+  parser-handle retention, comments/PI preservation, entity-reference semantics, identity
+  constraints, full derivation semantics, release tags, and publication claims remain out of scope.
 - `TASK-0047` accepted the architecture rule catalog and ArchUnit hardening categories that future production code must satisfy unless an ADR approves an exception.
 - `TASK-0041` accepted `0.6.0` as a hardening and release maturity slice. The accepted sequence is
   `TASK-0042` selected conformance/interop expansion, `TASK-0043` benchmark baselines,
@@ -364,8 +367,7 @@ Any future work must preserve:
 - `TASK-0051` through `TASK-0055` accepted content-model, attribute/wildcard, derivation,
   identity-constraint, and W3C suite-intake evidence for the current full-XSD sequence.
   `TASK-0056` reconciled that evidence and records a negative readiness decision for full XSD 1.0:
-  strict/lax schema-known wildcard validation and W3C rows mapped to generated-binding support
-  remain future work.
+  W3C rows mapped to generated-binding support remain future work.
   `TASK-0059` accepted generated grouped content-list shapes for
   repeated/optional multi-particle groups whose members are singleton particles, optional
   all-groups with required children, mixed choices, and wildcard choices while keeping deeper
@@ -373,6 +375,7 @@ Any future work must preserve:
   nested-choice sequence automata for generated readers/validators, and deterministic wildcard UPA
   diagnostics. `TASK-0061` accepted derivation metadata, final/block checks for accepted
   derivation/substitution paths, declared-base `xsi:type` sealed branch models, known `xsi:type`
-  read/write/validate behavior, and deterministic unknown `xsi:type` diagnostics. Strict/lax
-  wildcard deep validation remains `TASK-0062`.
+  read/write/validate behavior, and deterministic unknown `xsi:type` diagnostics. `TASK-0062`
+  accepted strict/lax schema-known retained wildcard validation and supported anyAttribute
+  restriction-composition diagnostics.
 - Later round-trip and Native Image lanes should reuse the generator API/CLI/Gradle plugin, generated-source harness, generated readers/writers, and `runtime-jdkxml` adapters instead of introducing separate XML adapter mechanics.

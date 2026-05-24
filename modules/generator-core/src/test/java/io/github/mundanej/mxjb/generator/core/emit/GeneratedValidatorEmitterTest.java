@@ -30,8 +30,11 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityStep;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
 import io.github.mundanej.mxjb.runtime.ValidationError;
 import io.github.mundanej.mxjb.runtime.ValidationResult;
+import io.github.mundanej.mxjb.runtime.XmlAttribute;
 import io.github.mundanej.mxjb.runtime.XmlEventKind;
 import io.github.mundanej.mxjb.runtime.XmlEventReader;
+import io.github.mundanej.mxjb.runtime.XmlFragment;
+import io.github.mundanej.mxjb.runtime.XmlFragmentText;
 import io.github.mundanej.mxjb.runtime.XmlLocation;
 import io.github.mundanej.mxjb.runtime.XmlName;
 import java.io.IOException;
@@ -779,6 +782,91 @@ final class GeneratedValidatorEmitterTest {
   }
 
   @Test
+  void generatedValidatorAppliesStrictWildcardSchemaKnownElementValidation()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(type("com.example.orders", "Order", List.of(strictKnownWildcardField()))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object valid =
+          orderClass.getConstructor(List.class).newInstance(List.of(fragment("discount", "10")));
+      Object invalidValue =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(List.of(fragment("discount", "not-int")));
+      Object invalidFacet =
+          orderClass.getConstructor(List.class).newInstance(List.of(fragment("discount", "99")));
+      Object unknown =
+          orderClass.getConstructor(List.class).newInstance(List.of(fragment("unknown", "10")));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult invalidValueResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, invalidValue);
+      ValidationResult unknownResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, unknown);
+      ValidationResult invalidFacetResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, invalidFacet);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-004"), codes(invalidValueResult));
+      assertEquals(List.of("MXJB-GV-004"), codes(invalidFacetResult));
+      assertEquals(List.of("MXJB-GV-009"), codes(unknownResult));
+    }
+  }
+
+  @Test
+  void generatedValidatorAppliesStrictWildcardSchemaKnownAttributeFacets()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(type("com.example.orders", "Order", List.of(strictKnownAnyAttributeField()))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object valid =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(List.of(new XmlAttribute(new XmlName("urn:orders", "rating"), "4")));
+      Object invalidFacet =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(List.of(new XmlAttribute(new XmlName("urn:orders", "rating"), "9")));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult invalidFacetResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, invalidFacet);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-004"), codes(invalidFacetResult));
+    }
+  }
+
+  @Test
   void generatedValidatorConvertsSemanticXmlReaderDiagnosticsWithLocations()
       throws IOException,
           ClassNotFoundException,
@@ -1225,6 +1313,51 @@ final class GeneratedValidatorEmitterTest {
         order,
         cardinality.minOccurs() > 0,
         semantics);
+  }
+
+  private BindingField strictKnownWildcardField() {
+    return new BindingField(
+        "wildcard",
+        new SchemaQName("", "*"),
+        "wildcardContent",
+        new BindingTypeReference("fragment", "io.github.mundanej.mxjb.runtime.XmlFragment"),
+        list(),
+        1,
+        false,
+        new io.github.mundanej.mxjb.generator.core.bind.BindingWildcard(
+            new io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace(
+                "explicit", List.of("urn:orders")),
+            "strict",
+            List.of(),
+            List.of(
+                new io.github.mundanej.mxjb.generator.core.bind.BindingWildcardElement(
+                    schemaName("discount"), restrictedInt(null, "50"))),
+            List.of()));
+  }
+
+  private BindingField strictKnownAnyAttributeField() {
+    return new BindingField(
+        "anyAttribute",
+        new SchemaQName("", "*"),
+        "wildcardAttributes",
+        new BindingTypeReference("xmlAttribute", "io.github.mundanej.mxjb.runtime.XmlAttribute"),
+        list(),
+        0,
+        false,
+        new io.github.mundanej.mxjb.generator.core.bind.BindingWildcard(
+            new io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNamespace(
+                "explicit", List.of("urn:orders")),
+            "strict",
+            List.of(),
+            List.of(),
+            List.of(
+                new io.github.mundanej.mxjb.generator.core.bind.BindingWildcardAttribute(
+                    schemaName("rating"), restrictedInt(null, "5")))));
+  }
+
+  private XmlFragment fragment(String localName, String text) {
+    return new XmlFragment(
+        new XmlName("urn:orders", localName), List.of(), List.of(new XmlFragmentText(text)));
   }
 
   private BindingField choiceField() {

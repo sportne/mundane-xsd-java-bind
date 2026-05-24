@@ -87,8 +87,8 @@ wildcard choice branches, and mixed choice content. `TASK-0060` adds shared grou
 metadata for generated reader/validator agreement, accepts nested choice positions inside grouped
 sequences, and broadens deterministic UPA diagnostics for wildcard overlap. Anonymous list/union
 member types, optional or repeated list-valued XML fields, nested list/union composition,
-identity-constraint edge cases, strict/lax schema-known wildcard deep validation, and full XSD 1.0
-conformance remain out of scope with explicit diagnostics or future-study classification.
+identity-constraint edge cases, and full XSD 1.0 conformance remain out of scope with explicit
+diagnostics or future-study classification.
 
 `TASK-0050` broadens the datatype engine used by existing executable profiles without making
 `XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
@@ -102,8 +102,9 @@ Generated readers, writers, and validators use the same dependency-free runtime 
 basic complexContent restriction member checks, and selected derivation/substitution diagnostics.
 `TASK-0061` adds accepted known `xsi:type` dynamic dispatch for declared complex-base fields and
 final/block checks for accepted derivation/substitution paths. Direct root-element `xsi:type`
-dispatch, strict/lax schema-known wildcard deep validation, and identity-constraint edge-case
-coverage remain future tasks.
+dispatch and identity-constraint edge-case coverage remain future tasks. `TASK-0062` adds
+strict/lax schema-known validation for retained element and attribute wildcards plus accepted
+anyAttribute restriction-composition diagnostics.
 
 ## `0.4.0` Semantic Baseline
 
@@ -168,13 +169,13 @@ metadata, a release tag, or a publication claim.
   fragments emit `XmlFragment` attributes and content in stored list order. This is not XML
   Canonicalization and does not support cryptographic canonical XML claims.
 
-Wildcards in choices, substitution branches, and unsupported group/derivation edge cases remain out
-of scope. `xs:anyAttribute` is retained as `List<XmlAttribute>` for accepted shapes, and
-`processContents="lax"` or `"strict"` metadata is preserved, but full schema-known deep validation
-for lax/strict remains future work. Mixed choices, comments or processing instruction preservation,
-entity-reference semantics, DOM-backed binding, identity-constraint edge cases beyond accepted
-generated model shapes, full derivation semantics, artifact publication, and full XSD 1.0
-conformance remain out of scope with
+Wildcards in unsupported group/derivation edge cases remain out of scope. `xs:anyAttribute` is
+retained as `List<XmlAttribute>` for accepted shapes, and `TASK-0062` validates schema-known
+`processContents="lax"` or `"strict"` retained element and attribute wildcards for accepted
+declarations while retaining lax unknown names. Comments or processing instruction preservation,
+entity-reference semantics, DOM-backed binding,
+identity-constraint edge cases beyond accepted generated model shapes, full derivation semantics,
+artifact publication, and full XSD 1.0 conformance remain out of scope with
 explicit diagnostics.
 
 ## `0.6.0` Hardening Readiness Baseline
@@ -224,7 +225,7 @@ workflow remains separate release-engineering work.
 requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
 The public token remains non-executable until `TASK-0065`.
 
-The remaining blocker sequence is `TASK-0062` through `TASK-0066`: strict/lax wildcard deep
-validation, remaining datatype/nil/identity edges, W3C generated-binding row mapping,
-full-profile enablement, and final release workflow/readiness. Until those gates are accepted,
-public docs must keep full XSD 1.0 and `1.0.0` release claims out of scope.
+The remaining blocker sequence is `TASK-0063` through `TASK-0066`: remaining datatype/nil/identity
+edges, W3C generated-binding row mapping, full-profile enablement, and final release
+workflow/readiness. Until those gates are accepted, public docs must keep full XSD 1.0 and
+`1.0.0` release claims out of scope.

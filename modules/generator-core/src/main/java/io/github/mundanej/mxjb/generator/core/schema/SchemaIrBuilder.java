@@ -1289,6 +1289,31 @@ public final class SchemaIrBuilder {
             "Restricted attribute " + attribute.name().toText() + " is not present in base type.");
       }
     }
+    if (restrictedContent.anyAttribute() != null) {
+      if (baseType.anyAttribute() == null) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Restricted anyAttribute is not present in base type.");
+      } else if (!wildcardNamespaceSubset(
+          restrictedContent.anyAttribute().namespaceConstraint(),
+          baseType.anyAttribute().namespaceConstraint())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Restricted anyAttribute namespace is not a subset of the base wildcard.");
+      } else if (!processContentsAllowsRestriction(
+          baseType.anyAttribute().processContents(),
+          restrictedContent.anyAttribute().processContents())) {
+        diagnostic(
+            state,
+            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+            document.resourceId(),
+            "Restricted anyAttribute processContents cannot weaken the base wildcard.");
+      }
+    }
   }
 
   private void validateDerivationAllowed(
@@ -1681,6 +1706,36 @@ public final class SchemaIrBuilder {
           .anyMatch(namespace -> !right.namespaces().contains(namespace));
     }
     return left.namespaces().stream().anyMatch(right.namespaces()::contains);
+  }
+
+  private boolean wildcardNamespaceSubset(
+      SchemaIrWildcardNamespace restricted, SchemaIrWildcardNamespace base) {
+    if ("any".equals(base.kind())) {
+      return true;
+    }
+    if ("any".equals(restricted.kind())) {
+      return "any".equals(base.kind());
+    }
+    if ("explicit".equals(restricted.kind())) {
+      return restricted.namespaces().stream()
+          .allMatch(namespace -> wildcardMatches(new SchemaQName(namespace, "member"), base));
+    }
+    if ("other".equals(restricted.kind())) {
+      return "other".equals(base.kind()) && restricted.namespaces().equals(base.namespaces());
+    }
+    return false;
+  }
+
+  private boolean processContentsAllowsRestriction(String base, String restricted) {
+    return processContentsRank(restricted) >= processContentsRank(base);
+  }
+
+  private int processContentsRank(String value) {
+    return switch (value) {
+      case "strict" -> 2;
+      case "lax" -> 1;
+      default -> 0;
+    };
   }
 
   private SchemaIrWildcard normalizeWildcard(

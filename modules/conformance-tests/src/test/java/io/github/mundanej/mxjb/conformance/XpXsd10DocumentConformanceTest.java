@@ -206,6 +206,53 @@ final class XpXsd10DocumentConformanceTest {
   }
 
   @Test
+  void strictAndLaxWildcardDeepValidationMatchesJdkSchemaEvidence()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-document/wildcard-deep-order.xsd");
+    String validXml = resource("/xp-xsd10-document/wildcard-deep-valid.xml");
+    String invalidXml = resource("/xp-xsd10-document/wildcard-deep-invalid.xml");
+    String unknownXml = resource("/xp-xsd10-document/wildcard-deep-unknown.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidXml))));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(unknownXml))));
+
+    try (CompiledGeneratedDocumentBindings bindings =
+        generateAndCompileDocumentBindings("/xp-xsd10-document/wildcard-deep-order.xsd")) {
+      Class<?> orderClass = bindings.load("com.example.document.Order");
+      Class<?> readerClass = bindings.load("com.example.document.xml.OrderXmlReader");
+      Class<?> validatorClass = bindings.load("com.example.document.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult invalidResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(invalidXml));
+      ValidationResult unknownResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(unknownXml));
+
+      assertTrue(validResult.isValid());
+      assertFalse(invalidResult.isValid());
+      assertTrue(
+          invalidResult.errors().stream().anyMatch(error -> error.code().equals("MXJB-GV-004")));
+      assertFalse(unknownResult.isValid());
+      assertTrue(
+          unknownResult.errors().stream().anyMatch(error -> error.code().equals("MXJB-GR-002")));
+    }
+  }
+
+  @Test
   void wildcardSerializationPolicyRoundTripsThroughGeneratedBindings()
       throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
     Schema schema = jdkSchema();
@@ -292,6 +339,8 @@ final class XpXsd10DocumentConformanceTest {
                 "urn:document",
                 "com.example.document",
                 "urn:mixed-document",
+                "com.example.document",
+                "urn:extension",
                 "com.example.document",
                 "urn:unsupported",
                 "com.example.document"),

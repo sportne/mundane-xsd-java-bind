@@ -224,7 +224,9 @@ The remaining verification sequence is:
   overlap diagnostics.
 - `TASK-0061`: accepted derivation, final/block, abstract type metadata, and known `xsi:type`
   generated-binding tests.
-- `TASK-0062`: strict/lax wildcard deep-validation and wildcard composition tests.
+- `TASK-0062`: accepted strict/lax wildcard deep-validation and wildcard composition tests,
+  including generated reader/validator schema-known checks and selected JDK XML Schema comparison
+  fixture `T-CONF-XP-XSD10-DOCUMENT-WILDCARD-DEEP`.
 - `TASK-0063`: datatype/list/union, NOTATION, `xsi:nil`, and identity-constraint edge tests needed
   before W3C row mapping.
 - `TASK-0064`: W3C XML Schema 1.0 generated-binding mapping and executable row evidence.
