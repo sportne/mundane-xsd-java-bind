@@ -81,11 +81,12 @@ choice and facet profiles remain narrower.
 
 `TASK-0051` adds required `xs:all` groups, all-optional `xs:all` groups, repeated element-only
 choices, nested singleton sequences, and single-particle repeated/optional group refs with composed
-cardinality. Optional all-groups with required children, repeated/optional multi-particle groups,
-wildcard choice branches, anonymous list/union member types, optional or repeated list-valued XML
-fields, nested list/union composition, mixed choice content, identity-constraint edge cases, strict/lax
-schema-known wildcard deep validation, and full XSD 1.0 conformance remain out of scope with
-explicit diagnostics or future-study classification.
+cardinality. `TASK-0059` adds generated content-list shapes for optional all-groups with required
+children, repeated/optional multi-particle groups whose child particles are singleton particles,
+wildcard choice branches, and mixed choice content. Anonymous list/union member types, optional or
+repeated list-valued XML fields, nested list/union composition, identity-constraint edge cases,
+strict/lax schema-known wildcard deep validation, complete nested automata/UPA enforcement, and full
+XSD 1.0 conformance remain out of scope with explicit diagnostics or future-study classification.
 
 `TASK-0050` broadens the datatype engine used by existing executable profiles without making
 `XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
@@ -97,8 +98,9 @@ Generated readers, writers, and validators use the same dependency-free runtime 
 `xs:anyAttribute` values as `List<XmlAttribute>`, wildcard namespace-token handling, and
 `processContents` metadata. `TASK-0053` adds accepted simpleContent text-with-attributes binding,
 basic complexContent restriction member checks, and selected derivation/substitution diagnostics.
-Grouped content-list models, complete derivation algebra, strict/lax schema-known wildcard deep
-validation, `xsi:type` dispatch, and identity-constraint edge-case coverage remain future tasks.
+Complete content-model automata/UPA enforcement, complete derivation algebra, strict/lax
+schema-known wildcard deep validation, `xsi:type` dispatch, and identity-constraint edge-case
+coverage remain future tasks.
 
 ## `0.4.0` Semantic Baseline
 
@@ -218,8 +220,8 @@ workflow remains separate release-engineering work.
 requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
 The public token remains non-executable until `TASK-0065`.
 
-The planned blocker sequence is `TASK-0059` through `TASK-0066`: grouped content-list models,
-content-model automata and UPA, derivation/dynamic typing, strict/lax wildcard deep validation,
+The planned blocker sequence is `TASK-0060` through `TASK-0066`: content-model automata and UPA,
+derivation/dynamic typing, strict/lax wildcard deep validation,
 remaining datatype/nil/identity edges, W3C generated-binding row mapping, full-profile enablement,
 and final release workflow/readiness. Until those gates are accepted, public docs must keep full
 XSD 1.0 and `1.0.0` release claims out of scope.

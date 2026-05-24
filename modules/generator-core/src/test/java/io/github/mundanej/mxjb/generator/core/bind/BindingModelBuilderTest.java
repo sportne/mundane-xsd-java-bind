@@ -317,6 +317,47 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsGroupedContentListsForMixedAndWildcardChoiceBranches() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order" mixed="true">
+                  <xs:sequence>
+                    <xs:choice>
+                      <xs:element name="id" type="xs:string"/>
+                      <xs:element name="note" type="xs:string"/>
+                    </xs:choice>
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                      <xs:element name="known" type="xs:string"/>
+                      <xs:any namespace="##other" processContents="skip"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String text = result.model().toText();
+    assertTrue(
+        text.contains("mixed contentType io.github.mundanej.mxjb.generated.orders.OrderContent"),
+        text);
+    assertTrue(
+        text.contains(
+            "branch element id xml={urn:orders}id type=scalar:string cardinality=optional 0..1"),
+        text);
+    assertTrue(
+        text.contains(
+            "branch element note xml={urn:orders}note type=scalar:string cardinality=optional 0..1"),
+        text);
+    assertTrue(
+        text.contains("branch element known xml={urn:orders}known type=scalar:string"), text);
+    assertTrue(text.contains("branch wildcard wildcardContent xml=* type=fragment"), text);
+  }
+
+  @Test
   void resolvesInlineTypeNameCollisionsWithNamedTypes() throws IOException {
     write(
         "main.xsd",

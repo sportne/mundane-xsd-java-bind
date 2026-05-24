@@ -853,6 +853,37 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void documentProfileGeneratesGroupedContentListSourcesAndCompilesThem() throws IOException {
+    Path schema = writeSchema("grouped-document-order.xsd", groupedDocumentOrderSchema());
+    Path output = tempDirectory.resolve("grouped-document-generated");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_DOCUMENT,
+            "com.acme.generated",
+            Map.of("urn:orders", "com.acme.orders"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/acme/orders/Order.java"));
+    String sequenceContent =
+        Files.readString(output.resolve("com/acme/orders/OrderSequenceContent.java"));
+    String choiceContent =
+        Files.readString(output.resolve("com/acme/orders/OrderChoiceContent.java"));
+    String allRequired = Files.readString(output.resolve("com/acme/orders/Allrequired.java"));
+    assertTrue(order.contains("List<OrderSequenceContent> orderSequenceContent"));
+    assertTrue(order.contains("List<OrderChoiceContent> orderChoiceContent"));
+    assertTrue(sequenceContent.contains("sealed interface OrderSequenceContent"));
+    assertTrue(choiceContent.contains("sealed interface OrderChoiceContent"));
+    assertTrue(allRequired.contains("List<AllrequiredAllContent> allrequiredAllContent"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
   void documentProfileRejectsInvalidWildcardProcessContentsWithoutWritingSources()
       throws IOException {
     Path schema = writeSchema("bad-document-order.xsd", documentOrderSchema(true));
@@ -1485,6 +1516,49 @@ final class CoreGeneratorTest {
               <xs:element name="id" type="xs:string"/>
               <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name="tail" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String groupedDocumentOrderSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:orders"
+            targetNamespace="urn:orders">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:element name="allRequired" type="tns:AllRequired"/>
+          <xs:element name="mixed" type="tns:Mixed"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="id" type="xs:string"/>
+                <xs:element name="line" type="xs:string"/>
+              </xs:sequence>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="note" type="xs:string"/>
+                <xs:any namespace="##other" processContents="skip"/>
+              </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+          <xs:complexType name="AllRequired">
+            <xs:all minOccurs="0">
+              <xs:element name="id" type="xs:string"/>
+              <xs:element name="note" type="xs:string"/>
+            </xs:all>
+          </xs:complexType>
+          <xs:complexType name="Mixed" mixed="true">
+            <xs:sequence>
+              <xs:choice>
+                <xs:element name="summary" type="xs:string"/>
+                <xs:element name="description" type="xs:string"/>
+              </xs:choice>
+              <xs:element name="middle" type="xs:string"/>
+              <xs:choice minOccurs="0" maxOccurs="2">
+                <xs:element name="domestic" type="xs:string"/>
+                <xs:element name="international" type="xs:string"/>
+              </xs:choice>
             </xs:sequence>
           </xs:complexType>
         </xs:schema>

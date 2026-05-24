@@ -44,7 +44,7 @@ import org.xml.sax.SAXException;
 final class XpXsd10DocumentConformanceTest {
   // Selected fixture manifest IDs:
   // T-CONF-XP-XSD10-DOCUMENT-WILDCARD, T-CONF-XP-XSD10-DOCUMENT-MIXED,
-  // T-CONF-XP-XSD10-DOCUMENT-ANY-ATTRIBUTE.
+  // T-CONF-XP-XSD10-DOCUMENT-MIXED-CHOICE, T-CONF-XP-XSD10-DOCUMENT-ANY-ATTRIBUTE.
 
   @TempDir private Path tempDirectory;
 
@@ -127,6 +127,41 @@ final class XpXsd10DocumentConformanceTest {
       assertTrue(serialized.indexOf("between") < serialized.indexOf("note"));
       assertTrue(serialized.indexOf("note") < serialized.indexOf("done"));
       assertTrue(serialized.indexOf("done") < serialized.indexOf("after"));
+    }
+  }
+
+  @Test
+  void mixedChoiceFixtureMatchesJdkSchemaValidationAndGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/unsupported/mixed-choice.xsd");
+    String validXml = resource("/xp-xsd10-document/mixed-choice-valid.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+
+    try (CompiledGeneratedDocumentBindings bindings =
+        generateAndCompileDocumentBindings("/unsupported/mixed-choice.xsd")) {
+      Class<?> orderClass = bindings.load("com.example.document.Order");
+      Class<?> readerClass = bindings.load("com.example.document.xml.OrderXmlReader");
+      Class<?> writerClass = bindings.load("com.example.document.xml.OrderXmlWriter");
+      Class<?> validatorClass = bindings.load("com.example.document.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      Object content = orderClass.getMethod("content").invoke(order);
+      String serialized = writeWithGeneratedWriter(writerClass, orderClass, order);
+      Object reparsed =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(serialized));
+      ValidationResult validation =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, reparsed);
+
+      assertTrue(content instanceof List<?>);
+      assertEquals(3, ((List<?>) content).size());
+      schema.newValidator().validate(new StreamSource(new StringReader(serialized)));
+      assertTrue(serialized.indexOf("before") < serialized.indexOf("A-1"));
+      assertTrue(serialized.indexOf("A-1") < serialized.indexOf("after"));
+      assertEquals(order, reparsed);
+      assertTrue(validation.isValid());
     }
   }
 
@@ -257,6 +292,8 @@ final class XpXsd10DocumentConformanceTest {
                 "urn:document",
                 "com.example.document",
                 "urn:mixed-document",
+                "com.example.document",
+                "urn:unsupported",
                 "com.example.document"),
             List.of(),
             Map.of());

@@ -22,7 +22,7 @@ traceability artifact, not a support claim. Status values:
 | Global/local `xs:attribute` | partially supported | `TASK-0052` | Local/global namespace qualification, refs, defaults/fixed, and prohibited use are supported for accepted shapes; derivation composition remains incomplete. |
 | `xs:complexType` | partially supported | `TASK-0051`, `TASK-0053` | Content-model support now includes legal `xs:all`, repeated choices, selected nested groups, simpleContent text-with-attributes binding, and basic restriction member checks; full restriction algebra, abstract type instantiation rules, and `xsi:type` remain future. |
 | `xs:simpleType` | partially supported | `TASK-0050`, `TASK-0053` | Needs full datatype, facet, list, union, and derivation semantics. |
-| `xs:group` | partially supported | `TASK-0051` | Singleton refs and single-particle repeated/optional refs are flattened with composed cardinality; repeated/optional multi-particle groups require a future grouped content-list shape. |
+| `xs:group` | partially supported | `TASK-0051`, `TASK-0059` | Singleton refs and single-particle repeated/optional refs are flattened with composed cardinality; repeated/optional multi-particle groups whose members are singleton particles now bind as generated content-list shapes, with nested/non-singleton child-particle automata still deferred to `TASK-0060`. |
 | `xs:attributeGroup` | partially supported | `TASK-0052` | Nested refs and anyAttribute composition are accepted for non-recursive groups; full restriction/derivation composition remains future. |
 | `xs:notation` | tolerated/ignored | `TASK-0049`, `TASK-0050` | Parsed and indexed as a symbol-space component; NOTATION datatype semantics remain future. |
 | Identity constraints | partially supported | `TASK-0049`, `TASK-0054` | `xs:unique`, `xs:key`, and `xs:keyref` are parsed, normalized, and enforced by generated document-scope validators for accepted generated model shapes. The accepted XPath subset covers namespace-aware QName steps, `*`, `.`, `.//`, `/`, union alternatives, and terminal attribute fields. Unsupported XPath axes, predicates, functions, parent traversal, variables, and arbitrary expressions remain deterministic diagnostics. |
@@ -31,13 +31,13 @@ traceability artifact, not a support claim. Status values:
 
 | Construct | Current status | Target task | Notes |
 |---|---|---|---|
-| `xs:sequence` | supported for accepted shapes | `TASK-0051` | Direct sequences, nested singleton sequences, and single-particle repeated/optional nested sequences are accepted; repeated multi-particle groups remain diagnostic. |
-| `xs:choice` | partially supported | `TASK-0051` | Required, optional, and repeated element-only choices are generated; mixed/wildcard choice forms remain future. |
-| `xs:all` | partially supported | `TASK-0049`, `TASK-0051` | Required all-groups and optional all-groups whose members are all optional are generated with unordered reader acceptance and deterministic writer order; optional all-groups with required children remain diagnostic until grouped content state exists. |
-| `xs:any` | partially supported | `TASK-0052` | Retained element fragments support accepted locations, namespace-token handling, and process metadata; wildcard choices, strict/lax schema-known deep validation, and derivation interactions remain future. |
-| `minOccurs`, `maxOccurs` | partially supported | `TASK-0051` | Cardinality composition is verified for single-particle nested sequences/group refs and repeated choices; grouped list semantics remain future. |
+| `xs:sequence` | supported for accepted shapes | `TASK-0051`, `TASK-0059` | Direct sequences, nested singleton sequences, single-particle repeated/optional nested sequences, and repeated/optional multi-particle groups whose children are singleton particles are accepted; grouped multi-particle cases use generated content-list models and deeper nested automata remain `TASK-0060`. |
+| `xs:choice` | partially supported | `TASK-0051`, `TASK-0059` | Required, optional, and repeated element-only choices are generated; mixed choices and wildcard choice forms now bind as generated content lists where the surrounding profile accepts those branches. |
+| `xs:all` | partially supported | `TASK-0049`, `TASK-0051`, `TASK-0059` | Required all-groups and optional all-groups whose members are all optional are generated with ordinary fields; optional all-groups with required children now bind as generated content-list models. |
+| `xs:any` | partially supported | `TASK-0052`, `TASK-0059` | Retained element fragments support accepted locations, namespace-token handling, process metadata, and wildcard choice branch binding; strict/lax schema-known deep validation and derivation interactions remain future. |
+| `minOccurs`, `maxOccurs` | partially supported | `TASK-0051`, `TASK-0059` | Cardinality composition is verified for single-particle nested sequences/group refs, repeated choices, and grouped content-list shapes with singleton child particles; complete automata execution remains future. |
 | UPA validation | partially supported | `TASK-0051` | Existing element/wildcard overlap diagnostics remain; complete automata-based UPA coverage remains future. |
-| Mixed content | partially supported | `TASK-0051`, `TASK-0053` | Sequence mixed content remains supported; mixed choices and derivation interactions remain future. |
+| Mixed content | partially supported | `TASK-0051`, `TASK-0053`, `TASK-0059` | Sequence mixed content and mixed choices now use generated content-list models; mixed derivation interactions remain future. |
 
 ## Attributes and wildcards
 

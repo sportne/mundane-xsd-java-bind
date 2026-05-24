@@ -600,7 +600,7 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
-  void rejectsNonFlattenableRepeatedNestedSequence() throws IOException {
+  void buildsIrForRepeatedNestedSequenceAsGroupedContent() throws IOException {
     write(
         "main.xsd",
         schema(
@@ -618,10 +618,34 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
 
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("sequenceGroup cardinality=0..unbounded"), irText);
+    assertTrue(irText.contains("element {urn:orders}id type=xs:string cardinality=1..1"), irText);
+    assertTrue(irText.contains("element {urn:orders}line type=xs:string cardinality=1..1"), irText);
+  }
+
+  @Test
+  void rejectsGroupedSequenceWithNonSingletonChildrenUntilAutomataSupport() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                      <xs:element name="id" type="xs:string" minOccurs="0"/>
+                      <xs:element name="line" type="xs:string"/>
+                    </xs:sequence>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
     assertEquals(List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT), diagnosticCodes(result));
-    assertTrue(
-        result.diagnostics().getFirst().message().contains("grouped content-list binding"),
-        result.diagnostics().toString());
+    assertTrue(result.diagnostics().getFirst().message().contains("content-model automata"));
   }
 
   @Test
@@ -681,9 +705,10 @@ final class SchemaIrBuilderTest {
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
         diagnosticCodes(build("bad-child.xsd", GeneratorProfile.XP_XSD10_COMPOSED)));
-    assertEquals(
-        List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
-        diagnosticCodes(build("optional-required.xsd", GeneratorProfile.XP_XSD10_COMPOSED)));
+    SchemaIrResult optionalRequired =
+        build("optional-required.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+    assertTrue(optionalRequired.diagnostics().isEmpty(), optionalRequired.diagnostics().toString());
+    assertTrue(optionalRequired.model().toText().contains("all cardinality=0..1"));
     assertEquals(
         List.of(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT),
         diagnosticCodes(build("empty.xsd", GeneratorProfile.XP_XSD10_COMPOSED)));
@@ -1595,7 +1620,7 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
-  void rejectsMixedChoiceForDocumentProfile() throws IOException {
+  void buildsIrForMixedChoiceForDocumentProfile() throws IOException {
     write(
         "main.xsd",
         schema(
@@ -1610,10 +1635,11 @@ final class SchemaIrBuilderTest {
 
     SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
 
-    assertTrue(
-        diagnosticCodes(result).stream()
-            .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
-    assertTrue(result.diagnostics().getFirst().message().contains("mixed content"));
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(irText.contains("complexType {urn:orders}Order mixed=true"), irText);
+    assertTrue(irText.contains("choice cardinality=1..1"), irText);
+    assertTrue(irText.contains("element {urn:orders}id type=xs:string cardinality=1..1"), irText);
   }
 
   @Test
@@ -1772,6 +1798,36 @@ final class SchemaIrBuilderTest {
     assertTrue(
         diagnosticCodes(result).stream()
             .allMatch(DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT::equals));
+    assertTrue(
+        result
+            .diagnostics()
+            .getFirst()
+            .message()
+            .contains("xs:any namespace constraint overlaps XML element {urn:orders}card"));
+  }
+
+  @Test
+  void rejectsWildcardChoiceBranchOverlappingNamedChoiceBranch() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:choice>
+                      <xs:element name="card" type="xs:string"/>
+                      <xs:any namespace="##any" processContents="skip"/>
+                    </xs:choice>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_DOCUMENT);
+
+    assertEquals(1, result.diagnostics().size());
+    assertEquals(
+        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, result.diagnostics().getFirst().code());
     assertTrue(
         result
             .diagnostics()

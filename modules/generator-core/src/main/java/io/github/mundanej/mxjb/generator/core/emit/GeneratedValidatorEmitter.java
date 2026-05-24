@@ -524,6 +524,12 @@ public final class GeneratedValidatorEmitter {
           .append(escape(field.javaName()))
           .append(".\", location);\n");
       source.append("    } else {\n");
+      if (!field.content().groups().isEmpty()
+          && !"mixed content".equals(field.content().modelKind())) {
+        appendGroupedContentValidation(source, field, accessor);
+        source.append("    }\n");
+        return;
+      }
       source.append("      int lastContentOrder = -1;\n");
       for (BindingContentBranch branch : field.content().branches()) {
         if ("text".equals(branch.kind())) {
@@ -579,7 +585,233 @@ public final class GeneratedValidatorEmitter {
           source.append("      }\n");
         }
       }
+      if (!field.content().groups().isEmpty()) {
+        appendGroupedContentValidation(source, field, accessor);
+      }
       source.append("    }\n");
+    }
+
+    private void appendGroupedContentValidation(
+        StringBuilder source, BindingField field, String accessor) {
+      source
+          .append("      for (")
+          .append(field.type().name())
+          .append(" item : ")
+          .append(accessor)
+          .append(") {\n");
+      source.append("        if (item == null) {\n");
+      source
+          .append("          addError(errors, \"MXJB-GV-001\", \"Missing required value ")
+          .append(escape(field.javaName()))
+          .append(".\", location);\n");
+      source.append("        }");
+      for (BindingContentBranch branch : field.content().branches()) {
+        source
+            .append(" else if (item instanceof ")
+            .append(branch.branchJavaName().qualifiedName())
+            .append(" branch) {\n");
+        appendGroupedContentBranchValueValidation(source, branch);
+        source.append("        }");
+      }
+      source.append(" else {\n");
+      source.append(
+          "          addError(errors, \"MXJB-GV-009\", \"Unsupported grouped content branch.\", location);\n");
+      source.append("        }\n");
+      source.append("      }\n");
+      for (int groupIndex = 0; groupIndex < field.content().groups().size(); groupIndex++) {
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group =
+            field.content().groups().get(groupIndex);
+        if ("choice".equals(group.modelKind())) {
+          appendChoiceGroupValidation(source, field, accessor, group, groupIndex);
+        } else if ("all".equals(group.modelKind())) {
+          appendAllGroupValidation(source, field, accessor, group, groupIndex);
+        } else {
+          appendSequenceGroupValidation(source, field, accessor, group, groupIndex);
+        }
+      }
+    }
+
+    private void appendGroupedContentBranchValueValidation(
+        StringBuilder source, BindingContentBranch branch) {
+      source.append("          if (branch.value() == null) {\n");
+      source
+          .append("            addError(errors, \"MXJB-GV-001\", \"Missing required value ")
+          .append(escape(branch.javaName()))
+          .append(".\", location);\n");
+      source.append("          } else {\n");
+      if ("wildcard".equals(branch.kind())) {
+        source
+            .append("            validateFragment(branch.value(), \"")
+            .append(escape(branch.wildcard().namespaceConstraint().kind()))
+            .append("\", java.util.Set.of(")
+            .append(
+                branch.wildcard().namespaceConstraint().namespaces().stream()
+                    .map(value -> "\"" + escape(value) + "\"")
+                    .collect(java.util.stream.Collectors.joining(", ")))
+            .append("), location, errors);\n");
+      } else {
+        BindingType nestedType = modelType(branch.type());
+        if (nestedType != null) {
+          source
+              .append("            ")
+              .append(helperName(nestedType))
+              .append("(branch.value(), location, errors);\n");
+        } else if (hasValidationRules(branch.type())) {
+          appendTypeValidation(source, branch.type(), "branch.value()", "            ");
+        }
+      }
+      source.append("          }\n");
+    }
+
+    private void appendChoiceGroupValidation(
+        StringBuilder source,
+        BindingField field,
+        String accessor,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        int groupIndex) {
+      String countName = field.javaName() + "Choice" + groupIndex + "Count";
+      source.append("      int ").append(countName).append(" = 0;\n");
+      source.append("      for (").append(field.type().name()).append(" item : ");
+      source.append(accessor).append(") {\n");
+      source.append("        if (");
+      appendInstanceOfAny(source, "item", group.branches());
+      source.append(") {\n");
+      source.append("          ").append(countName).append("++;\n");
+      source.append("        }\n");
+      source.append("      }\n");
+      appendGroupedCountValidation(source, group, countName);
+    }
+
+    private void appendAllGroupValidation(
+        StringBuilder source,
+        BindingField field,
+        String accessor,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        int groupIndex) {
+      String totalName = field.javaName() + "All" + groupIndex + "Count";
+      source.append("      int ").append(totalName).append(" = 0;\n");
+      for (BindingContentBranch branch : group.branches()) {
+        source
+            .append("      int ")
+            .append(branch.javaName())
+            .append(groupIndex)
+            .append("Count = 0;\n");
+      }
+      source.append("      for (").append(field.type().name()).append(" item : ");
+      source.append(accessor).append(") {\n");
+      for (int indexValue = 0; indexValue < group.branches().size(); indexValue++) {
+        BindingContentBranch branch = group.branches().get(indexValue);
+        source.append(indexValue == 0 ? "        if (" : "        } else if (");
+        source.append("item instanceof ").append(branch.branchJavaName().qualifiedName());
+        source.append(") {\n");
+        source
+            .append("          ")
+            .append(branch.javaName())
+            .append(groupIndex)
+            .append("Count++;\n");
+        source.append("          ").append(totalName).append("++;\n");
+      }
+      source.append("        }\n");
+      source.append("      }\n");
+      source.append("      if (").append(totalName).append(" > 0) {\n");
+      for (BindingContentBranch branch : group.branches()) {
+        if (branch.cardinality().minOccurs() > 0) {
+          source
+              .append("        if (")
+              .append(branch.javaName())
+              .append(groupIndex)
+              .append("Count < ");
+          source.append(branch.cardinality().minOccurs()).append(") {\n");
+          source
+              .append("          addError(errors, \"MXJB-GV-002\", \"Too few values for ")
+              .append(escape(branch.javaName()))
+              .append(".\", location);\n");
+          source.append("        }\n");
+        }
+        source
+            .append("        if (")
+            .append(branch.javaName())
+            .append(groupIndex)
+            .append("Count > 1) {\n");
+        source
+            .append("          addError(errors, \"MXJB-GV-003\", \"Too many values for ")
+            .append(escape(branch.javaName()))
+            .append(".\", location);\n");
+        source.append("        }\n");
+      }
+      source.append("      }\n");
+      appendGroupedCountValidation(source, group, totalName);
+    }
+
+    private void appendSequenceGroupValidation(
+        StringBuilder source,
+        BindingField field,
+        String accessor,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        int groupIndex) {
+      String expectedName = field.javaName() + "ExpectedOrder" + groupIndex;
+      String groupCountName = field.javaName() + "Group" + groupIndex + "Count";
+      source.append("      int ").append(expectedName).append(" = 1;\n");
+      source.append("      int ").append(groupCountName).append(" = 0;\n");
+      source.append("      for (").append(field.type().name()).append(" item : ");
+      source.append(accessor).append(") {\n");
+      for (int indexValue = 0; indexValue < group.branches().size(); indexValue++) {
+        BindingContentBranch branch = group.branches().get(indexValue);
+        source.append(indexValue == 0 ? "        if (" : "        } else if (");
+        source.append("item instanceof ").append(branch.branchJavaName().qualifiedName());
+        source.append(") {\n");
+        source.append("          if (").append(expectedName).append(" != ");
+        source.append(indexValue + 1).append(") {\n");
+        source.append(
+            "            addError(errors, \"MXJB-GV-009\", \"Out-of-order grouped content.\", location);\n");
+        source.append("          }\n");
+        if (indexValue == group.branches().size() - 1) {
+          source.append("          ").append(groupCountName).append("++;\n");
+          source.append("          ").append(expectedName).append(" = 1;\n");
+        } else {
+          source.append("          ").append(expectedName).append("++;\n");
+        }
+      }
+      source.append("        }\n");
+      source.append("      }\n");
+      source.append("      if (").append(expectedName).append(" != 1) {\n");
+      source.append(
+          "        addError(errors, \"MXJB-GV-002\", \"Incomplete grouped content.\", location);\n");
+      source.append("      }\n");
+      appendGroupedCountValidation(source, group, groupCountName);
+    }
+
+    private void appendGroupedCountValidation(
+        StringBuilder source,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        String countName) {
+      if (group.cardinality().minOccurs() > 0) {
+        source.append("      if (").append(countName).append(" < ");
+        source.append(group.cardinality().minOccurs()).append(") {\n");
+        source.append(
+            "        addError(errors, \"MXJB-GV-002\", \"Too few grouped content values.\", location);\n");
+        source.append("      }\n");
+      }
+      if (!"unbounded".equals(group.cardinality().maxOccurs())) {
+        source.append("      if (").append(countName).append(" > ");
+        source.append(Integer.parseInt(group.cardinality().maxOccurs())).append(") {\n");
+        source.append(
+            "        addError(errors, \"MXJB-GV-003\", \"Too many grouped content values.\", location);\n");
+        source.append("      }\n");
+      }
+    }
+
+    private void appendInstanceOfAny(
+        StringBuilder source, String valueName, List<BindingContentBranch> branches) {
+      for (int indexValue = 0; indexValue < branches.size(); indexValue++) {
+        if (indexValue > 0) {
+          source.append(" || ");
+        }
+        source
+            .append(valueName)
+            .append(" instanceof ")
+            .append(branches.get(indexValue).branchJavaName().qualifiedName());
+      }
     }
 
     private void appendContentBranchValidation(StringBuilder source, BindingContentBranch branch) {

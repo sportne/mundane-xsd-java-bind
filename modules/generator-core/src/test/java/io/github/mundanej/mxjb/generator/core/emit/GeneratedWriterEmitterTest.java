@@ -9,6 +9,7 @@ import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContent;
 import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -393,6 +394,65 @@ final class GeneratedWriterEmitterTest {
   }
 
   @Test
+  void generatedWriterSerializesGroupedContentListBranchesInListOrder()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model = groupedContentOrderModel();
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedWriterEmissionResult writerResult = new GeneratedWriterEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(writerResult.sources());
+
+    RecordingXmlOutput output = new RecordingXmlOutput();
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> skuContentClass = compiledSources.load("com.example.orders.SkuContent");
+      Class<?> quantityContentClass = compiledSources.load("com.example.orders.QuantityContent");
+      Class<?> giftContentClass = compiledSources.load("com.example.orders.GiftContent");
+      Class<?> writerClass = compiledSources.load("com.example.orders.xml.OrderXmlWriter");
+      Object order =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(
+                  List.of(
+                      skuContentClass.getConstructor(String.class).newInstance("SKU-1"),
+                      quantityContentClass.getConstructor(Integer.class).newInstance(2),
+                      skuContentClass.getConstructor(String.class).newInstance("SKU-2"),
+                      quantityContentClass.getConstructor(Integer.class).newInstance(3),
+                      giftContentClass.getConstructor(String.class).newInstance("yes")));
+
+      writerClass.getMethod("write", XmlOutput.class, orderClass).invoke(null, output, order);
+    }
+
+    assertEquals(
+        List.of(
+            "start:{urn:orders}order",
+            "start:{urn:orders}sku",
+            "text:SKU-1",
+            "end:{urn:orders}sku",
+            "start:{urn:orders}quantity",
+            "text:2",
+            "end:{urn:orders}quantity",
+            "start:{urn:orders}sku",
+            "text:SKU-2",
+            "end:{urn:orders}sku",
+            "start:{urn:orders}quantity",
+            "text:3",
+            "end:{urn:orders}quantity",
+            "start:{urn:orders}gift",
+            "text:yes",
+            "end:{urn:orders}gift",
+            "end:{urn:orders}order"),
+        output.events);
+  }
+
+  @Test
   void emitsDeterministicSourcesSortedByRootName() {
     BindingModel model =
         new BindingModel(
@@ -530,6 +590,49 @@ final class GeneratedWriterEmitterTest {
                         false,
                         content),
                     field("attribute", "version", scalar("string"), required(), 0)))));
+  }
+
+  private BindingModel groupedContentOrderModel() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderContent");
+    BindingContentBranch sku =
+        contentBranch(
+            "element", schemaName("sku"), "sku", scalar("string"), "SkuContent", required(), 1);
+    BindingContentBranch quantity =
+        contentBranch(
+            "element",
+            schemaName("quantity"),
+            "quantity",
+            scalar("int"),
+            "QuantityContent",
+            required(),
+            2);
+    BindingContentBranch gift =
+        contentBranch(
+            "element", schemaName("gift"), "gift", scalar("string"), "GiftContent", required(), 3);
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(sku, quantity, gift),
+            "grouped content",
+            List.of(
+                new BindingContentGroup("sequence", list(), List.of(sku, quantity)),
+                new BindingContentGroup("all", optional(), List.of(gift))));
+    return new BindingModel(
+        List.of(root("order", model("com.example.orders.Order"))),
+        List.of(
+            type(
+                "com.example.orders",
+                "Order",
+                List.of(
+                    new BindingField(
+                        "content",
+                        schemaName("Order"),
+                        "content",
+                        new BindingTypeReference("choice", contentName.qualifiedName()),
+                        list(),
+                        1,
+                        false,
+                        content)))));
   }
 
   private BindingContentBranch contentBranch(

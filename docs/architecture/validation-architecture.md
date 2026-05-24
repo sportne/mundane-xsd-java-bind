@@ -113,8 +113,10 @@ The `XP-XSD10-DOCUMENT` validation behavior remains generated and explicit.
   constraints, and prohibited/excluded names. Readers reject prohibited declared attributes before
   wildcard capture and continue to reject attributes that are neither declared nor accepted by the
   effective wildcard.
+- `TASK-0059` validates generated grouped content-list fields for null-free structure, per-branch
+  cardinality, retained wildcard namespace constraints, and deterministic list-order writer
+  behavior. Complete reader/validator automata agreement and full UPA coverage remain `TASK-0060`.
 - Full schema-known validation for `processContents="lax"` or `"strict"`, identity-constraint
   edge cases beyond accepted generated model shapes, complete UPA coverage, complete
   derivation/restriction/block/final and `xsi:type` behavior, comments, processing instructions,
-  entity-reference semantics, wildcard choice branches, mixed choices, and full XSD 1.0 validation
-  remain future work.
+  entity-reference semantics, and full XSD 1.0 validation remain future work.

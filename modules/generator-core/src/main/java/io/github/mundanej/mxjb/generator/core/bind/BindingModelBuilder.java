@@ -9,6 +9,7 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrAttribute;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrChoice;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrComplexType;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrElement;
+import io.github.mundanej.mxjb.generator.core.schema.SchemaIrGroup;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrModel;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrParticle;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrResult;
@@ -200,24 +201,61 @@ public final class BindingModelBuilder {
                       + fields.get(fields.size() - 1).cardinality().toText());
             } else if (particle instanceof SchemaIrChoice choice) {
               BindingField field =
-                  bindChoiceField(complexType, javaName, choice, usedFieldNames, order);
+                  choice.wildcardBranches().isEmpty()
+                      ? bindChoiceField(complexType, javaName, choice, usedFieldNames, order)
+                      : bindGroupedContentField(
+                          complexType,
+                          javaName,
+                          "choice",
+                          choice.cardinality(),
+                          choice.branches(),
+                          usedFieldNames,
+                          order);
               fields.add(field);
               validationRules.add(
-                  "choice " + field.javaName() + " " + field.cardinality().toText());
+                  field.kind() + " " + field.javaName() + " " + field.cardinality().toText());
             } else if (particle instanceof SchemaIrWildcard wildcard) {
               BindingField field = bindWildcardField(wildcard, usedFieldNames, order);
               fields.add(field);
               validationRules.add(
                   "wildcard " + field.javaName() + " " + field.cardinality().toText());
             } else if (particle instanceof SchemaIrAll all) {
-              for (SchemaIrElement element : all.elements()) {
-                fields.add(bindElementField(element, usedFieldNames, order));
+              if (requiresGroupedAll(all)) {
+                BindingField field =
+                    bindGroupedContentField(
+                        complexType,
+                        javaName,
+                        "all",
+                        all.cardinality(),
+                        all.elements().stream().map(SchemaIrParticle.class::cast).toList(),
+                        usedFieldNames,
+                        order);
+                fields.add(field);
                 validationRules.add(
-                    "all-element "
-                        + fields.get(fields.size() - 1).javaName()
-                        + " "
-                        + fields.get(fields.size() - 1).cardinality().toText());
+                    "content " + field.javaName() + " " + field.cardinality().toText());
+              } else {
+                for (SchemaIrElement element : all.elements()) {
+                  fields.add(bindElementField(element, usedFieldNames, order));
+                  validationRules.add(
+                      "all-element "
+                          + fields.get(fields.size() - 1).javaName()
+                          + " "
+                          + fields.get(fields.size() - 1).cardinality().toText());
+                }
               }
+            } else if (particle instanceof SchemaIrGroup group) {
+              BindingField field =
+                  bindGroupedContentField(
+                      complexType,
+                      javaName,
+                      group.modelKind(),
+                      group.cardinality(),
+                      group.particles(),
+                      usedFieldNames,
+                      order);
+              fields.add(field);
+              validationRules.add(
+                  "content " + field.javaName() + " " + field.cardinality().toText());
             } else {
               diagnostic(
                   DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
@@ -271,6 +309,11 @@ public final class BindingModelBuilder {
           "record",
           fields,
           new BindingValidationPlan(validationRules));
+    }
+
+    private boolean requiresGroupedAll(SchemaIrAll all) {
+      return all.cardinality().minOccurs() == 0
+          && all.elements().stream().anyMatch(element -> element.cardinality().minOccurs() > 0);
     }
 
     private BindingField bindSimpleContentField(
@@ -346,6 +389,7 @@ public final class BindingModelBuilder {
       BindingJavaName contentName = new BindingJavaName(packageName, contentSimpleName);
       Set<String> branchNames = new HashSet<>();
       List<BindingContentBranch> branches = new ArrayList<>();
+      List<BindingContentGroup> groups = new ArrayList<>();
       branches.add(
           new BindingContentBranch(
               "text",
@@ -360,18 +404,15 @@ public final class BindingModelBuilder {
       int branchOrder = 1;
       for (SchemaIrSequence sequence : complexType.sequences()) {
         for (SchemaIrParticle particle : sequence.particles()) {
-          if (particle instanceof SchemaIrElement element) {
-            branches.add(bindElementContentBranch(element, packageName, branchNames, branchOrder));
-          } else if (particle instanceof SchemaIrWildcard wildcard) {
-            branches.add(
-                bindWildcardContentBranch(
-                    wildcard, packageName, ownerName.simpleName(), branchNames, branchOrder));
-          } else {
-            diagnostic(
-                DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
-                "binding",
-                "Mixed content supports only accepted element and wildcard sequence particles.");
-          }
+          branchOrder =
+              addContentBranches(
+                  particle,
+                  packageName,
+                  ownerName.simpleName(),
+                  branchNames,
+                  branches,
+                  groups,
+                  branchOrder);
           branchOrder++;
         }
       }
@@ -384,7 +425,180 @@ public final class BindingModelBuilder {
           new BindingCardinality("list", 0, "unbounded"),
           order,
           false,
-          new BindingContent(contentName, branches));
+          new BindingContent(contentName, branches, "mixed content", groups));
+    }
+
+    private BindingField bindGroupedContentField(
+        SchemaIrComplexType complexType,
+        BindingJavaName ownerName,
+        String modelKind,
+        SchemaCardinality cardinality,
+        List<SchemaIrParticle> particles,
+        Set<String> usedFieldNames,
+        int order) {
+      String packageName = ownerName.packageName();
+      String contentSimpleName =
+          uniqueTypeName(
+              packageName, ownerName.simpleName() + JavaNames.capitalize(modelKind) + "Content");
+      BindingJavaName contentName = new BindingJavaName(packageName, contentSimpleName);
+      Set<String> branchNames = new HashSet<>();
+      List<BindingContentBranch> branches = new ArrayList<>();
+      List<BindingContentGroup> groups = new ArrayList<>();
+      int branchOrder = 1;
+      for (SchemaIrParticle particle : particles) {
+        branchOrder =
+            addContentBranches(
+                particle,
+                packageName,
+                ownerName.simpleName(),
+                branchNames,
+                branches,
+                groups,
+                branchOrder);
+        branchOrder++;
+      }
+      String fieldName =
+          JavaNames.unique(JavaNames.fieldNameFromTypeName(contentSimpleName), usedFieldNames);
+      return new BindingField(
+          "content",
+          complexType.name() == null ? new SchemaQName("", fieldName) : complexType.name(),
+          fieldName,
+          BindingTypeReference.choice(contentName),
+          new BindingCardinality("list", cardinality.minOccurs(), cardinality.maxOccurs()),
+          order,
+          cardinality.minOccurs() > 0,
+          new BindingContent(
+              contentName,
+              branches,
+              modelKind,
+              groups.isEmpty()
+                  ? List.of(
+                      new BindingContentGroup(
+                          modelKind,
+                          new BindingCardinality(
+                              "list", cardinality.minOccurs(), cardinality.maxOccurs()),
+                          branches))
+                  : groups));
+    }
+
+    private int addContentBranches(
+        SchemaIrParticle particle,
+        String packageName,
+        String ownerSimpleName,
+        Set<String> branchNames,
+        List<BindingContentBranch> branches,
+        List<BindingContentGroup> groups,
+        int branchOrder) {
+      if (particle instanceof SchemaIrElement element) {
+        branches.add(bindElementContentBranch(element, packageName, branchNames, branchOrder));
+        return branchOrder;
+      }
+      if (particle instanceof SchemaIrWildcard wildcard) {
+        branches.add(
+            bindWildcardContentBranch(
+                wildcard, packageName, ownerSimpleName, branchNames, branchOrder));
+        return branchOrder;
+      }
+      if (particle instanceof SchemaIrChoice choice) {
+        List<BindingContentBranch> groupBranches = new ArrayList<>();
+        for (SchemaIrParticle branch : choice.branches()) {
+          int beforeSize = branches.size();
+          addContentBranches(
+              withChoiceBranchCardinality(branch, choice.cardinality()),
+              packageName,
+              ownerSimpleName,
+              branchNames,
+              branches,
+              groups,
+              branchOrder);
+          groupBranches.addAll(branches.subList(beforeSize, branches.size()));
+        }
+        groups.add(
+            new BindingContentGroup(
+                "choice",
+                new BindingCardinality(
+                    "list", choice.cardinality().minOccurs(), choice.cardinality().maxOccurs()),
+                groupBranches));
+        return branchOrder;
+      }
+      if (particle instanceof SchemaIrAll all) {
+        List<BindingContentBranch> groupBranches = new ArrayList<>();
+        for (SchemaIrElement element : all.elements()) {
+          BindingContentBranch branch =
+              bindElementContentBranch(
+                  withElementCardinality(element, SchemaCardinality.ONE),
+                  packageName,
+                  branchNames,
+                  branchOrder);
+          branches.add(branch);
+          groupBranches.add(branch);
+          branchOrder++;
+        }
+        groups.add(
+            new BindingContentGroup(
+                "all",
+                new BindingCardinality(
+                    "list", all.cardinality().minOccurs(), all.cardinality().maxOccurs()),
+                groupBranches));
+        return branchOrder - 1;
+      }
+      if (particle instanceof SchemaIrGroup group) {
+        List<BindingContentBranch> groupBranches = new ArrayList<>();
+        for (SchemaIrParticle nested : group.particles()) {
+          int beforeSize = branches.size();
+          branchOrder =
+              addContentBranches(
+                  nested, packageName, ownerSimpleName, branchNames, branches, groups, branchOrder);
+          groupBranches.addAll(branches.subList(beforeSize, branches.size()));
+          branchOrder++;
+        }
+        groups.add(
+            new BindingContentGroup(
+                group.modelKind(),
+                new BindingCardinality(
+                    "list", group.cardinality().minOccurs(), group.cardinality().maxOccurs()),
+                groupBranches));
+        return branchOrder - 1;
+      }
+      diagnostic(
+          DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
+          "binding",
+          "Unsupported schema particle in grouped content binding.");
+      return branchOrder;
+    }
+
+    private SchemaIrParticle withChoiceBranchCardinality(
+        SchemaIrParticle particle, SchemaCardinality cardinality) {
+      SchemaCardinality effective = new SchemaCardinality(0, cardinality.maxOccurs());
+      return withBranchCardinality(particle, effective);
+    }
+
+    private SchemaIrParticle withBranchCardinality(
+        SchemaIrParticle particle, SchemaCardinality cardinality) {
+      if (particle instanceof SchemaIrElement element) {
+        return withElementCardinality(element, cardinality);
+      }
+      if (particle instanceof SchemaIrWildcard wildcard) {
+        return new SchemaIrWildcard(
+            composeCardinality(cardinality, wildcard.cardinality()),
+            wildcard.namespaceConstraint(),
+            wildcard.processContents());
+      }
+      return particle;
+    }
+
+    private SchemaIrElement withElementCardinality(
+        SchemaIrElement element, SchemaCardinality cardinality) {
+      return new SchemaIrElement(
+          element.name(),
+          element.type(),
+          composeCardinality(cardinality, element.cardinality()),
+          element.inlineComplexType(),
+          element.semantics(),
+          element.substitutionGroup(),
+          element.abstractElement(),
+          element.identityConstraints(),
+          element.reference());
     }
 
     private BindingContentBranch bindElementContentBranch(
@@ -523,7 +737,7 @@ public final class BindingModelBuilder {
       BindingJavaName choiceName = new BindingJavaName(packageName, choiceSimpleName);
       Set<String> branchNames = new HashSet<>();
       List<BindingChoiceBranch> branches = new ArrayList<>();
-      for (SchemaIrElement branch : choice.branches()) {
+      for (SchemaIrElement branch : choice.elementBranches()) {
         SchemaIrElement declaration =
             branch.reference() ? globalElements.get(branch.name()) : branch;
         SchemaIrTypeReference type = declaration == null ? branch.type() : declaration.type();
@@ -742,6 +956,18 @@ public final class BindingModelBuilder {
         return BindingCardinality.from(SchemaCardinality.ONE);
       }
       return cardinality;
+    }
+
+    private SchemaCardinality composeCardinality(SchemaCardinality outer, SchemaCardinality inner) {
+      return new SchemaCardinality(
+          outer.minOccurs() * inner.minOccurs(), multiplyMax(outer.maxOccurs(), inner.maxOccurs()));
+    }
+
+    private String multiplyMax(String left, String right) {
+      if ("unbounded".equals(left) || "unbounded".equals(right)) {
+        return "unbounded";
+      }
+      return Integer.toString(Integer.parseInt(left) * Integer.parseInt(right));
     }
 
     private void validateValueSemantics(

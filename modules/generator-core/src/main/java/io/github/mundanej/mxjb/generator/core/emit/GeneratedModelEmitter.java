@@ -225,6 +225,8 @@ public final class GeneratedModelEmitter {
             + javaName.packageName()
             + ";\n\n"
             + "/** Generated sealed model for XML mixed content "
+            + content.modelKind()
+            + " "
             + javaName.simpleName()
             + ". */\n"
             + "public sealed interface "
@@ -246,6 +248,8 @@ public final class GeneratedModelEmitter {
     }
     source
         .append("/** Generated branch for XML mixed content ")
+        .append(content.modelKind())
+        .append(' ')
         .append(content.javaName().simpleName())
         .append(". */\n");
     source

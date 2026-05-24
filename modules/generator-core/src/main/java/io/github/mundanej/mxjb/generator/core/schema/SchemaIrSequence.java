@@ -42,6 +42,12 @@ public record SchemaIrSequence(SchemaCardinality cardinality, List<SchemaIrParti
     if (particle instanceof SchemaIrAll all) {
       return all.elements().stream();
     }
+    if (particle instanceof SchemaIrGroup group) {
+      return group.particles().stream().flatMap(SchemaIrSequence::elementStream);
+    }
+    if (particle instanceof SchemaIrChoice choice) {
+      return choice.elementBranches().stream();
+    }
     return java.util.stream.Stream.empty();
   }
 

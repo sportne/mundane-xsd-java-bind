@@ -5,11 +5,25 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /** Normalized singleton choice particle with supported element branches. */
-public record SchemaIrChoice(SchemaCardinality cardinality, List<SchemaIrElement> branches)
+public record SchemaIrChoice(SchemaCardinality cardinality, List<SchemaIrParticle> branches)
     implements SchemaIrParticle {
   public SchemaIrChoice {
     Objects.requireNonNull(cardinality, "cardinality");
     branches = List.copyOf(branches);
+  }
+
+  public List<SchemaIrElement> elementBranches() {
+    return branches.stream()
+        .filter(SchemaIrElement.class::isInstance)
+        .map(SchemaIrElement.class::cast)
+        .toList();
+  }
+
+  public List<SchemaIrWildcard> wildcardBranches() {
+    return branches.stream()
+        .filter(SchemaIrWildcard.class::isInstance)
+        .map(SchemaIrWildcard.class::cast)
+        .toList();
   }
 
   @Override

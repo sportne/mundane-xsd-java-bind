@@ -317,6 +317,9 @@ public final class GeneratedReaderEmitter {
       for (BindingField field : requiredListFields(type)) {
         appendRequiredListCheck(source, field);
       }
+      for (BindingField field : groupedContentFields(type)) {
+        appendGroupedContentReadValidation(source, field);
+      }
       source.append("    input.next();\n");
       source.append("    return new ").append(typeText(type)).append("(");
       source.append(constructorArguments(type));
@@ -581,6 +584,20 @@ public final class GeneratedReaderEmitter {
             appendChoiceBranchRead(source, field, branch);
             firstBranch = false;
           }
+        } else if ("content".equals(field.kind())) {
+          for (BindingContentBranch branch : field.content().branches()) {
+            if ("text".equals(branch.kind())) {
+              continue;
+            }
+            appendDispatchPrefix(source, firstBranch);
+            if ("wildcard".equals(branch.kind())) {
+              source.append(wildcardMatchExpression(branch)).append(") {\n");
+            } else {
+              source.append(nameConstant(branch.xmlName())).append(".equals(input.name())) {\n");
+            }
+            appendContentBranchRead(source, field, branch);
+            firstBranch = false;
+          }
         } else if ("wildcard".equals(field.kind())) {
           appendDispatchPrefix(source, firstBranch);
           source.append(wildcardMatchExpression(field)).append(") {\n");
@@ -652,15 +669,26 @@ public final class GeneratedReaderEmitter {
 
     private void appendContentBranchRead(
         StringBuilder source, BindingField field, BindingContentBranch branch) {
-      source.append("          if (").append(branch.order()).append(" < lastElementOrder) {\n");
-      source.append(
-          "            throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML mixed content.\");\n");
-      source.append("          }\n");
-      source
-          .append("          lastElementOrder = Math.max(lastElementOrder, ")
-          .append(branch.order())
-          .append(");\n");
-      appendContentMaxOccursCheck(source, field, branch);
+      if (requiresGroupedContentReadState(field)) {
+        source.append("          if (").append(field.order()).append(" < lastElementOrder) {\n");
+        source.append(
+            "            throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML grouped content.\");\n");
+        source.append("          }\n");
+        source
+            .append("          lastElementOrder = Math.max(lastElementOrder, ")
+            .append(field.order())
+            .append(");\n");
+      } else {
+        source.append("          if (").append(branch.order()).append(" < lastElementOrder) {\n");
+        source.append(
+            "            throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML mixed content.\");\n");
+        source.append("          }\n");
+        source
+            .append("          lastElementOrder = Math.max(lastElementOrder, ")
+            .append(branch.order())
+            .append(");\n");
+        appendContentMaxOccursCheck(source, field, branch);
+      }
       source
           .append("          ")
           .append(field.javaName())
@@ -669,6 +697,163 @@ public final class GeneratedReaderEmitter {
           .append("(")
           .append(readContentBranchValueExpression(branch))
           .append("));\n");
+    }
+
+    private void appendGroupedContentReadValidation(StringBuilder source, BindingField field) {
+      for (int groupIndex = 0; groupIndex < field.content().groups().size(); groupIndex++) {
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group =
+            field.content().groups().get(groupIndex);
+        if ("choice".equals(group.modelKind())) {
+          appendChoiceGroupReadValidation(source, field, group, groupIndex);
+        } else if ("all".equals(group.modelKind())) {
+          appendAllGroupReadValidation(source, field, group, groupIndex);
+        } else {
+          appendSequenceGroupReadValidation(source, field, group, groupIndex);
+        }
+      }
+    }
+
+    private void appendChoiceGroupReadValidation(
+        StringBuilder source,
+        BindingField field,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        int groupIndex) {
+      String countName = field.javaName() + "Choice" + groupIndex + "Count";
+      source.append("    int ").append(countName).append(" = 0;\n");
+      source.append("    for (").append(localType(field)).append(" item : ");
+      source.append(field.javaName()).append("Values) {\n");
+      source.append("      if (");
+      appendInstanceOfAny(source, "item", group.branches());
+      source.append(") {\n");
+      source.append("        ").append(countName).append("++;\n");
+      source.append("      }\n");
+      source.append("    }\n");
+      appendGroupedCountReadChecks(source, group, countName);
+    }
+
+    private void appendAllGroupReadValidation(
+        StringBuilder source,
+        BindingField field,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        int groupIndex) {
+      String totalName = field.javaName() + "All" + groupIndex + "Count";
+      source.append("    int ").append(totalName).append(" = 0;\n");
+      for (BindingContentBranch branch : group.branches()) {
+        source
+            .append("    int ")
+            .append(branch.javaName())
+            .append(groupIndex)
+            .append("ReadCount = 0;\n");
+      }
+      source.append("    for (").append(localType(field)).append(" item : ");
+      source.append(field.javaName()).append("Values) {\n");
+      for (int indexValue = 0; indexValue < group.branches().size(); indexValue++) {
+        BindingContentBranch branch = group.branches().get(indexValue);
+        source.append(indexValue == 0 ? "      if (" : "      } else if (");
+        source.append("item instanceof ").append(branch.branchJavaName().qualifiedName());
+        source.append(") {\n");
+        source
+            .append("        ")
+            .append(branch.javaName())
+            .append(groupIndex)
+            .append("ReadCount++;\n");
+        source.append("        ").append(totalName).append("++;\n");
+      }
+      source.append("      }\n");
+      source.append("    }\n");
+      source.append("    if (").append(totalName).append(" > 0) {\n");
+      for (BindingContentBranch branch : group.branches()) {
+        if (branch.cardinality().minOccurs() > 0) {
+          source
+              .append("      if (")
+              .append(branch.javaName())
+              .append(groupIndex)
+              .append("ReadCount < ");
+          source.append(branch.cardinality().minOccurs()).append(") {\n");
+          source.append(
+              "        throw readException(input, \"MXJB-GR-004\", \"Missing required XML grouped content.\");\n");
+          source.append("      }\n");
+        }
+        source
+            .append("      if (")
+            .append(branch.javaName())
+            .append(groupIndex)
+            .append("ReadCount > 1) {\n");
+        source.append(
+            "        throw readException(input, \"MXJB-GR-005\", \"Too many XML grouped content values.\");\n");
+        source.append("      }\n");
+      }
+      source.append("    }\n");
+    }
+
+    private void appendSequenceGroupReadValidation(
+        StringBuilder source,
+        BindingField field,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        int groupIndex) {
+      String expectedName = field.javaName() + "ExpectedOrder" + groupIndex;
+      String groupCountName = field.javaName() + "Group" + groupIndex + "Count";
+      source.append("    int ").append(expectedName).append(" = 1;\n");
+      source.append("    int ").append(groupCountName).append(" = 0;\n");
+      source.append("    for (").append(localType(field)).append(" item : ");
+      source.append(field.javaName()).append("Values) {\n");
+      for (int indexValue = 0; indexValue < group.branches().size(); indexValue++) {
+        BindingContentBranch branch = group.branches().get(indexValue);
+        source.append(indexValue == 0 ? "      if (" : "      } else if (");
+        source.append("item instanceof ").append(branch.branchJavaName().qualifiedName());
+        source.append(") {\n");
+        source.append("        if (").append(expectedName).append(" != ");
+        source.append(indexValue + 1).append(") {\n");
+        source.append(
+            "          throw readException(input, \"MXJB-GR-002\", \"Out-of-order XML grouped content.\");\n");
+        source.append("        }\n");
+        if (indexValue == group.branches().size() - 1) {
+          source.append("        ").append(groupCountName).append("++;\n");
+          source.append("        ").append(expectedName).append(" = 1;\n");
+        } else {
+          source.append("        ").append(expectedName).append("++;\n");
+        }
+      }
+      source.append("      }\n");
+      source.append("    }\n");
+      source.append("    if (").append(expectedName).append(" != 1) {\n");
+      source.append(
+          "      throw readException(input, \"MXJB-GR-004\", \"Incomplete XML grouped content.\");\n");
+      source.append("    }\n");
+      appendGroupedCountReadChecks(source, group, groupCountName);
+    }
+
+    private void appendGroupedCountReadChecks(
+        StringBuilder source,
+        io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup group,
+        String countName) {
+      if (group.cardinality().minOccurs() > 0) {
+        source.append("    if (").append(countName).append(" < ");
+        source.append(group.cardinality().minOccurs()).append(") {\n");
+        source.append(
+            "      throw readException(input, \"MXJB-GR-004\", \"Missing required XML grouped content.\");\n");
+        source.append("    }\n");
+      }
+      if (!"unbounded".equals(group.cardinality().maxOccurs())) {
+        source.append("    if (").append(countName).append(" > ");
+        source.append(Integer.parseInt(group.cardinality().maxOccurs())).append(") {\n");
+        source.append(
+            "      throw readException(input, \"MXJB-GR-005\", \"Too many XML grouped content values.\");\n");
+        source.append("    }\n");
+      }
+    }
+
+    private void appendInstanceOfAny(
+        StringBuilder source, String valueName, List<BindingContentBranch> branches) {
+      for (int indexValue = 0; indexValue < branches.size(); indexValue++) {
+        if (indexValue > 0) {
+          source.append(" || ");
+        }
+        source
+            .append(valueName)
+            .append(" instanceof ")
+            .append(branches.get(indexValue).branchJavaName().qualifiedName());
+      }
     }
 
     private void appendSingleElementRead(StringBuilder source, BindingField field) {
@@ -1796,8 +1981,26 @@ public final class GeneratedReaderEmitter {
     private BindingField mixedContentField(BindingType type) {
       return type.fields().stream()
           .filter(field -> "content".equals(field.kind()))
+          .filter(
+              field ->
+                  field.content().branches().stream()
+                      .anyMatch(branch -> "text".equals(branch.kind())))
           .findFirst()
           .orElse(null);
+    }
+
+    private List<BindingField> groupedContentFields(BindingType type) {
+      return type.fields().stream().filter(this::hasContentGroups).toList();
+    }
+
+    private boolean hasContentGroups(BindingField field) {
+      return "content".equals(field.kind())
+          && field.content() != null
+          && !field.content().groups().isEmpty();
+    }
+
+    private boolean requiresGroupedContentReadState(BindingField field) {
+      return hasContentGroups(field) && !"mixed content".equals(field.content().modelKind());
     }
 
     private BindingContentBranch textContentBranch(BindingField field) {

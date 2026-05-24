@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContent;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -539,6 +542,113 @@ final class GeneratedValidatorEmitterTest {
           (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
 
       assertTrue(result.isValid());
+    }
+  }
+
+  @Test
+  void generatedValidatorChecksGroupedSequenceAndAllSemantics()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(groupedSequenceField(), groupedAllField()))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> idContentClass = compiledSources.load("com.example.orders.IdContent");
+      Class<?> lineContentClass = compiledSources.load("com.example.orders.LineContent");
+      Class<?> noteContentClass = compiledSources.load("com.example.orders.AllNoteContent");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object valid =
+          orderClass
+              .getConstructor(List.class, List.class)
+              .newInstance(
+                  List.of(
+                      idContentClass.getConstructor(String.class).newInstance("A-1"),
+                      lineContentClass.getConstructor(String.class).newInstance("L-1"),
+                      idContentClass.getConstructor(String.class).newInstance("A-2"),
+                      lineContentClass.getConstructor(String.class).newInstance("L-2")),
+                  List.of());
+      Object invalidSequence =
+          orderClass
+              .getConstructor(List.class, List.class)
+              .newInstance(
+                  List.of(
+                      idContentClass.getConstructor(String.class).newInstance("A-1"),
+                      idContentClass.getConstructor(String.class).newInstance("A-2")),
+                  List.of());
+      Object invalidAll =
+          orderClass
+              .getConstructor(List.class, List.class)
+              .newInstance(
+                  List.of(),
+                  List.of(noteContentClass.getConstructor(String.class).newInstance("gift")));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult invalidSequenceResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, invalidSequence);
+      ValidationResult invalidAllResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, invalidAll);
+
+      assertTrue(validResult.isValid());
+      assertTrue(codes(invalidSequenceResult).contains("MXJB-GV-009"));
+      assertEquals(List.of("MXJB-GV-002"), codes(invalidAllResult));
+    }
+  }
+
+  @Test
+  void generatedValidatorChecksGroupedChoiceOccurrenceCardinality()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(type("com.example.orders", "Order", List.of(groupedChoiceField()))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> idContentClass = compiledSources.load("com.example.orders.IdContent");
+      Class<?> noteContentClass = compiledSources.load("com.example.orders.NoteContent");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object valid =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(List.of(idContentClass.getConstructor(String.class).newInstance("A-1")));
+      Object invalid =
+          orderClass
+              .getConstructor(List.class)
+              .newInstance(
+                  List.of(
+                      idContentClass.getConstructor(String.class).newInstance("A-1"),
+                      noteContentClass.getConstructor(String.class).newInstance("gift")));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult invalidResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, invalid);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-003"), codes(invalidResult));
     }
   }
 
@@ -1078,6 +1188,86 @@ final class GeneratedValidatorEmitterTest {
         2,
         false,
         choice);
+  }
+
+  private BindingField groupedSequenceField() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderSequenceContent");
+    BindingContentBranch id =
+        contentBranch("element", "id", scalar("string"), optional(), 1, "IdContent");
+    BindingContentBranch line =
+        contentBranch("element", "line", scalar("string"), optional(), 2, "LineContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(id, line),
+            "sequence",
+            List.of(new BindingContentGroup("sequence", list(), List.of(id, line))));
+    return contentField("orderSequenceContent", contentName, content, list(), 1);
+  }
+
+  private BindingField groupedAllField() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderAllContent");
+    BindingContentBranch id =
+        contentBranch("element", "id", scalar("string"), required(), 1, "AllIdContent");
+    BindingContentBranch note =
+        contentBranch("element", "note", scalar("string"), required(), 2, "AllNoteContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(id, note),
+            "all",
+            List.of(new BindingContentGroup("all", list(0, "1"), List.of(id, note))));
+    return contentField("orderAllContent", contentName, content, list(0, "1"), 2);
+  }
+
+  private BindingField groupedChoiceField() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderChoiceContent");
+    BindingContentBranch id =
+        contentBranch("element", "id", scalar("string"), optional(), 1, "IdContent");
+    BindingContentBranch note =
+        contentBranch("element", "note", scalar("string"), optional(), 1, "NoteContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(id, note),
+            "choice",
+            List.of(new BindingContentGroup("choice", list(0, "1"), List.of(id, note))));
+    return contentField("orderChoiceContent", contentName, content, list(0, "1"), 1);
+  }
+
+  private BindingField contentField(
+      String fieldName,
+      BindingJavaName contentName,
+      BindingContent content,
+      BindingCardinality cardinality,
+      int order) {
+    return new BindingField(
+        "content",
+        schemaName(fieldName),
+        fieldName,
+        new BindingTypeReference("choice", contentName.qualifiedName()),
+        cardinality,
+        order,
+        cardinality.minOccurs() > 0,
+        content);
+  }
+
+  private BindingContentBranch contentBranch(
+      String kind,
+      String localName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      String simpleName) {
+    return new BindingContentBranch(
+        kind,
+        schemaName(localName),
+        localName,
+        type,
+        new BindingJavaName("com.example.orders", simpleName),
+        cardinality,
+        order,
+        null);
   }
 
   private BindingTypeReference scalar(String name) {

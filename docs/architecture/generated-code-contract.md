@@ -87,8 +87,10 @@ opt-in profile `XP-DATA-10-CHOICE`.
 
 `TASK-0051` extends the same generated shape to repeated element-only choices by using
 `List<<ContainingTypeSimpleName>Choice>` fields whose list order controls writer order and validator
-iteration. This shape still does not imply support for wildcard choice branches, mixed choice
-branches, anonymous branch complex types, or derivation-polymorphic choices.
+iteration. `TASK-0059` adds generated content-list fields for wildcard choices and mixed choices
+where a choice cannot be represented as an ordinary element-only choice field. This shape still
+does not imply support for anonymous branch complex types, full automata execution, or
+derivation-polymorphic choices.
 
 ## `TASK-0027` through `TASK-0029` composed-schema shape
 
@@ -99,8 +101,9 @@ runtime binding mechanisms.
   keep ordinary field and attribute components in deterministic schema order.
 - `TASK-0051` required `xs:all` groups and optional all-groups whose members are all optional flatten
   into ordinary fields with unordered generated reader acceptance and deterministic writer output in
-  binding order; non-flattenable repeated/optional multi-particle groups remain deterministic
-  diagnostics.
+  binding order. `TASK-0059` uses generated sealed content-list fields when optional all-groups with
+  required children or repeated/optional multi-particle groups with singleton child particles cannot
+  be represented as independent record fields.
 - `TASK-0029` complex-type extension is flattened with base fields before derived fields; generated
   Java model classes do not use inheritance for the accepted derivation subset.
 - `TASK-0028` list-valued simple types use immutable `List<T>` record components for required
@@ -157,6 +160,9 @@ The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and ge
   `List<<ContainingTypeSimpleName>Content>`.
 - Generated mixed-content readers preserve non-whitespace text nodes and drop whitespace-only text
   nodes deterministically. Generated writers serialize the content list exactly in list order.
+- `TASK-0059` reuses the generated content-list shape for grouped element/wildcard branches. These
+  records expose immutable `List<<ContainingTypeSimpleName><GroupKind>Content>` fields and writers
+  emit entries in list order. Complete shared automata validation remains `TASK-0060`.
 - `TASK-0039` verifies stable project XML output for generated and retained content. Generated
   writers emit attributes immediately after `startElement`, ordinary child content in binding order,
   repeated content in list order, and mixed-content branches in content-list order. Retained
@@ -171,8 +177,8 @@ The `XP-XSD10-DOCUMENT` profile keeps document-oriented behavior explicit and ge
   order. Generated validators check non-null wildcard lists/items, namespace constraints, and
   prohibited/excluded attribute names.
 - `TASK-0052` carries `processContents` metadata for retained element and attribute wildcards and
-  defaults omitted values to XSD 1.0 `strict`. Full schema-known deep validation for `lax`/`strict`
-  wildcards and wildcard choice branch generation remain future tasks.
+  defaults omitted values to XSD 1.0 `strict`. `TASK-0059` adds wildcard choice branch generation.
+  Full schema-known deep validation for `lax`/`strict` wildcards remains future work.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, DOM-backed
   binding, and external resource access.

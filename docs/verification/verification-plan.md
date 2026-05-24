@@ -213,8 +213,9 @@ XSD 1.1 and XML 1.1 are outside this verification plan.
 `TASK-0058` defines `1.0.0` as a full-XSD generated-binding release, not a stable-subset release.
 The remaining verification sequence is:
 
-- `TASK-0059`: generated content-list tests for repeated/optional multi-particle groups, optional
-  `xs:all` with required children, mixed choices, and wildcard choices.
+- `TASK-0059`: accepted generated content-list tests for repeated/optional multi-particle groups
+  whose child particles are singleton particles, optional `xs:all` with required children, mixed
+  choices, and wildcard choices.
 - `TASK-0060`: content-model automata and UPA tests proving generated readers and validators share
   the same deterministic model.
 - `TASK-0061`: derivation, restriction, block/final, abstract type, and `xsi:type` tests.

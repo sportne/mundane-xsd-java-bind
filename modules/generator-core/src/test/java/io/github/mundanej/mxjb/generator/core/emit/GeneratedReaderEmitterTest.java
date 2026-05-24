@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.mundanej.mxjb.generator.core.bind.BindingCardinality;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoice;
 import io.github.mundanej.mxjb.generator.core.bind.BindingChoiceBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContent;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentBranch;
+import io.github.mundanej.mxjb.generator.core.bind.BindingContentGroup;
 import io.github.mundanej.mxjb.generator.core.bind.BindingField;
 import io.github.mundanej.mxjb.generator.core.bind.BindingJavaName;
 import io.github.mundanej.mxjb.generator.core.bind.BindingModel;
@@ -263,6 +266,77 @@ final class GeneratedReaderEmitterTest {
       assertEquals(2, ((List<?>) choices).size());
       assertInstanceOf(domesticChoiceClass, ((List<?>) choices).get(0));
       assertInstanceOf(internationalChoiceClass, ((List<?>) choices).get(1));
+    }
+  }
+
+  @Test
+  void generatedReaderEnforcesGroupedSequenceOccurrences()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(type("com.example.orders", "Order", List.of(groupedSequenceField()))));
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, groupedSequenceInput());
+
+      Object content = orderClass.getMethod("orderSequenceContent").invoke(order);
+      assertInstanceOf(List.class, content);
+      assertEquals(4, ((List<?>) content).size());
+      assertReadDiagnostic(readerClass, groupedSequenceBadOrderInput(), "MXJB-GR-002");
+    }
+  }
+
+  @Test
+  void generatedReaderAcceptsOptionalAllGroupOmissionAndUnorderedMembers()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          IllegalAccessException,
+          InvocationTargetException {
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"))),
+            List.of(type("com.example.orders", "Order", List.of(groupedAllField()))));
+    GeneratedModelEmissionResult modelResult = new GeneratedModelEmitter().emit(model);
+    GeneratedReaderEmissionResult readerResult = new GeneratedReaderEmitter().emit(model);
+    List<GeneratedJavaSource> sources = new ArrayList<>();
+    sources.addAll(modelResult.sources());
+    sources.addAll(readerResult.sources());
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> readerClass = compiledSources.load("com.example.orders.xml.OrderXmlReader");
+
+      Object emptyOrder =
+          readerClass
+              .getMethod("read", XmlEventReader.class)
+              .invoke(null, groupedAllOmittedInput());
+      Object unorderedOrder =
+          readerClass
+              .getMethod("read", XmlEventReader.class)
+              .invoke(null, groupedAllUnorderedInput());
+
+      assertEquals(
+          0, ((List<?>) orderClass.getMethod("orderAllContent").invoke(emptyOrder)).size());
+      assertEquals(
+          2, ((List<?>) orderClass.getMethod("orderAllContent").invoke(unorderedOrder)).size());
+      assertReadDiagnostic(readerClass, groupedAllMissingRequiredInput(), "MXJB-GR-004");
     }
   }
 
@@ -646,6 +720,76 @@ final class GeneratedReaderEmitterTest {
         event(XmlEventKind.END_DOCUMENT, null));
   }
 
+  private EventXmlReader groupedSequenceInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        elementTextStart("id"),
+        text("A-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+        elementTextStart("line"),
+        text("L-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        elementTextStart("id"),
+        text("A-2"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+        elementTextStart("line"),
+        text("L-2"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader groupedSequenceBadOrderInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        elementTextStart("id"),
+        text("A-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+        elementTextStart("id"),
+        text("A-2"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+        elementTextStart("line"),
+        text("L-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "line")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader groupedAllOmittedInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader groupedAllUnorderedInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        elementTextStart("note"),
+        text("gift"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "note")),
+        elementTextStart("id"),
+        text("A-1"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "id")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
+  private EventXmlReader groupedAllMissingRequiredInput() {
+    return reader(
+        event(XmlEventKind.START_DOCUMENT, null),
+        event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", "order")),
+        elementTextStart("note"),
+        text("gift"),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "note")),
+        event(XmlEventKind.END_ELEMENT, new XmlName("urn:orders", "order")),
+        event(XmlEventKind.END_DOCUMENT, null));
+  }
+
   private EventXmlReader anyAttributeInput(boolean prohibited) {
     Map<XmlName, String> attributes =
         prohibited
@@ -838,6 +982,70 @@ final class GeneratedReaderEmitterTest {
         choice);
   }
 
+  private BindingField groupedSequenceField() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderSequenceContent");
+    BindingContentBranch id =
+        contentBranch("element", "id", scalar("string"), optional(), 1, "IdContent");
+    BindingContentBranch line =
+        contentBranch("element", "line", scalar("string"), optional(), 2, "LineContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(id, line),
+            "sequence",
+            List.of(new BindingContentGroup("sequence", list(), List.of(id, line))));
+    return new BindingField(
+        "content",
+        schemaName("orderSequenceContent"),
+        "orderSequenceContent",
+        new BindingTypeReference("choice", contentName.qualifiedName()),
+        list(),
+        1,
+        false,
+        content);
+  }
+
+  private BindingField groupedAllField() {
+    BindingJavaName contentName = new BindingJavaName("com.example.orders", "OrderAllContent");
+    BindingContentBranch id =
+        contentBranch("element", "id", scalar("string"), required(), 1, "IdContent");
+    BindingContentBranch note =
+        contentBranch("element", "note", scalar("string"), required(), 2, "NoteContent");
+    BindingContent content =
+        new BindingContent(
+            contentName,
+            List.of(id, note),
+            "all",
+            List.of(new BindingContentGroup("all", list("1"), List.of(id, note))));
+    return new BindingField(
+        "content",
+        schemaName("orderAllContent"),
+        "orderAllContent",
+        new BindingTypeReference("choice", contentName.qualifiedName()),
+        list("1"),
+        1,
+        false,
+        content);
+  }
+
+  private BindingContentBranch contentBranch(
+      String kind,
+      String localName,
+      BindingTypeReference type,
+      BindingCardinality cardinality,
+      int order,
+      String simpleName) {
+    return new BindingContentBranch(
+        kind,
+        schemaName(localName),
+        localName,
+        type,
+        new BindingJavaName("com.example.orders", simpleName),
+        cardinality,
+        order,
+        null);
+  }
+
   private BindingField anyAttributeField() {
     return new BindingField(
         "anyAttribute",
@@ -892,6 +1100,10 @@ final class GeneratedReaderEmitterTest {
 
   private Event event(XmlEventKind kind, XmlName name, Map<XmlName, String> attributes) {
     return new Event(kind, name, "", attributes);
+  }
+
+  private Event elementTextStart(String localName) {
+    return event(XmlEventKind.START_ELEMENT, new XmlName("urn:orders", localName));
   }
 
   private Event text(String value) {

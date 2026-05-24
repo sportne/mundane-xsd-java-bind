@@ -1041,13 +1041,6 @@ public final class SchemaIrBuilder {
           "xs:all is supported only as the sole complexType content particle.");
     }
     if (mixed) {
-      if (directChoiceSeen) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "mixed content supports xs:sequence content only; direct xs:choice is not supported.");
-      }
       if (directGroupSeen) {
         diagnostic(
             state,
@@ -1068,15 +1061,6 @@ public final class SchemaIrBuilder {
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
             "mixed content supports only direct xs:sequence content and attributes.");
-      }
-      for (SchemaIrSequence sequence : sequences) {
-        if (!sequence.choices().isEmpty()) {
-          diagnostic(
-              state,
-              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-              document.resourceId(),
-              "mixed xs:choice content is not supported in profile XP-XSD10-DOCUMENT.");
-        }
       }
     }
     if (directGroupSeen || sequenceGroupSeen) {
@@ -1391,15 +1375,6 @@ public final class SchemaIrBuilder {
           "xs:all must contain at least one supported element.");
       return null;
     }
-    if (cardinality.minOccurs() == 0
-        && elements.stream().anyMatch(element -> element.cardinality().minOccurs() > 0)) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:all minOccurs=0 with required children requires grouped content-model state.");
-      return null;
-    }
     validateDuplicateAllElementNames(document, elements, state);
     return new SchemaIrAll(cardinality, elements);
   }
@@ -1425,11 +1400,42 @@ public final class SchemaIrBuilder {
       particles.add(withCardinality(nested.particles().getFirst(), nested.cardinality()));
       return;
     }
-    diagnostic(
-        state,
-        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-        document.resourceId(),
-        "Repeated or optional nested xs:sequence with multiple particles requires grouped content-list binding.");
+    if (nested.particles().stream().anyMatch(particle -> !isSingletonParticle(particle))) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Repeated or optional nested xs:sequence with non-singleton child particles "
+              + "requires content-model automata.");
+      return;
+    }
+    particles.add(new SchemaIrGroup("sequence", nested.cardinality(), nested.particles()));
+  }
+
+  private boolean isSingletonParticle(SchemaIrParticle particle) {
+    SchemaCardinality cardinality = particleCardinality(particle);
+    return cardinality != null
+        && cardinality.minOccurs() == 1
+        && "1".equals(cardinality.maxOccurs());
+  }
+
+  private SchemaCardinality particleCardinality(SchemaIrParticle particle) {
+    if (particle instanceof SchemaIrElement element) {
+      return element.cardinality();
+    }
+    if (particle instanceof SchemaIrChoice choice) {
+      return choice.cardinality();
+    }
+    if (particle instanceof SchemaIrWildcard wildcard) {
+      return wildcard.cardinality();
+    }
+    if (particle instanceof SchemaIrAll all) {
+      return all.cardinality();
+    }
+    if (particle instanceof SchemaIrGroup group) {
+      return group.cardinality();
+    }
+    return null;
   }
 
   private SchemaIrParticle withCardinality(
@@ -1459,6 +1465,12 @@ public final class SchemaIrBuilder {
     if (particle instanceof SchemaIrAll all) {
       return new SchemaIrAll(composeCardinality(cardinality, all.cardinality()), all.elements());
     }
+    if (particle instanceof SchemaIrGroup group) {
+      return new SchemaIrGroup(
+          group.modelKind(),
+          composeCardinality(cardinality, group.cardinality()),
+          group.particles());
+    }
     return particle;
   }
 
@@ -1477,6 +1489,27 @@ public final class SchemaIrBuilder {
   private void validateWildcardElementAmbiguity(
       XsdSyntaxDocument document, List<SchemaIrParticle> particles, BuildState state) {
     List<SchemaQName> elementNames = new ArrayList<>();
+    List<SchemaIrWildcard> wildcards = new ArrayList<>();
+    collectWildcardAmbiguityInputs(particles, elementNames, wildcards);
+    for (SchemaIrWildcard wildcard : wildcards) {
+      for (SchemaQName elementName : elementNames) {
+        if (wildcardMatches(elementName, wildcard.namespaceConstraint())) {
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              document.resourceId(),
+              "xs:any namespace constraint overlaps XML element "
+                  + elementName.toText()
+                  + " in the same sequence.");
+        }
+      }
+    }
+  }
+
+  private void collectWildcardAmbiguityInputs(
+      List<SchemaIrParticle> particles,
+      List<SchemaQName> elementNames,
+      List<SchemaIrWildcard> wildcards) {
     for (SchemaIrParticle particle : particles) {
       if (particle instanceof SchemaIrElement element) {
         elementNames.add(element.name());
@@ -1485,24 +1518,14 @@ public final class SchemaIrBuilder {
           elementNames.add(element.name());
         }
       } else if (particle instanceof SchemaIrChoice choice) {
-        for (SchemaIrElement branch : choice.branches()) {
+        for (SchemaIrElement branch : choice.elementBranches()) {
           elementNames.add(branch.name());
         }
-      }
-    }
-    for (SchemaIrParticle particle : particles) {
-      if (particle instanceof SchemaIrWildcard wildcard) {
-        for (SchemaQName elementName : elementNames) {
-          if (wildcardMatches(elementName, wildcard.namespaceConstraint())) {
-            diagnostic(
-                state,
-                DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-                document.resourceId(),
-                "xs:any namespace constraint overlaps XML element "
-                    + elementName.toText()
-                    + " in the same sequence.");
-          }
-        }
+        wildcards.addAll(choice.wildcardBranches());
+      } else if (particle instanceof SchemaIrGroup group) {
+        collectWildcardAmbiguityInputs(group.particles(), elementNames, wildcards);
+      } else if (particle instanceof SchemaIrWildcard wildcard) {
+        wildcards.add(wildcard);
       }
     }
   }
@@ -1714,12 +1737,18 @@ public final class SchemaIrBuilder {
           SchemaCardinality.ONE,
           List.of(withCardinality(group.sequence().particles().getFirst(), cardinality)));
     }
-    diagnostic(
-        state,
-        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-        document.resourceId(),
-        "Repeated or optional xs:group ref with multiple particles requires grouped content-list binding.");
-    return null;
+    if (group.sequence().particles().stream()
+        .anyMatch(particle -> !isSingletonParticle(particle))) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Repeated or optional xs:group ref with non-singleton child particles requires content-model automata.");
+      return null;
+    }
+    return new SchemaIrSequence(
+        SchemaCardinality.ONE,
+        List.of(new SchemaIrGroup("group", cardinality, group.sequence().particles())));
   }
 
   private void addAttributeGroupReference(
@@ -1801,8 +1830,13 @@ public final class SchemaIrBuilder {
             addUniqueElementName(document, names, element.name(), state);
           }
         } else if (particle instanceof SchemaIrChoice choice) {
-          for (SchemaIrElement branch : choice.branches()) {
+          for (SchemaIrElement branch : choice.elementBranches()) {
             addUniqueElementName(document, names, branch.name(), state);
+          }
+        } else if (particle instanceof SchemaIrGroup group) {
+          for (SchemaIrElement element :
+              new SchemaIrSequence(SchemaCardinality.ONE, group.particles()).elements()) {
+            addUniqueElementName(document, names, element.name(), state);
           }
         }
       }
@@ -1840,14 +1874,14 @@ public final class SchemaIrBuilder {
     if (cardinality == null) {
       return null;
     }
-    List<SchemaIrElement> branches = new ArrayList<>();
+    List<SchemaIrParticle> branches = new ArrayList<>();
     for (XsdSyntaxNode child : node.children()) {
-      if (child.kind() != XsdSyntaxKind.ELEMENT) {
+      if (child.kind() != XsdSyntaxKind.ELEMENT && child.kind() != XsdSyntaxKind.ANY) {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "Only singleton xs:element branches are supported inside xs:choice.");
+            "Only singleton xs:element and xs:any branches are supported inside xs:choice.");
         continue;
       }
       String branchMin = child.attributes().getOrDefault("minOccurs", "1");
@@ -1858,6 +1892,10 @@ public final class SchemaIrBuilder {
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
             "xs:choice branches must use singleton cardinality in profile XP-DATA-10-CHOICE.");
+        continue;
+      }
+      if (child.kind() == XsdSyntaxKind.ANY) {
+        addIfPresent(branches, normalizeWildcard(document, child, state));
         continue;
       }
       boolean hasInlineComplexType =

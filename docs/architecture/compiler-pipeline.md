@@ -58,9 +58,13 @@ instead of introducing DOM-backed runtime binding.
 - `TASK-0037` carries accepted direct `xs:any` particles through frontend, component graph, IR,
   binding, and emission as explicit wildcard fields with namespace constraint metadata.
 - `TASK-0037` rejects unsupported wildcard locations and `processContents` modes before source
-  emission, including wildcard choices, substitution-branch wildcards, `xs:anyAttribute`, and
-  `processContents="lax"` or `"strict"`.
+  emission, including substitution-branch wildcards, `xs:anyAttribute`, and
+  `processContents="lax"` or `"strict"` before later gates broaden those shapes.
 - `TASK-0038` carries accepted `mixed="true"` metadata into binding as an ordered generated
   content-list model rather than separate unordered element fields.
 - `TASK-0039` verifies deterministic serialization policy for generated output and retained
   fragments without claiming formal XML Canonicalization.
+- `TASK-0059` keeps repeated/optional multi-particle groups whose child particles are singleton
+  particles, optional all-groups with required children, mixed choices, and wildcard choices as
+  explicit grouped IR particles or content-list binding metadata instead of flattening them into
+  misleading independent fields.
