@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -1118,8 +1119,8 @@ public final class GeneratedReaderEmitter {
       }
       source
           .append("        String ")
-          .append(field.javaName())
-          .append("XsiType = attribute(input, ")
+          .append(xsiTypeValueName(field))
+          .append(" = attribute(input, ")
           .append(nameConstant(XSI_TYPE))
           .append(");\n");
       boolean first = true;
@@ -1138,12 +1139,20 @@ public final class GeneratedReaderEmitter {
     }
 
     private String xsiTypeBranchCondition(BindingField field, BindingChoiceBranch branch) {
-      String valueName = field.javaName() + "XsiType";
+      String valueName = xsiTypeValueName(field);
       String typeName = nameConstant(Objects.requireNonNull(branch.dynamicTypeName()));
       if (branch.defaultDynamicType()) {
         return valueName + " == null || xsiTypeMatches(input, " + valueName + ", " + typeName + ")";
       }
       return valueName + " != null && xsiTypeMatches(input, " + valueName + ", " + typeName + ")";
+    }
+
+    private String xsiTypeValueName(BindingField field) {
+      return "__mxjb" + capitalize(field.javaName()) + "XsiType";
+    }
+
+    private String capitalize(String value) {
+      return value.substring(0, 1).toUpperCase(Locale.ROOT) + value.substring(1);
     }
 
     private void appendXsiTypeBranchAssignment(

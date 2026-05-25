@@ -1,6 +1,6 @@
 # TASK-0081: generated-naming-stress-coverage
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0081`
 Priority: P1
@@ -29,3 +29,15 @@ Acceptance criteria: all four stress areas have stable tests; any production fix
 deterministic; no new customization API or broader schema support is added.
 Rollback notes: revert naming tests/fixes/docs.
 
+Completion notes:
+- Added generated-source naming stress tests for `xsi:type`, substitution branches, grouped content
+  branches, retained wildcard content, and retained wildcard attributes.
+- Fixed a generated-reader internal local-name collision by using `XsiTypeName` for the
+  `xsi:type` attribute value variable, preserving public generated model field names and XML names.
+- Updated naming review and traceability evidence without adding customization syntax or broader
+  schema behavior.
+
+Evidence:
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

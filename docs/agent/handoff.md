@@ -91,8 +91,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 78. `TASK-0078`: Fix schema resource-id collisions for same-basename schemas. Completed and accepted.
 79. `TASK-0079`: Harden remaining conformance SchemaFactory helpers. Completed and accepted.
 80. `TASK-0080`: Expand W3C generated-binding row mapping. Completed and accepted.
-81. `TASK-0081`: Broaden generated naming stress coverage. Next implementation gate.
-82. `TASK-0082`: Add performance phase timing and large-schema characterization. Draft.
+81. `TASK-0081`: Broaden generated naming stress coverage. Completed and accepted.
+82. `TASK-0082`: Add performance phase timing and large-schema characterization. Next implementation gate.
 83. `TASK-0083`: Separate W3C intake/classification from generated-binding execution. Draft.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
@@ -261,15 +261,14 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0078` | post-1.0.0 follow-up | accepted | Fix schema resource-id collisions for same-basename schemas. |
 | `TASK-0079` | post-1.0.0 follow-up | accepted | Harden remaining conformance SchemaFactory helpers. |
 | `TASK-0080` | post-1.0.0 follow-up | accepted | Expand W3C generated-binding row mapping. |
-| `TASK-0081` | post-1.0.0 follow-up | next | Broaden generated naming stress coverage. |
-| `TASK-0082` | post-1.0.0 follow-up | draft | Add performance phase timing and large-schema characterization. |
+| `TASK-0081` | post-1.0.0 follow-up | accepted | Broaden generated naming stress coverage. |
+| `TASK-0082` | post-1.0.0 follow-up | next | Add performance phase timing and large-schema characterization. |
 | `TASK-0083` | post-1.0.0 follow-up | draft | Separate W3C intake/classification from generated-binding execution. |
 
 ## Current implementation gate
 
-`TASK-0081` is the next implementation gate. It should broaden generated naming stress coverage for
-`xsi:type`, substitution branch, grouped content branch, and retained wildcard naming without
-broad behavior changes.
+`TASK-0082` is the next implementation gate. It should add advisory generator phase timing and
+large-schema/source-growth characterization without hard performance claims.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -289,6 +288,10 @@ negative instances to the mapped set. The pinned local W3C lane now reports
 plus positive and negative instances to the mapped set. The pinned local W3C lane now reports
 `binding-supported=9`, `validation-only=24433`, `product-scope-incompatible=164`, and
 `bindingExecution.passed=3`.
+`TASK-0081` accepted generated naming stress coverage for dynamic `xsi:type`, substitution branch,
+grouped content branch, retained element wildcard, and retained attribute wildcard identifiers. It
+also fixes a generated-reader internal `xsi:type` local-variable collision without changing public
+generated model names or XML names.
 `TASK-0071` accepted advisory performance characterization by extending `benchmarkSmoke` with
 generator pipeline, javac, source-size, class-count, and heap observations. The current evidence
 does not justify hard thresholds; future optimization should start with large-schema source/class

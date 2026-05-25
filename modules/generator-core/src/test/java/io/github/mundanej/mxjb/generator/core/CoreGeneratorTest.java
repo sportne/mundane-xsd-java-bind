@@ -1110,6 +1110,156 @@ final class CoreGeneratorTest {
   }
 
   @Test
+  void xsiTypeNamingStressKeepsJavaIdentifiersUniqueAndXmlNamesStable() throws IOException {
+    Path schema = writeSchema("xsi-type-naming-stress.xsd", xsiTypeNamingStressSchema());
+    Path output = tempDirectory.resolve("xsi-type-naming-stress");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_FULL,
+                    "com.example.generated",
+                    Map.of("urn:naming", "com.example.naming"),
+                    List.of(),
+                    Map.of()));
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/example/naming/Order.java"));
+    String reader = Files.readString(output.resolve("com/example/naming/xml/OrderXmlReader.java"));
+    String writer = Files.readString(output.resolve("com/example/naming/xml/OrderXmlWriter.java"));
+    assertTrue(order.contains("PaymentDynamicType payment"));
+    assertTrue(order.contains("String paymentXsiType"));
+    assertTrue(order.contains("String paymentXsiTypeName"));
+    assertTrue(reader.contains("String __mxjbPaymentXsiType = attribute(input"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"payment-xsi-type\")"));
+    assertTrue(
+        writer.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"payment-xsi-type\")"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void substitutionBranchNamingStressKeepsBranchClassesAndXmlNamesStable() throws IOException {
+    Path schema = writeSchema("substitution-naming-stress.xsd", substitutionNamingStressSchema());
+    Path output = tempDirectory.resolve("substitution-naming-stress");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_FULL,
+                    "com.example.generated",
+                    Map.of("urn:naming", "com.example.naming"),
+                    List.of(),
+                    Map.of()));
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertTrue(
+        result
+            .generatedSources()
+            .contains(Path.of("com/example/naming/CardPaymentSubstitutionBranch.java")));
+    assertTrue(
+        result
+            .generatedSources()
+            .contains(Path.of("com/example/naming/CardpaymentSubstitutionBranch.java")));
+    String reader = Files.readString(output.resolve("com/example/naming/xml/OrderXmlReader.java"));
+    String writer = Files.readString(output.resolve("com/example/naming/xml/OrderXmlWriter.java"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"cardPayment\")"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"card-payment\")"));
+    assertTrue(
+        writer.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"cardPayment\")"));
+    assertTrue(
+        writer.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"card-payment\")"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void groupedContentNamingStressKeepsFieldsAndBranchTypesUnique() throws IOException {
+    Path schema = writeSchema("grouped-naming-stress.xsd", groupedNamingStressSchema());
+    Path output = tempDirectory.resolve("grouped-naming-stress");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_FULL,
+                    "com.example.generated",
+                    Map.of("urn:naming", "com.example.naming"),
+                    List.of(),
+                    Map.of()));
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/example/naming/Order.java"));
+    String reader = Files.readString(output.resolve("com/example/naming/xml/OrderXmlReader.java"));
+    assertTrue(order.contains("String orderSequenceContent"));
+    assertTrue(order.contains("List<OrderSequenceContent> orderSequenceContent2"));
+    assertTrue(order.contains("String orderChoiceContent"));
+    assertTrue(order.contains("List<OrderChoice> orderChoice"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"order-sequence-content\")"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"order-choice-content\")"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void retainedWildcardNamingStressKeepsWildcardFieldsAndXmlNamesStable() throws IOException {
+    Path schema = writeSchema("wildcard-naming-stress.xsd", wildcardNamingStressSchema());
+    Path output = tempDirectory.resolve("wildcard-naming-stress");
+
+    GeneratorResult result =
+        new CoreGenerator()
+            .generate(
+                new GeneratorRequest(
+                    List.of(schema),
+                    output,
+                    GeneratorProfile.XP_XSD10_FULL,
+                    "com.example.generated",
+                    Map.of("urn:naming", "com.example.naming"),
+                    List.of(),
+                    Map.of()));
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String order = Files.readString(output.resolve("com/example/naming/Order.java"));
+    String reader = Files.readString(output.resolve("com/example/naming/xml/OrderXmlReader.java"));
+    String writer = Files.readString(output.resolve("com/example/naming/xml/OrderXmlWriter.java"));
+    assertTrue(order.contains("String wildcardContent"));
+    assertTrue(order.contains("List<XmlFragment> wildcardContent2"));
+    assertTrue(order.contains("Optional<String> wildcardAttributes"));
+    assertTrue(order.contains("List<XmlAttribute> wildcardAttributes2"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"wildcard-content\")"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"wildcard-attributes\")"));
+    assertTrue(
+        writer.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"wildcard-content\")"));
+    assertTrue(
+        writer.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:naming\", \"wildcard-attributes\")"));
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
   void writeFailureDoesNotLeaveEarlierGeneratedSources() throws IOException {
     Path schema = writeSchema("purchase-order.xsd", purchaseOrderSchema());
     Path output = tempDirectory.resolve("blocked-output");
@@ -1702,6 +1852,125 @@ final class CoreGeneratorTest {
             <xs:sequence>
               <xs:element name="id" type="xs:string"/>
             </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String xsiTypeNamingStressSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:naming"
+            targetNamespace="urn:naming"
+            elementFormDefault="qualified">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Payment">
+            <xs:sequence>
+              <xs:element name="amount" type="xs:decimal"/>
+            </xs:sequence>
+          </xs:complexType>
+          <xs:complexType name="CardPayment">
+            <xs:complexContent>
+              <xs:extension base="tns:Payment">
+                <xs:sequence>
+                  <xs:element name="card-last-4" type="xs:string"/>
+                </xs:sequence>
+              </xs:extension>
+            </xs:complexContent>
+          </xs:complexType>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="payment" type="tns:Payment"/>
+              <xs:element name="payment-xsi-type" type="xs:string"/>
+              <xs:element name="payment-xsi-type-name" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String substitutionNamingStressSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:naming"
+            targetNamespace="urn:naming"
+            elementFormDefault="qualified">
+          <xs:element name="payment" type="tns:Payment"/>
+          <xs:element name="cardPayment" substitutionGroup="tns:payment" type="tns:CardPayment"/>
+          <xs:element name="card-payment" substitutionGroup="tns:payment" type="tns:CardPayment2"/>
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Payment">
+            <xs:sequence>
+              <xs:element name="amount" type="xs:decimal"/>
+            </xs:sequence>
+          </xs:complexType>
+          <xs:complexType name="CardPayment">
+            <xs:complexContent>
+              <xs:extension base="tns:Payment">
+                <xs:sequence>
+                  <xs:element name="cardLast4" type="xs:string"/>
+                </xs:sequence>
+              </xs:extension>
+            </xs:complexContent>
+          </xs:complexType>
+          <xs:complexType name="CardPayment2">
+            <xs:complexContent>
+              <xs:extension base="tns:Payment">
+                <xs:sequence>
+                  <xs:element name="token" type="xs:string"/>
+                </xs:sequence>
+              </xs:extension>
+            </xs:complexContent>
+          </xs:complexType>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element ref="tns:payment" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String groupedNamingStressSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:naming"
+            targetNamespace="urn:naming"
+            elementFormDefault="qualified">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="order-sequence-content" type="xs:string"/>
+              <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="id" type="xs:string"/>
+                <xs:element name="line" type="xs:string"/>
+              </xs:sequence>
+              <xs:element name="order-choice-content" type="xs:string"/>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="domestic" type="xs:string"/>
+                <xs:element name="international" type="xs:string"/>
+              </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String wildcardNamingStressSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="urn:naming"
+            targetNamespace="urn:naming"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:element name="order" type="tns:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="wildcard-content" type="xs:string"/>
+              <xs:any namespace="##other" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="wildcard-attributes" type="xs:string"/>
+            <xs:anyAttribute namespace="##any" processContents="lax"/>
           </xs:complexType>
         </xs:schema>
         """;
