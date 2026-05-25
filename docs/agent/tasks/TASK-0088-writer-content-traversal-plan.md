@@ -1,6 +1,6 @@
 # TASK-0088: writer-content-traversal-plan
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0088`
 Priority: P2
@@ -26,3 +26,18 @@ Commands to run: `./gradlew :modules:generator-core:check --console=plain`,
 Acceptance criteria: writer content traversal has internal plan coverage; emitted writer behavior is
 unchanged; no public API or runtime dependency changes are introduced.
 Rollback notes: revert writer plan helpers, tests, and docs.
+
+## Completion notes
+
+`TASK-0088` accepted the writer traversal planning tranche. Package-private
+`GeneratedWriterTraversalPlan` now captures attribute, wildcard-attribute, simple-content, and child
+content field traversal before writer source assembly. `GeneratedWriterContentTraversalPlan`
+captures mixed/grouped content branch traversal before writer source assembly. Generated writer
+contracts, public APIs, runtime dependencies, and emitted behavior remain unchanged.
+
+## Evidence
+
+- `./gradlew :modules:generator-core:test --tests 'io.github.mundanej.mxjb.generator.core.emit.GeneratedWriterTraversalPlanTest' --console=plain`
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

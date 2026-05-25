@@ -256,6 +256,7 @@ public final class GeneratedWriterEmitter {
           .append(")\n")
           .append("      throws io.github.mundanej.mxjb.runtime.XmlWriteException {\n")
           .append("    output.startElement(elementName);\n");
+      GeneratedWriterTraversalPlan traversalPlan = GeneratedWriterTraversalPlan.from(type);
       if (hasXsiTypeSupport()) {
         source
             .append("    if (xsiType != null) {\n")
@@ -264,21 +265,21 @@ public final class GeneratedWriterEmitter {
             .append(", xsiType);\n")
             .append("    }\n");
       }
-      for (BindingField field : attributes(type)) {
+      for (BindingField field : traversalPlan.attributeFields()) {
         appendFieldWrite(source, field);
       }
-      for (BindingField field : anyAttributes(type)) {
+      for (BindingField field : traversalPlan.anyAttributeFields()) {
         appendFieldWrite(source, field);
       }
-      for (BindingField field : simpleContentFields(type)) {
+      for (BindingField field : traversalPlan.simpleContentFields()) {
         appendFieldWrite(source, field);
       }
-      for (BindingField field : contentFields(type)) {
+      for (BindingField field : traversalPlan.contentFields()) {
         appendFieldWrite(source, field);
       }
       source.append("    output.endElement(elementName);\n");
       source.append("  }\n");
-      for (BindingField field : contentFields(type)) {
+      for (BindingField field : traversalPlan.contentFields()) {
         BindingType nestedType = modelType(field);
         if (nestedType != null && !helperNames.contains(nestedType.javaName().qualifiedName())) {
           source.append('\n');
@@ -295,7 +296,8 @@ public final class GeneratedWriterEmitter {
           }
         }
         if ("content".equals(field.kind())) {
-          for (BindingContentBranch branch : field.content().branches()) {
+          for (BindingContentBranch branch :
+              GeneratedWriterContentTraversalPlan.from(field).branches()) {
             BindingType branchType = modelType(branch.type());
             if (branchType != null
                 && !helperNames.contains(branchType.javaName().qualifiedName())) {
@@ -431,7 +433,8 @@ public final class GeneratedWriterEmitter {
     private void appendContentValueWrite(
         StringBuilder source, BindingField field, String valueExpression, String indent) {
       boolean first = true;
-      for (BindingContentBranch branch : field.content().branches()) {
+      for (BindingContentBranch branch :
+          GeneratedWriterContentTraversalPlan.from(field).branches()) {
         source
             .append(indent)
             .append(first ? "if" : "} else if")
@@ -588,35 +591,9 @@ public final class GeneratedWriterEmitter {
           .toList();
     }
 
-    private List<BindingField> anyAttributes(BindingType type) {
-      return type.fields().stream()
-          .filter(field -> "anyAttribute".equals(field.kind()))
-          .sorted(Comparator.comparingInt(BindingField::order))
-          .toList();
-    }
-
-    private List<BindingField> simpleContentFields(BindingType type) {
-      return type.fields().stream()
-          .filter(field -> "simpleContent".equals(field.kind()))
-          .sorted(Comparator.comparingInt(BindingField::order))
-          .toList();
-    }
-
     private List<BindingField> elements(BindingType type) {
       return type.fields().stream()
           .filter(field -> "element".equals(field.kind()))
-          .sorted(Comparator.comparingInt(BindingField::order))
-          .toList();
-    }
-
-    private List<BindingField> contentFields(BindingType type) {
-      return type.fields().stream()
-          .filter(
-              field ->
-                  "element".equals(field.kind())
-                      || "choice".equals(field.kind())
-                      || "wildcard".equals(field.kind())
-                      || "content".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
     }

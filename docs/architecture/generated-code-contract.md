@@ -104,6 +104,19 @@ behind package-private plans.
   entry points, helper signatures, emitted diagnostics, supported XML behavior, and generated model
   contracts remain unchanged.
 
+## `TASK-0088` writer traversal planning boundary
+
+`TASK-0088` keeps generated writer source contracts unchanged while moving writer traversal
+decisions behind package-private plans.
+
+- `GeneratedWriterTraversalPlan` captures writer field phases for declared attributes, retained
+  wildcard attributes, simple content, and child content before source text assembly.
+- `GeneratedWriterContentTraversalPlan` captures content-list branch traversal before source text
+  assembly.
+- The plan boundary is internal to `generator-core`. Generated writer class names, public `write`
+  entry points, helper signatures, XML output order, scalar formatting behavior, and generated
+  model contracts remain unchanged.
+
 ## `TASK-0023` choice model shape
 
 The `0.2.0` Practical Data Contracts implementation accepts a narrow generated model shape for
