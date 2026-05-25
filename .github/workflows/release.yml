@@ -1,0 +1,44 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Quality gate
+        run: ./gradlew clean validateDesignControlPack qualityGate --console=plain
+      - name: Stage release artifacts
+        run: ./gradlew -Pmxjb.version=1.0.0 publicationDryRun --console=plain
+      - name: Prepare GitHub Release assets
+        run: |
+          set -euo pipefail
+          mkdir -p build/release-assets
+          find build/staging-repository -type f | sort > build/release-assets/artifact-manifest-1.0.0.txt
+          cp docs/infrastructure/release-notes-1.0.0.md build/release-assets/release-notes-1.0.0.md
+          (cd build && zip -qr release-assets/mxjb-staging-repository-1.0.0.zip staging-repository)
+          (cd build/release-assets && sha256sum artifact-manifest-1.0.0.txt release-notes-1.0.0.md mxjb-staging-repository-1.0.0.zip > SHA256SUMS)
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            build/release-assets/mxjb-staging-repository-1.0.0.zip \
+            build/release-assets/artifact-manifest-1.0.0.txt \
+            build/release-assets/release-notes-1.0.0.md \
+            build/release-assets/SHA256SUMS \
+            --title "mundane XSD Java Binding $GITHUB_REF_NAME" \
+            --notes-file docs/infrastructure/release-notes-1.0.0.md \
+            --verify-tag

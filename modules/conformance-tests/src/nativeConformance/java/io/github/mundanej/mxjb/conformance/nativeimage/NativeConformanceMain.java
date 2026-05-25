@@ -32,20 +32,8 @@ public final class NativeConformanceMain {
   private static final List<UnsupportedFixture> UNSUPPORTED_FIXTURES =
       List.of(
           new UnsupportedFixture(
-              "T-CONF-UNSUPPORTED-ANY-ATTRIBUTE",
-              "unsupported/any-attribute.xsd",
-              List.of("SCHEMA_IR_INVALID_COMPONENT")),
-          new UnsupportedFixture(
-              "T-CONF-UNSUPPORTED-WILDCARD-STRICT",
-              "unsupported/wildcard-strict.xsd",
-              List.of("SCHEMA_IR_INVALID_COMPONENT")),
-          new UnsupportedFixture(
-              "T-CONF-UNSUPPORTED-MIXED-CHOICE",
-              "unsupported/mixed-choice.xsd",
-              List.of("SCHEMA_IR_INVALID_COMPONENT", "SCHEMA_IR_INVALID_COMPONENT")),
-          new UnsupportedFixture(
-              "T-CONF-UNSUPPORTED-IDENTITY-CONSTRAINT",
-              "unsupported/identity-constraint.xsd",
+              "T-CONF-UNSUPPORTED-XSD10-REDEFINE",
+              "unsupported/redefine.xsd",
               List.of("SCHEMA_IR_INVALID_COMPONENT")));
 
   private NativeConformanceMain() {}
@@ -64,7 +52,8 @@ public final class NativeConformanceMain {
     runUnsupportedDiagnostics();
     runResolverDenial();
     System.out.println(
-        "NATIVE_CONFORMANCE status=passed supportedFixtures=9 unsupportedFixtures=4");
+        "NATIVE_CONFORMANCE status=passed supportedFixtures=9 unsupportedFixtures="
+            + UNSUPPORTED_FIXTURES.size());
   }
 
   private static void runPurchaseOrderRoundTrip()
@@ -238,7 +227,7 @@ public final class NativeConformanceMain {
                   new GeneratorRequest(
                       List.of(schema),
                       workDirectory.resolve(fixture.id().toLowerCase(Locale.ROOT)),
-                      GeneratorProfile.XP_XSD10_DOCUMENT,
+                      GeneratorProfile.XP_XSD10_FULL,
                       "com.example.nativeconf.unsupported",
                       Map.of("urn:unsupported", "com.example.nativeconf.unsupported"),
                       List.of(),

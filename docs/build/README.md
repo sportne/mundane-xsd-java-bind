@@ -30,9 +30,9 @@ See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
 - `./gradlew nativeSmoke` runs the representative GraalVM Native Image smoke lane when
   `native-image` is available.
 - `./gradlew printPublishedArtifacts` prints the planned Maven coordinates.
-- `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun` stages candidate Maven artifacts
-  under `build/staging-repository` and validates local publication metadata without remote
-  publication, signing, tagging, or a committed version bump.
+- `./gradlew -Pmxjb.version=1.0.0 publicationDryRun` stages the approved Maven-layout artifacts
+  under `build/staging-repository` and validates local publication metadata without Maven Central,
+  signing, or remote staging.
 - `./gradlew printOfflineBuildInstructions` prints the offline build command pattern.
 - `generateMxjbSources` is registered by the public `io.github.mundanej.mxjb` plugin in consumer
   builds and generates Java sources from explicit schema inputs.

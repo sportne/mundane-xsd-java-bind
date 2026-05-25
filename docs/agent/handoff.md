@@ -5,7 +5,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
-- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, accepted serialization-policy evidence, accepted document-oriented/open-content readiness evidence, accepted hardening/release maturity planning, accepted selected interop/conformance harness expansion, accepted benchmark baseline evidence, accepted selected Native Image conformance hardening, accepted release-engineering dry-run readiness, accepted final hardening/release maturity readiness evidence, accepted `XP-XSD10-FULL` standards reset and feature matrix planning, accepted full XSD 1.0 frontend/component-model awareness, accepted full XSD 1.0 datatype/facet engine support for executable profile shapes, accepted full-XSD content-model/attribute-wildcard/derivation/identity/conformance-suite evidence, accepted full-XSD readiness reconciliation, accepted delta test hardening after the last broad hardening cycle, accepted 1.0.0 blocker-sequence planning, accepted executable `XP-XSD10-FULL` profile enablement, and `runtime-core` primitives are present.
+- Initial `generator-core` schema resource-resolution, syntax frontend, component graph, normalized IR, binding model planning, deterministic generated-model/generated-writer/generated-reader/generated-validator source emission, generated-source verification harness, active generator-core coverage enforcement, representative round-trip example/conformance fixtures, public generator API/CLI/Gradle plugin vertical slices, ArchUnit architecture-rule hardening, Native Image smoke aggregate, `XP-XSD10-COMPOSED` named model group/attribute group, accepted list/union simple type support, accepted initial derivation flattening, accepted Composed XSD 1.0 readiness evidence, accepted XSD 1.0 semantic expansion planning, accepted `XP-XSD10-SEMANTIC` nillable/default/fixed semantics, accepted direct substitution group support, accepted expanded semantic validation evidence, accepted XSD 1.0 semantic expansion readiness evidence, accepted document-oriented/open-content planning, accepted `XP-XSD10-DOCUMENT` direct wildcard/open-content support, accepted mixed-content support, accepted serialization-policy evidence, accepted document-oriented/open-content readiness evidence, accepted hardening/release maturity planning, accepted selected interop/conformance harness expansion, accepted benchmark baseline evidence, accepted selected Native Image conformance hardening, accepted release-engineering dry-run readiness, accepted final hardening/release maturity readiness evidence, accepted `XP-XSD10-FULL` standards reset and feature matrix planning, accepted full XSD 1.0 frontend/component-model awareness, accepted full XSD 1.0 datatype/facet engine support for executable profile shapes, accepted full-XSD content-model/attribute-wildcard/derivation/identity/conformance-suite evidence, accepted full-XSD readiness reconciliation, accepted delta test hardening after the last broad hardening cycle, accepted 1.0.0 blocker-sequence planning, accepted executable `XP-XSD10-FULL` profile enablement, accepted `1.0.0` readiness and GitHub Release workflow evidence, and `runtime-core` primitives are present.
 - Branding is settled as `mundane XSD Java Binding`, with Java root package `io.github.mundanej.mxjb`, Maven group `io.github.mundanej`, and `mxjb-*` artifact IDs.
 - Gradle 9.5.1 module structure, quality tooling, dependency verification, dependency locking, offline helper scripts, CI skeleton, ADRs, and documentation scaffolds exist.
 
@@ -76,7 +76,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Completed and accepted.
 64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Completed and accepted.
 65. `TASK-0065`: Enable executable `XP-XSD10-FULL`. Completed and accepted.
-66. `TASK-0066`: Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. Next implementation gate.
+66. `TASK-0066`: Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. Completed and accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -149,6 +149,10 @@ mapped generated-binding execution passes generate/compile/read/validate/write/r
 `TASK-0065` has accepted executable `XP-XSD10-FULL` profile support through API, CLI, Gradle plugin,
 CoreGenerator, selected conformance fixture, W3C lane, generated-code smoke, and quality-gate
 evidence.
+`TASK-0066` has accepted final `1.0.0` readiness: `gradle.properties` now carries version `1.0.0`,
+release notes document the supported profiles and non-goals, `publicationDryRun -Pmxjb.version=1.0.0`
+validates the approved staged Maven-layout artifacts, and `.github/workflows/release.yml` creates
+GitHub Release assets only from `v1.0.0` tags.
 
 ## Draft completion backlog
 
@@ -223,14 +227,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0063` | 1.0.0 | accepted | Close remaining datatype, nil, and identity-validation edges. |
 | `TASK-0064` | 1.0.0 | accepted | Map W3C XML Schema 1.0 rows to generated-binding execution. |
 | `TASK-0065` | 1.0.0 | accepted | Enable executable `XP-XSD10-FULL`. |
-| `TASK-0066` | 1.0.0 | next | Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. |
+| `TASK-0066` | 1.0.0 | accepted | Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. |
 
 ## Current implementation gate
 
-`TASK-0066` is the next implementation gate. It may reconcile `1.0.0` readiness, version metadata,
-release notes, and the GitHub Release workflow only after the accepted blocker, W3C
-generated-binding, native, benchmark, publication dry-run, and quality-gate evidence remains green.
-It must not push, tag, publish, or claim release readiness until the task evidence passes.
+There is no next implementation gate in the current task sequence. New product, release, or
+hardening work should start from a new accepted task card and preserve the explicit non-goals:
+no XSD 1.1, XML 1.1, Maven Central publication, signing, XML Canonicalization, XML Signature
+canonical forms, lexical prefix preservation, DTD/entity identity, or DOM-backed binding unless a
+future ADR and task sequence changes that policy.
 
 Any future work must preserve:
 

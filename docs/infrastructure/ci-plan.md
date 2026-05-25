@@ -73,16 +73,16 @@ new accepted task and must not be inferred from the `0.6.0` readiness closeout.
 ## `1.0.0` release workflow plan
 
 `TASK-0058` defines the `1.0.0` release bar as executable `XP-XSD10-FULL` generated-binding support
-with W3C generated-binding evidence. The CI/release sequence remains planned until `TASK-0066`:
+with W3C generated-binding evidence. `TASK-0066` adds the release workflow:
 
 - `qualityGate` remains the JVM correctness gate throughout `TASK-0059` through `TASK-0065`.
 - `TASK-0064` maps the first W3C generated-binding rows. `w3cXsd10Conformance` becomes a final
   release-blocking evidence lane in `TASK-0066`.
 - `TASK-0065` enables executable `XP-XSD10-FULL`.
-- The GitHub Release workflow is added only in `TASK-0066`, after full-XSD evidence passes.
+- The GitHub Release workflow is tag-triggered for `v1.0.0` and uploads only GitHub Release assets.
 
-The planned release workflow should trigger on `v1.0.0` tags, run final validation, execute
+The release workflow triggers on `v1.0.0` tags, runs final validation, executes
 `publicationDryRun` with `-Pmxjb.version=1.0.0`, zip `build/staging-repository`, create checksums
-and an artifact manifest, and upload those files to GitHub Release assets. It must not publish to
+and an artifact manifest, and upload those files to GitHub Release assets. It does not publish to
 Maven Central or package registries, add signing, or require release secrets beyond the default
 GitHub token.

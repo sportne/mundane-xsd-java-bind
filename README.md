@@ -1,8 +1,8 @@
 # mundane XSD Java Binding
 
 `mundane XSD Java Binding` generates Java 21 model, XML reader, XML writer, and validator code from
-selected XML Schema 1.0 profiles. Generated code is explicit, deterministic, reflection-free, and
-designed to work well with GraalVM Native Image.
+XML Schema 1.0. Generated code is explicit, deterministic, reflection-free, and designed to work
+well with GraalVM Native Image.
 
 This is a schema-to-code project. It is not a code-to-schema tool and it is not a general-purpose
 XML Schema validator independent of generated bindings.
@@ -28,8 +28,8 @@ The current executable profiles are:
   mixed choice content, retained `XmlFragment` and `XmlAttribute` values, strict/lax
   schema-known wildcard validation for accepted retained declarations, and stable project
   serialization policy.
-- `XP-XSD10-FULL`: full XML Schema 1.0 profile token enabled after the full-XSD implementation
-  gates. It runs the same generated-binding pipeline and retains the explicit non-goals below.
+- `XP-XSD10-FULL`: full practical XML Schema 1.0 generated-binding profile. It runs the same
+  generated-binding pipeline and retains the explicit non-goals below.
 
 Across the executable profiles, accepted scalar element and attribute positions use the shared XSD
 1.0 datatype engine: string, numeric, float/double, temporal, duration, binary, anyURI,
@@ -42,21 +42,19 @@ multi-particle groups, nested singleton sequences, single-particle repeated/opti
 mixed choices, wildcard choices, and shared grouped-position reader/validator checks in the
 currently executable profiles.
 
-The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`. A `1.0.0` release
-claim remains separate from profile execution until the final readiness and release workflow gate.
+The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 
 ## Not supported
 
-- Full XML Schema 1.0 conformance is not claimed yet.
-- Broad W3C suite generated-binding coverage and final release workflow readiness are still planned
-  work.
+- This is not a standalone generic XML Schema validator; validation is generated for binding models.
+- Broad W3C suite generated-binding coverage beyond explicitly mapped rows is not claimed.
 - W3C XML Schema 1.0 suite classification exists as opt-in evidence; three `AttrDecl` rows are
-  mapped to generated-binding support, but full-suite support is not claimed.
+  mapped to generated-binding support.
 - XSD 1.1 and XML 1.1 are not project targets.
 - XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
   retention, DTD/entity identity preservation, and DOM-backed binding are not supported.
-- Real artifact publication, signing, release tags, and hard performance guarantees are not claimed
-  by this repository state.
+- Maven Central/package-registry publication, signing, and hard performance guarantees are not
+  claimed.
 
 ## Common commands
 
@@ -73,7 +71,7 @@ Native Image and publication dry-run lanes are explicit opt-in evidence commands
 ```bash
 ./gradlew nativeSmoke
 ./gradlew nativeConformance
-./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun
+./gradlew -Pmxjb.version=1.0.0 publicationDryRun
 ```
 
 `nativeSmoke` and `nativeConformance` require `native-image` on `PATH`.

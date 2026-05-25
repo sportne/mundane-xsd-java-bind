@@ -41,6 +41,6 @@ generated-binding mapping: three W3C `AttrDecl` rows are classified as `binding-
 mapped execution generates, compiles, reads, validates, writes, re-reads, and re-validates the
 binding while preserving JDK XML Schema validation as the oracle. The lane strips only
 `xsi:schemaLocation` and `xsi:noNamespaceSchemaLocation` validator hints before generated reader
-input. The project still does not claim a W3C full-suite generated-binding pass or a `1.0.0` release
-until the final readiness gate reconciles the remaining mapped rows, product-scope-incompatible
-classifications, and release evidence.
+input. The project does not claim a W3C full-suite generated-binding pass beyond explicitly mapped
+rows; unmapped rows remain classified as validation-only, tolerated metadata, expected diagnostics,
+product-scope-incompatible, or blocked.

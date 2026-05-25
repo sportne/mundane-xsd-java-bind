@@ -68,8 +68,8 @@ The `binding-supported` count is limited to explicitly mapped rows. Unmapped row
 repeatable classification and diagnostic evidence, not a full XSD 1.0 support claim.
 
 `TASK-0056` accepted this as the final readiness reconciliation for the earlier sequence.
-`TASK-0065` enables `XP-XSD10-FULL`; the remaining release decision is whether `TASK-0066` evidence
-is sufficient for a `1.0.0` GitHub Release and public release claim.
+`TASK-0065` enables `XP-XSD10-FULL`, and `TASK-0066` accepts the `1.0.0` GitHub Release workflow and
+public release claim for the generated-binding scope.
 
 ## Unsupported feature behavior
 

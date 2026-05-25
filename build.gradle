@@ -98,7 +98,8 @@ tasks.register('w3cXsd10Conformance') {
 
 def publicationStagingDirectory = layout.buildDirectory.dir('staging-repository')
 def publicationCandidateVersion = version.toString()
-def releaseDryRunNotes = layout.projectDirectory.file('docs/infrastructure/release-notes-0.6.0-alpha.md')
+def releaseDryRunNotes = layout.projectDirectory.file('docs/infrastructure/release-notes-1.0.0.md')
+def releaseWorkflow = layout.projectDirectory.file('.github/workflows/release.yml')
 def repositoryRootPath = rootDir.absolutePath
 
 tasks.register('cleanPublicationStaging', Delete) {
@@ -130,6 +131,7 @@ tasks.register('validatePublicationStaging') {
     dependsOn tasks.named('stagePublications')
     inputs.dir(publicationStagingDirectory)
     inputs.file(releaseDryRunNotes)
+    inputs.file(releaseWorkflow)
     doLast {
         def repository = publicationStagingDirectory.get().asFile
         if (!repository.isDirectory()) {
@@ -221,14 +223,36 @@ tasks.register('validatePublicationStaging') {
         }
         def releaseNotesText = releaseNotes.getText('UTF-8')
         [
-            'not a released artifact',
-            'No release tag is created',
-            'Full XSD 1.0 conformance is not claimed',
+            'GitHub Release assets only',
+            'No Maven Central publication is performed',
+            'No signing keys, credentials, or remote staging repositories are configured',
+            'XSD 1.1 and XML 1.1 support are not claimed',
             'XML Canonicalization is not claimed',
-            'No remote publication is performed',
         ].each { requiredPhrase ->
             if (!releaseNotesText.contains(requiredPhrase)) {
                 throw new GradleException("Release notes missing required non-claim phrase: ${requiredPhrase}")
+            }
+        }
+
+        def workflow = releaseWorkflow.asFile
+        if (!workflow.isFile()) {
+            throw new GradleException("Missing GitHub Release workflow: ${workflow}")
+        }
+        def workflowText = workflow.getText('UTF-8')
+        [
+            'tags:',
+            "'v1.0.0'",
+            'gh release create',
+            'publicationDryRun',
+            'contents: write',
+        ].each { requiredFragment ->
+            if (!workflowText.contains(requiredFragment)) {
+                throw new GradleException("Release workflow missing required fragment: ${requiredFragment}")
+            }
+        }
+        ['mavenCentral', 'signing', 'OSSRH', 'publishAllPublicationsTo'].each { forbiddenFragment ->
+            if (workflowText.contains(forbiddenFragment)) {
+                throw new GradleException("Release workflow contains forbidden fragment: ${forbiddenFragment}")
             }
         }
 

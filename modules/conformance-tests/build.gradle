@@ -190,6 +190,7 @@ tasks.register('compileNativeConformance', Exec) {
     args '--no-fallback',
             '-H:+ReportExceptionStackTraces',
             '-H:IncludeResources=.*\\.(xml|xsd|tsv)$',
+            '-H:IncludeResourceBundles=com.sun.org.apache.xerces.internal.impl.msg.XMLMessages',
             '-cp',
             nativeConformanceNativeClasspath,
             nativeConformanceMainClass,

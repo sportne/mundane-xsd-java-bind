@@ -83,17 +83,17 @@ agree with public documentation. It does not convert `0.6.0-alpha.0` into a rele
 authorize signing or remote staging, create a release tag, or broaden supported schema claims.
 
 `TASK-0056` closed the earlier `XP-XSD10-FULL` readiness sequence with a negative full-support
-decision. `TASK-0064` maps the first three W3C rows to generated-binding execution, and
-`TASK-0065` enables the full profile. A real release claim still waits for `TASK-0066` final
-readiness, release notes, version metadata, and GitHub Release workflow evidence.
+decision. `TASK-0064` maps the first three W3C rows to generated-binding execution, `TASK-0065`
+enables the full profile, and `TASK-0066` accepts final readiness, release notes, version metadata,
+and the GitHub Release workflow.
 
 ## `1.0.0` full-XSD release sequence
 
 `TASK-0058` defines the `1.0.0` release bar as full practical XML Schema 1.0 generated-binding
 support for this Java binding generator. A stable-subset release is not sufficient for `1.0.0`.
 
-Before any `1.0.0` release workflow, version update, tag, or GitHub Release artifact upload is
-allowed, the following gates must be accepted:
+Before any `1.0.0` release workflow, version update, tag, or GitHub Release artifact upload, the
+following gates had to be accepted:
 
 - `TASK-0059`: grouped content-list models for remaining full-XSD content shapes.
 - `TASK-0060`: complete content-model automata and UPA validation.

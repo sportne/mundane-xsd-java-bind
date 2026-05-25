@@ -235,8 +235,8 @@ The remaining verification sequence is:
   with one mapped execution passing generate/compile/read/validate/write/re-read checks under the
   opt-in `w3cXsd10Conformance` lane.
 - `TASK-0065`: accepted profile/API/CLI/Gradle tests proving `XP-XSD10-FULL` is executable.
-- `TASK-0066`: final `1.0.0` gates: clean quality gate, benchmark smoke, Native Image lanes, W3C
-  generated-binding lane, `publicationDryRun -Pmxjb.version=1.0.0`, and GitHub Release workflow
-  validation.
+- `TASK-0066`: accepted final `1.0.0` gates: clean quality gate, benchmark smoke, Native Image
+  lanes, W3C generated-binding lane, `publicationDryRun -Pmxjb.version=1.0.0`, and GitHub Release
+  workflow validation.
 
-The release claim remains blocked until `TASK-0066` is accepted.
+`TASK-0066` accepts the `1.0.0` release claim for full practical XSD 1.0 generated-binding support.
