@@ -264,11 +264,14 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0081` | post-1.0.0 follow-up | accepted | Broaden generated naming stress coverage. |
 | `TASK-0082` | post-1.0.0 follow-up | accepted | Add performance phase timing and large-schema characterization. |
 | `TASK-0083` | post-1.0.0 follow-up | accepted | Separate W3C intake/classification from generated-binding execution. |
+| `TASK-0084` | generator architecture refactor | next | Start IR normalization policy extraction. |
+| `TASK-0085` | generator architecture refactor | draft | Split binding naming/content planning helpers. |
+| `TASK-0086` | generator architecture refactor | draft | Introduce emitter planning objects. |
 
 ## Current implementation gate
 
-All `TASK-0078` through `TASK-0083` follow-up implementation gates are complete. The remaining
-handoff action is the planned single push and post-push `ci`/`docs` workflow review.
+`TASK-0084` is the next implementation gate. It should start the IR normalization refactor tranche
+from `SchemaIrBuilder` with behavior-preserving package-private helpers and characterization tests.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
