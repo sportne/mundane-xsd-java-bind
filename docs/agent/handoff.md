@@ -264,14 +264,14 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0081` | post-1.0.0 follow-up | accepted | Broaden generated naming stress coverage. |
 | `TASK-0082` | post-1.0.0 follow-up | accepted | Add performance phase timing and large-schema characterization. |
 | `TASK-0083` | post-1.0.0 follow-up | accepted | Separate W3C intake/classification from generated-binding execution. |
-| `TASK-0084` | generator architecture refactor | next | Start IR normalization policy extraction. |
-| `TASK-0085` | generator architecture refactor | draft | Split binding naming/content planning helpers. |
+| `TASK-0084` | generator architecture refactor | accepted | Start IR normalization policy extraction. |
+| `TASK-0085` | generator architecture refactor | next | Split binding naming/content planning helpers. |
 | `TASK-0086` | generator architecture refactor | draft | Introduce emitter planning objects. |
 
 ## Current implementation gate
 
-`TASK-0084` is the next implementation gate. It should start the IR normalization refactor tranche
-from `SchemaIrBuilder` with behavior-preserving package-private helpers and characterization tests.
+`TASK-0085` is the next implementation gate. It should split binding naming/content planning helpers
+from `BindingModelBuilder` without changing binding model output or generated source behavior.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -282,6 +282,10 @@ or follow-on review tasks without broad suite vendoring or product behavior expa
 `TASK-0069` accepted a complexity review that prioritizes IR normalization, binding naming/content
 planning, emitter planning objects, datatype helper grouping, and W3C intake/execution separation as
 future refactor candidates.
+`TASK-0084` accepted the first IR normalization refactor tranche. Package-private
+`SchemaIrNormalizationPolicy` now owns occurrence/cardinality parsing, QName lexical resolution,
+cardinality composition, and deterministic diagnostic creation/sorting. `SchemaIrBuilder` still owns
+schema indexing, profile gates, component graph construction, and concrete component normalization.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports

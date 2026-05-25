@@ -5,7 +5,6 @@ import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1613,15 +1612,7 @@ public final class SchemaIrBuilder {
   }
 
   private SchemaCardinality composeCardinality(SchemaCardinality outer, SchemaCardinality inner) {
-    return new SchemaCardinality(
-        outer.minOccurs() * inner.minOccurs(), multiplyMax(outer.maxOccurs(), inner.maxOccurs()));
-  }
-
-  private String multiplyMax(String left, String right) {
-    if ("unbounded".equals(left) || "unbounded".equals(right)) {
-      return "unbounded";
-    }
-    return Integer.toString(Integer.parseInt(left) * Integer.parseInt(right));
+    return SchemaIrNormalizationPolicy.composeCardinality(outer, inner);
   }
 
   private void validateWildcardElementAmbiguity(
@@ -3050,31 +3041,11 @@ public final class SchemaIrBuilder {
 
   private SchemaQName resolveQName(
       XsdSyntaxDocument document, String lexicalQName, BuildState state) {
-    String trimmed = lexicalQName == null ? "" : lexicalQName.trim();
-    if (trimmed.isEmpty()) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_UNRESOLVED_REFERENCE,
-          document.resourceId(),
-          "QName reference is empty.");
-      return null;
-    }
-    int colon = trimmed.indexOf(':');
-    if (colon < 0) {
-      return new SchemaQName("", trimmed);
-    }
-    String prefix = trimmed.substring(0, colon);
-    String localName = trimmed.substring(colon + 1);
-    String namespace = document.namespaceDeclarations().get("xmlns:" + prefix);
-    if (namespace == null || localName.isBlank()) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_NAMESPACE_CONFLICT,
-          document.resourceId(),
-          "Cannot resolve namespace prefix in QName " + trimmed + ".");
-      return null;
-    }
-    return new SchemaQName(namespace, localName);
+    SchemaIrNormalizationPolicy.QNameResult result =
+        SchemaIrNormalizationPolicy.resolveQName(
+            document.namespaceDeclarations(), document.resourceId(), lexicalQName);
+    state.diagnostics.addAll(result.diagnostics());
+    return result.name();
   }
 
   private void requireComponent(
@@ -3090,48 +3061,10 @@ public final class SchemaIrBuilder {
 
   private SchemaCardinality cardinality(
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
-    String minText = node.attributes().getOrDefault("minOccurs", "1");
-    String maxText = node.attributes().getOrDefault("maxOccurs", "1");
-    int minOccurs;
-    try {
-      minOccurs = Integer.parseInt(minText);
-    } catch (NumberFormatException exception) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_CARDINALITY,
-          document.resourceId(),
-          "Invalid minOccurs value " + minText + ".");
-      return null;
-    }
-    if (minOccurs < 0) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_CARDINALITY,
-          document.resourceId(),
-          "minOccurs must be non-negative.");
-      return null;
-    }
-    if (!"unbounded".equals(maxText)) {
-      try {
-        int maxOccurs = Integer.parseInt(maxText);
-        if (maxOccurs < minOccurs) {
-          diagnostic(
-              state,
-              DiagnosticCode.SCHEMA_IR_INVALID_CARDINALITY,
-              document.resourceId(),
-              "maxOccurs must be greater than or equal to minOccurs.");
-          return null;
-        }
-      } catch (NumberFormatException exception) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_CARDINALITY,
-            document.resourceId(),
-            "Invalid maxOccurs value " + maxText + ".");
-        return null;
-      }
-    }
-    return new SchemaCardinality(minOccurs, maxText);
+    SchemaIrNormalizationPolicy.CardinalityResult result =
+        SchemaIrNormalizationPolicy.cardinality(node.attributes(), document.resourceId());
+    state.diagnostics.addAll(result.diagnostics());
+    return result.cardinality();
   }
 
   private SchemaComponentKind componentKind(XsdSyntaxKind syntaxKind) {
@@ -3193,16 +3126,11 @@ public final class SchemaIrBuilder {
 
   private void diagnostic(
       BuildState state, DiagnosticCode code, String resourceId, String message) {
-    state.diagnostics.add(new SchemaDiagnostic(code, resourceId, message));
+    state.diagnostics.add(SchemaIrNormalizationPolicy.diagnostic(code, resourceId, message));
   }
 
   private List<SchemaDiagnostic> sortedDiagnostics(List<SchemaDiagnostic> diagnostics) {
-    return diagnostics.stream()
-        .sorted(
-            Comparator.comparing((SchemaDiagnostic diagnostic) -> diagnostic.resource())
-                .thenComparing(diagnostic -> diagnostic.code().name())
-                .thenComparing(SchemaDiagnostic::message))
-        .toList();
+    return SchemaIrNormalizationPolicy.sortedDiagnostics(diagnostics);
   }
 
   private static final class BuildState {

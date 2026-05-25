@@ -1,6 +1,6 @@
 # TASK-0084: ir-normalization-refactor-tranche
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0084`
 Priority: P2
@@ -27,3 +27,18 @@ Acceptance criteria: package-private helper boundaries exist for the selected no
 schema indexing, profile gates, component graph ownership, diagnostics, and output behavior remain
 unchanged; no support claims or public APIs change.
 Rollback notes: revert helper extraction, characterization tests, and docs.
+
+Completion notes:
+- Extracted package-private `SchemaIrNormalizationPolicy` for low-risk IR normalization policy:
+  occurrence/cardinality parsing, QName lexical resolution, cardinality composition, and
+  deterministic diagnostic creation/sorting.
+- Kept schema indexing, profile gates, component graph ownership, `SchemaIrBuilder.build(...)`
+  behavior, diagnostics, and generated output unchanged.
+- Added focused helper characterization tests for default/explicit cardinality, invalid occurrence
+  diagnostics, QName resolution diagnostics, cardinality composition, and diagnostic ordering.
+- Updated architecture, traceability, and handoff docs without public API or support-claim changes.
+
+Evidence:
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

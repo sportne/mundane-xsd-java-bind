@@ -10,7 +10,7 @@ The largest reviewed implementation surfaces are:
 
 | Surface | Approx. lines | Essential complexity | Accidental complexity |
 |---|---:|---|---|
-| `SchemaIrBuilder` | 3,266 | XSD symbol spaces, profile gates, normalization, deterministic diagnostics. | One class owns resource-aware lookup, profile policy, component normalization, derivation flattening, wildcard composition, identity paths, and diagnostics. |
+| `SchemaIrBuilder` + `SchemaIrNormalizationPolicy` | 3,266 before `TASK-0084` | XSD symbol spaces, profile gates, normalization, deterministic diagnostics. | `TASK-0084` extracts occurrence/cardinality, QName, cardinality-composition, and diagnostic ordering policy; resource-aware lookup, profile policy, component normalization, derivation flattening, wildcard composition, and identity paths remain future tranches. |
 | `BindingModelBuilder` | 1,571 | Java naming, product-scope binding shapes, validation plan construction. | Naming allocation, field collision handling, content-list binding, wildcard binding, dynamic branch binding, and validation metadata are intertwined. |
 | `GeneratedReaderEmitter` | 2,430 | Generated source must be explicit, deterministic, reflection-free, and location-aware. | Source text assembly mixes traversal planning, state-machine decisions, diagnostic text, and Java formatting. |
 | `GeneratedValidatorEmitter` | 2,652 | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | Validation traversal planning and emitted Java snippets are difficult to inspect independently. |
@@ -21,12 +21,13 @@ The largest reviewed implementation surfaces are:
 ## Prioritized simplification plan
 
 1. Extract an IR normalization policy layer from `SchemaIrBuilder`.
-   - Candidate boundary: package-private normalizers for content particles, attributes/wildcards,
-     derivation, identity constraints, and diagnostics.
-   - Leverage: keeps schema lookup and profile gates visible while making each XSD construct easier
-     to regression-test.
-   - Test strategy: characterization tests around existing `SchemaIrBuilderTest` and
-     `SchemaIrDeltaHardeningTest`; no behavior changes in the first extraction.
+   - `TASK-0084` starts this extraction with package-private `SchemaIrNormalizationPolicy` for
+     occurrence/cardinality parsing, QName lexical resolution, cardinality composition, and
+     diagnostic creation/sorting.
+   - Remaining candidate boundaries: content-particle normalization, attribute/wildcard
+     normalization, derivation normalization, and identity-constraint normalization.
+   - Test strategy: keep `SchemaIrBuilderTest`, `SchemaIrDeltaHardeningTest`, and focused policy
+     tests as behavior locks; no behavior changes in extraction tranches.
 
 2. Split binding naming from binding shape construction.
    - Candidate boundary: package-private `BindingNameAllocator` and `BindingContentPlanner`.
