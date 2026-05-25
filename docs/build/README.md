@@ -1,6 +1,10 @@
 # Project setup and build infrastructure
 
-This page is the quick orientation guide for contributors who need to understand how the project is built. The deeper infrastructure policy lives in `docs/infrastructure/build-plan.md`, `docs/infrastructure/offline-build-plan.md`, and the build-related ADRs.
+This page is the quick orientation guide for contributors who need to understand how the project is
+built. User-facing generation examples live in `docs/getting-started.md`; release-asset consumer
+setup lives in `docs/build/release-consumption.md`. Deeper infrastructure policy lives in
+`docs/infrastructure/build-plan.md`, `docs/infrastructure/offline-build-plan.md`, and the
+build-related ADRs.
 
 ## Main tools
 
@@ -35,7 +39,7 @@ See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
   signing, or remote staging.
 - `./gradlew releaseConsumerSmoke` stages those artifacts, zips and unpacks the Maven-layout
   repository like a GitHub Release asset, and runs a clean downstream Gradle project offline from
-  that unpacked repository.
+  that unpacked repository. See `docs/build/release-consumption.md` for the consumer setup shape.
 - `./gradlew printOfflineBuildInstructions` prints the offline build command pattern.
 - `generateMxjbSources` is registered by the public `io.github.mundanej.mxjb` plugin in consumer
   builds and generates Java sources from explicit schema inputs.

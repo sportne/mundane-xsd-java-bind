@@ -1,6 +1,6 @@
 # TASK-0077: documentation-simplification-pass
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0077`
 Priority: P3
@@ -21,3 +21,18 @@ Acceptance criteria: README and getting-started docs can be read without underst
 history; detailed evidence remains discoverable; no support claim is broadened.
 Rollback notes: revert docs simplification changes.
 
+## Completion notes
+
+`TASK-0077` shortens the README into a first-read orientation page and moves usage detail into
+`docs/getting-started.md` and release-asset consumption detail into
+`docs/build/release-consumption.md`. `docs/compatibility-profiles.md` now opens with the current
+`XP-XSD10-FULL` usage posture while keeping the historical profile/evidence archive below it.
+
+Docs-validation now checks that the README, getting-started page, and release-consumption page keep
+the current links and commands in place. No product behavior, release metadata, dependency, signing,
+remote publication, support-claim expansion, or quality-gate weakening is introduced.
+
+## Evidence
+
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

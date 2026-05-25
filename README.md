@@ -4,105 +4,57 @@
 XML Schema 1.0. Generated code is explicit, deterministic, reflection-free, and designed to work
 well with GraalVM Native Image.
 
-This is a schema-to-code project. It is not a code-to-schema tool and it is not a general-purpose
-XML Schema validator independent of generated bindings.
+This is a schema-to-code project. It is not a code-to-schema tool, a standalone generic XML Schema
+validator, or a JAXB-compatible runtime binding layer.
 
-## Supported today
+## Start here
 
-The current executable profiles are:
+- Generate from the command line: see `docs/getting-started.md`.
+- Use the Gradle plugin: see `docs/getting-started.md`.
+- Consume the GitHub Release Maven-layout asset: see `docs/build/release-consumption.md`.
+- Check supported schema behavior: see `docs/compatibility-profiles.md` and
+  `docs/verification/xsd10-full-feature-matrix.md`.
 
-- `XP-DATA-10`: elements, complex types, attributes, nested elements, sequences, optional/repeated
-  elements, namespaces, include/import, generated read/write/validate, CLI, Gradle plugin, and
-  representative round trips.
-- `XP-DATA-10-CHOICE`: accepted local singleton `xs:choice` particles.
-- `XP-VALIDATION-10-BASIC`: accepted named simple restrictions for enumeration, string length,
-  numeric inclusive ranges, and string pattern facets.
-- `XP-XSD10-COMPOSED`: accepted named model groups, attribute groups, named list/union simple
-  types including anonymous simple restriction list/union members, and initial derivation
-  flattening.
-- `XP-XSD10-SEMANTIC`: accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution
-  groups, `xs:unique`/`xs:key`/`xs:keyref` identity constraints including nilled-field handling
-  for accepted generated model shapes, and expanded generated validation for those paths.
-- `XP-XSD10-DOCUMENT`: accepted `xs:any` wildcard/open-content retention, accepted
-  `xs:anyAttribute` retention, accepted wildcard choices, accepted `mixed="true"` sequence and
-  mixed choice content, retained `XmlFragment` and `XmlAttribute` values, strict/lax
-  schema-known wildcard validation for accepted retained declarations, and stable project
-  serialization policy.
-- `XP-XSD10-FULL`: executable XML Schema 1.0 generated-binding profile for the project's accepted
-  product scope. It runs the same generated-binding pipeline, uses the evidence limits in the
-  feature and conformance matrices, and retains the explicit non-goals below.
+## Current scope
 
-Across the executable profiles, accepted scalar element and attribute positions use the shared XSD
-1.0 datatype engine: string, numeric, float/double, temporal, duration, binary, anyURI,
-QName/NOTATION, list-valued built-ins, and restriction facets are supported for the schema shapes
-the profiles already accept.
+The current top-level profile is `XP-XSD10-FULL`: executable XML Schema 1.0 generated-binding
+support for this project's accepted product scope. It composes the earlier data, choice,
+validation, composed-schema, semantic, document/open-content, datatype, identity-constraint, and
+generated-validation slices.
 
-Content-model coverage now includes required `xs:all` groups, all-optional `xs:all` groups,
-optional all-groups with required children, repeated element-only choices, repeated/optional
-multi-particle groups, nested singleton sequences, single-particle repeated/optional group refs,
-mixed choices, wildcard choices, and shared grouped-position reader/validator checks in the
-currently executable profiles.
+Evidence is intentionally narrower than a broad conformance claim. The feature matrix is the source
+of truth for fully verified, partially verified, and explicitly mapped W3C evidence. Unmapped W3C
+suite rows remain classified evidence, not generated-binding support claims.
 
-The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`. It is the source of
-truth for which areas are fully verified, partially verified, or limited to explicitly mapped W3C
-rows.
+## Non-goals
 
-## Not supported
-
-- This is not a standalone generic XML Schema validator; validation is generated for binding models.
-- Broad W3C suite generated-binding coverage beyond explicitly mapped rows is not claimed.
-- W3C XML Schema 1.0 suite classification exists as opt-in evidence; three `AttrDecl` rows are
-  mapped to generated-binding support.
-- XSD 1.1 and XML 1.1 are not project targets.
+- XSD 1.1 and XML 1.1.
+- Broad W3C XML Schema full-suite generated-binding support beyond explicitly mapped rows.
 - XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
-  retention, DTD/entity identity preservation, and DOM-backed binding are not supported.
-- Maven Central/package-registry publication, signing, and hard performance guarantees are not
-  claimed.
+  retention, DTD/entity identity preservation, or DOM-backed generated binding.
+- Maven Central/package-registry publication, signing, or hard performance guarantees.
 
-## Common commands
+## Common project checks
 
 ```bash
-./gradlew help
-./gradlew validateDesignControlPack
-./gradlew qualityGate
-./gradlew :modules:generator-core:generatedCodeSmoke
-./gradlew :modules:conformance-tests:check
+./gradlew validateDesignControlPack qualityGate --console=plain
+./gradlew :modules:generator-core:generatedCodeSmoke --console=plain
+./gradlew :modules:conformance-tests:check --console=plain
 ```
 
-Native Image and publication dry-run lanes are explicit opt-in evidence commands:
+Optional evidence lanes:
 
 ```bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
-./gradlew nativeSmoke
-./gradlew nativeConformance
-./gradlew -Pmxjb.version=1.0.0 publicationDryRun
-./gradlew releaseConsumerSmoke
+./gradlew nativeSmoke nativeConformance --console=plain
+./gradlew -Pmxjb.version=1.0.0 publicationDryRun --console=plain
+./gradlew releaseConsumerSmoke --console=plain
 ```
 
 `nativeSmoke` and `nativeConformance` require GraalVM `native-image`; this repository's local
-evidence uses SDKMAN GraalVM, so source SDKMAN before running the native Gradle lanes.
-`releaseConsumerSmoke` validates the GitHub Release Maven-layout asset path locally; it does not
-publish to Maven Central, sign artifacts, or contact a package registry.
-
-## CLI example
-
-```bash
-./gradlew :modules:generator-cli:run --args="generate --schema ${PWD}/examples/purchase-order/src/main/resources/schema/purchase-order.xsd --output ${PWD}/build/generated/mxjb-readme"
-```
-
-## Gradle plugin example
-
-```groovy
-plugins {
-    id 'java'
-    id 'io.github.mundanej.mxjb'
-}
-
-mxjb {
-    schema('src/main/resources/schema/order.xsd')
-    namespacePackage('urn:orders', 'com.example.orders')
-}
-```
+evidence uses SDKMAN GraalVM. `releaseConsumerSmoke` validates the GitHub Release Maven-layout asset
+path locally without publishing to Maven Central, signing artifacts, or contacting a package
+registry.
 
 ## Repository map
 

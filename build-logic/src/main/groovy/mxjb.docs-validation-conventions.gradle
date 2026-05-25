@@ -2,6 +2,7 @@
 def requiredFilePaths = [
     'DESIGN_CONTROL_PACK_v0.1.md',
     'AGENT.md',
+    'README.md',
     'docs/charter.md',
     'docs/scope-and-non-goals.md',
     'docs/standards-baseline.md',
@@ -11,14 +12,40 @@ def requiredFilePaths = [
     'docs/verification/verification-plan.md',
     'docs/infrastructure/build-plan.md',
     'docs/build/README.md',
+    'docs/build/release-consumption.md',
+    'docs/getting-started.md',
     'docs/build/offline-build.md',
     'docs/agent/handoff.md',
     'docs/agent/implementation-task-template.md',
     'docs/adr/index.md',
 ]
 
+def requiredTextByFile = [
+    'README.md': [
+        'docs/getting-started.md',
+        'docs/build/release-consumption.md',
+        'docs/verification/xsd10-full-feature-matrix.md',
+        './gradlew validateDesignControlPack qualityGate --console=plain',
+    ],
+    'docs/getting-started.md': [
+        'generate --schema',
+        "id 'io.github.mundanej.mxjb'",
+        "profile = 'XP-XSD10-FULL'",
+        'docs/build/release-consumption.md',
+    ],
+    'docs/build/release-consumption.md': [
+        './gradlew releaseConsumerSmoke --console=plain',
+        "id 'io.github.mundanej.mxjb' version '1.0.0'",
+        "profile = 'XP-XSD10-FULL'",
+        'Maven Central publication, package-registry publication, signing, and remote staging remain',
+    ],
+]
+
 // Convert each path string into a Gradle file object rooted at the current project directory.
 def requiredFiles = requiredFilePaths.collect { layout.projectDirectory.file(it) }
+def requiredTextChecks = requiredTextByFile.collect { path, expectedSnippets ->
+    [file: layout.projectDirectory.file(path), snippets: expectedSnippets]
+}
 
 // This task fails fast when required governance and design files are missing.
 tasks.register('validateDesignControlPack') {
@@ -27,12 +54,27 @@ tasks.register('validateDesignControlPack') {
 
     // Declaring inputs lets Gradle know what files affect this task for caching and up-to-date checks.
     inputs.files(requiredFiles)
+    inputs.property('requiredTextByFile', requiredTextByFile)
 
     doLast {
         // At execution time, collect any missing files and report them together.
         def missing = requiredFiles.findAll { !it.asFile.exists() }
         if (!missing.empty) {
             throw new GradleException('Design-control files missing: ' + missing.collect { it.asFile }.join(', '))
+        }
+
+        def missingText = []
+        requiredTextChecks.each { check ->
+            def file = check.file.asFile
+            def text = file.text
+            check.snippets.each { snippet ->
+                if (!text.contains(snippet)) {
+                    missingText << "${file} missing required docs snippet: ${snippet}"
+                }
+            }
+        }
+        if (!missingText.empty) {
+            throw new GradleException('Design-control text checks failed: ' + missingText.join('; '))
         }
     }
 }

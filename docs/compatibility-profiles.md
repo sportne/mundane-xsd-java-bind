@@ -1,5 +1,13 @@
 # Compatibility profiles
 
+For normal use, start with `XP-XSD10-FULL`. It is the executable XML Schema 1.0 generated-binding
+profile for this project's accepted product scope. The tables below keep the older profile names and
+evidence history available for compatibility and audit work.
+
+The profile is not a broad W3C full-suite generated-binding claim. Detailed support status lives in
+`docs/verification/xsd10-full-feature-matrix.md`, and W3C generated-binding support remains limited
+to explicitly mapped rows.
+
 ## XML/schema profiles
 
 | Profile | Name | Meaning | Phase |

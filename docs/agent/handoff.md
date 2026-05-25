@@ -87,7 +87,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 74. `TASK-0074`: Review diagnostics and user ergonomics. Completed and accepted.
 75. `TASK-0075`: Review naming, customization, and generated-source collision behavior. Completed and accepted.
 76. `TASK-0076`: Review GraalVM Native Image sustainability. Completed and accepted.
-77. `TASK-0077`: Simplify post-1.0.0 user-facing documentation. Next implementation gate.
+77. `TASK-0077`: Simplify post-1.0.0 user-facing documentation. Completed and accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -251,12 +251,12 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0074` | post-1.0.0 reflection | accepted | Review diagnostics and user ergonomics. |
 | `TASK-0075` | post-1.0.0 reflection | accepted | Review naming, customization, and generated-source collision behavior. |
 | `TASK-0076` | post-1.0.0 reflection | accepted | Review GraalVM Native Image sustainability. |
-| `TASK-0077` | post-1.0.0 reflection | next | Simplify post-1.0.0 user-facing documentation. |
+| `TASK-0077` | post-1.0.0 reflection | accepted | Simplify post-1.0.0 user-facing documentation. |
 
 ## Current implementation gate
 
-`TASK-0077` is the next implementation gate. It should simplify post-1.0.0 user-facing
-documentation while preserving evidence depth and avoiding broader support claims.
+The `TASK-0067` through `TASK-0077` post-1.0.0 reflection sequence is complete. Future work should
+open new task cards from the follow-on candidates rather than extending this sequence in place.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -295,11 +295,16 @@ GraalVM via `source "$HOME/.sdkman/bin/sdkman-init.sh"` and the combined
 `validateDesignControlPack nativeSmoke nativeConformance` lane. The review documents static-source
 generated bindings, runtime/native coverage, selected conformance resource flags, CI behavior, and
 known experimental Native Image warnings without changing build tasks or support claims.
+`TASK-0077` accepted user-facing documentation simplification. The README is now a short first-read
+orientation, `docs/getting-started.md` owns CLI/Gradle usage, `docs/build/release-consumption.md`
+owns GitHub Release Maven-layout asset consumption, and docs-validation checks the required current
+links and commands.
 
-The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
-and external issue mining first; P1 complexity review, W3C binding expansion, performance review,
-release-consumer validation, and XML security review next; P2 diagnostics, naming/collision, and
-Native Image sustainability reviews after that; P3 documentation simplification last.
+The completed post-1.0.0 reflection sequence ran in priority order: P0 claim/evidence
+reconciliation and external issue mining first; P1 complexity review, W3C binding expansion,
+performance review, release-consumer validation, and XML security review next; P2 diagnostics,
+naming/collision, and Native Image sustainability reviews after that; P3 documentation
+simplification last.
 
 All future work must preserve the explicit non-goals: no XSD 1.1, XML 1.1, Maven Central
 publication, signing, XML Canonicalization, XML Signature canonical forms, lexical prefix
