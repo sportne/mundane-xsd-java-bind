@@ -97,6 +97,13 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 84. `TASK-0084`: Start IR normalization policy extraction. Completed and accepted.
 85. `TASK-0085`: Split binding naming/content planning helpers. Completed and accepted.
 86. `TASK-0086`: Introduce emitter planning objects. Completed and accepted.
+87. `TASK-0087`: Plan reader state and scalar emission. Draft.
+88. `TASK-0088`: Plan writer content traversal. Draft.
+89. `TASK-0089`: Plan validator traversal helpers. Draft.
+90. `TASK-0090`: Extract IR particle and wildcard normalization. Draft.
+91. `TASK-0091`: Extract IR derivation and identity normalization. Draft.
+92. `TASK-0092`: Split binding branch planners. Draft.
+93. `TASK-0093`: Group XML datatype helper families. Draft.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -270,12 +277,18 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0084` | generator architecture refactor | accepted | Start IR normalization policy extraction. |
 | `TASK-0085` | generator architecture refactor | accepted | Split binding naming/content planning helpers. |
 | `TASK-0086` | generator architecture refactor | accepted | Introduce emitter planning objects. |
+| `TASK-0087` | deeper generator architecture refactor | draft | Plan reader state and scalar emission. |
+| `TASK-0088` | deeper generator architecture refactor | draft | Plan writer content traversal. |
+| `TASK-0089` | deeper generator architecture refactor | draft | Plan validator traversal helpers. |
+| `TASK-0090` | deeper generator architecture refactor | draft | Extract IR particle and wildcard normalization. |
+| `TASK-0091` | deeper generator architecture refactor | draft | Extract IR derivation and identity normalization. |
+| `TASK-0092` | deeper generator architecture refactor | draft | Split binding branch planners. |
+| `TASK-0093` | deeper runtime architecture refactor | draft | Group XML datatype helper families. |
 
 ## Current implementation gate
 
-No draft implementation gate is currently promoted. The most relevant future refactor candidates are
-deeper emitter content/scalar/identity planning, runtime datatype helper grouping, and W3C report
-writer extraction.
+`TASK-0087` is the next implementation gate. It should add reader state-machine and scalar
+conversion planning objects without changing generated reader source behavior.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
