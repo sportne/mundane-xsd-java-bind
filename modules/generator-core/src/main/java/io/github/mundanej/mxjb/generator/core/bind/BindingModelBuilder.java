@@ -83,14 +83,18 @@ public final class BindingModelBuilder {
         diagnostic(
             DiagnosticCode.SCHEMA_BINDING_INVALID_CONFIGURATION,
             "binding",
-            "Invalid default package " + configuration.defaultPackage() + ".");
+            "Invalid default package "
+                + configuration.defaultPackage()
+                + ". Use Java package syntax, for example com.example.generated.");
       }
       for (String packageName : configuration.namespacePackages().values()) {
         if (!JavaNames.isPackageName(packageName)) {
           diagnostic(
               DiagnosticCode.SCHEMA_BINDING_INVALID_CONFIGURATION,
               "binding",
-              "Invalid namespace package " + packageName + ".");
+              "Invalid namespace package "
+                  + packageName
+                  + ". Use Java package syntax, for example com.example.generated.");
         }
       }
     }

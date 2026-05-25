@@ -1034,7 +1034,80 @@ final class CoreGeneratorTest {
 
     assertFalse(result.successful());
     assertEquals("SCHEMA_BINDING_INVALID_CONFIGURATION", result.diagnostics().get(0).code());
+    assertTrue(result.diagnostics().get(0).message().contains("Use Java package syntax"));
     assertFalse(Files.exists(output));
+  }
+
+  @Test
+  void namespaceMappingsCanPlaceDuplicateLocalTypeNamesInOnePackage() throws IOException {
+    Path first = writeSchema("first/first-order.xsd", duplicateLocalTypeSchema("urn:first", "f"));
+    Path second =
+        writeSchema("second/second-order.xsd", duplicateLocalTypeSchema("urn:second", "s"));
+    Path output = tempDirectory.resolve("same-package-collision");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(first, second),
+            output,
+            GeneratorProfile.XP_DATA_10,
+            "com.example.generated",
+            Map.of("urn:first", "com.example.shared", "urn:second", "com.example.shared"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertEquals(
+        List.of(
+            Path.of("com/example/shared/Order.java"),
+            Path.of("com/example/shared/Order2.java"),
+            Path.of("com/example/shared/xml/Order2XmlReader.java"),
+            Path.of("com/example/shared/xml/Order2XmlValidator.java"),
+            Path.of("com/example/shared/xml/Order2XmlWriter.java"),
+            Path.of("com/example/shared/xml/OrderXmlReader.java"),
+            Path.of("com/example/shared/xml/OrderXmlValidator.java"),
+            Path.of("com/example/shared/xml/OrderXmlWriter.java")),
+        result.generatedSources());
+    compileGeneratedSources(output, result.generatedSources());
+  }
+
+  @Test
+  void javaKeywordElementAndAttributeNamesAreEscapedDeterministically() throws IOException {
+    Path schema = writeSchema("keywords.xsd", keywordCollisionSchema());
+    Path output = tempDirectory.resolve("keyword-collision");
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_DATA_10,
+            "com.example.generated",
+            Map.of("urn:keywords", "com.example.keywords"),
+            List.of(),
+            Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertTrue(result.successful(), result.diagnostics().toString());
+    String source = Files.readString(output.resolve("com/example/keywords/Record.java"));
+    String reader =
+        Files.readString(output.resolve("com/example/keywords/xml/RecordXmlReader.java"));
+    String writer =
+        Files.readString(output.resolve("com/example/keywords/xml/RecordXmlWriter.java"));
+    assertTrue(source.contains("String _class"));
+    assertTrue(source.contains("String _package"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:keywords\", \"class\")"));
+    assertTrue(
+        reader.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:keywords\", \"package\")"));
+    assertTrue(
+        writer.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:keywords\", \"class\")"));
+    assertTrue(
+        writer.contains(
+            "new io.github.mundanej.mxjb.runtime.XmlName(\"urn:keywords\", \"package\")"));
+    compileGeneratedSources(output, result.generatedSources());
   }
 
   @Test
@@ -1630,6 +1703,42 @@ final class CoreGeneratorTest {
             <xs:sequence>
               <xs:element name="id" type="xs:string"/>
             </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+  }
+
+  private String duplicateLocalTypeSchema(String namespace, String prefix) {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="NAMESPACE"
+            xmlns:PREFIX="NAMESPACE"
+            elementFormDefault="qualified">
+          <xs:element name="order" type="PREFIX:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """
+        .replace("NAMESPACE", namespace)
+        .replace("PREFIX", prefix);
+  }
+
+  private String keywordCollisionSchema() {
+    return """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:keywords"
+            xmlns:k="urn:keywords"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:element name="record" type="k:Record"/>
+          <xs:complexType name="Record">
+            <xs:sequence>
+              <xs:element name="class" type="xs:string"/>
+            </xs:sequence>
+            <xs:attribute name="package" type="xs:string" use="required"/>
           </xs:complexType>
         </xs:schema>
         """;

@@ -231,6 +231,7 @@ final class MxjbGradlePluginFunctionalTest {
     BuildResult invalidPackage = fail("generateMxjbSources");
 
     assertTrue(invalidPackage.getOutput().contains("SCHEMA_BINDING_INVALID_CONFIGURATION"));
+    assertTrue(invalidPackage.getOutput().contains("Use Java package syntax"));
     assertFalse(Files.exists(generatedPath("com/example/purchase/Order.java")));
   }
 

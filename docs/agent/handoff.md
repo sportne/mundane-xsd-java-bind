@@ -249,14 +249,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0072` | post-1.0.0 reflection | accepted | Validate release artifact consumption from a clean downstream project. |
 | `TASK-0073` | post-1.0.0 reflection | accepted | Review XML security posture across every parser and generated-validation path. |
 | `TASK-0074` | post-1.0.0 reflection | accepted | Review diagnostics and user ergonomics. |
-| `TASK-0075` | post-1.0.0 reflection | next | Review naming, customization, and generated-source collision behavior. |
-| `TASK-0076` | post-1.0.0 reflection | draft | Review GraalVM Native Image sustainability. |
+| `TASK-0075` | post-1.0.0 reflection | accepted | Review naming, customization, and generated-source collision behavior. |
+| `TASK-0076` | post-1.0.0 reflection | next | Review GraalVM Native Image sustainability. |
 | `TASK-0077` | post-1.0.0 reflection | draft | Simplify post-1.0.0 user-facing documentation. |
 
 ## Current implementation gate
 
-`TASK-0075` is the next implementation gate. It should stress naming, package, and customization
-collisions with generated-source tests and only narrow deterministic fixes.
+`TASK-0076` is the next implementation gate. It should review GraalVM Native Image sustainability,
+run SDKMAN GraalVM native lanes, and document setup without changing native support claims beyond
+the evidence.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -286,6 +287,10 @@ Native evidence used SDKMAN GraalVM via `source "$HOME/.sdkman/bin/sdkman-init.s
 parse failures, resolver failures, Gradle plugin failures, and W3C suite path mistakes. The public
 manifest-line diagnostic shape is unchanged, but reviewed messages now include concrete next
 actions where the surface can provide one.
+`TASK-0075` accepted naming and customization collision coverage. It verifies deterministic
+same-package duplicate local type suffixing, Java keyword field escaping, existing duplicate-root
+helper collision diagnostics, and clearer invalid Java package customization guidance without adding
+new customization syntax.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,
