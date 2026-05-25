@@ -24,7 +24,9 @@ Supported options:
   generated semantic validation behavior;
   `XP-XSD10-DOCUMENT` enables accepted direct `xs:any` wildcard/open-content retention,
   accepted mixed-content sequence models, and stable project XML serialization policy evidence.
-  `XP-XSD10-FULL` enables the full XML Schema 1.0 generated-binding profile.
+  `XP-XSD10-FULL` enables the executable XML Schema 1.0 generated-binding profile for accepted
+  product-scope shapes; broad W3C full-suite generated-binding coverage remains limited to
+  explicitly mapped rows.
 - `--default-package <package>`: package used when a namespace-specific mapping is absent.
 - `--namespace-package <namespace=package>`: explicit namespace-to-Java-package mapping.
 - `--local-root <dir>`: additional local schema resolution root.

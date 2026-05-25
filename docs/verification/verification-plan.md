@@ -212,10 +212,11 @@ sequence is:
 
 XSD 1.1 and XML 1.1 are outside this verification plan.
 
-## `1.0.0` full-XSD verification plan
+## `1.0.0` full-profile verification plan
 
-`TASK-0058` defines `1.0.0` as a full-XSD generated-binding release, not a stable-subset release.
-The remaining verification sequence is:
+`TASK-0058` defines `1.0.0` as requiring executable `XP-XSD10-FULL` generated-binding support for
+accepted product-scope shapes plus explicit W3C generated-binding evidence, not a stable-subset
+release. The verification sequence is:
 
 - `TASK-0059`: accepted generated content-list tests for repeated/optional multi-particle groups
   whose child particles are singleton particles, optional `xs:all` with required children, mixed
@@ -239,4 +240,6 @@ The remaining verification sequence is:
   lanes, W3C generated-binding lane, `publicationDryRun -Pmxjb.version=1.0.0`, and GitHub Release
   workflow validation.
 
-`TASK-0066` accepts the `1.0.0` release claim for full practical XSD 1.0 generated-binding support.
+`TASK-0066` accepts the `1.0.0` release claim for executable `XP-XSD10-FULL` generated-binding
+support within the accepted product scope. Broad W3C full-suite generated-binding coverage remains
+limited to explicitly mapped rows.

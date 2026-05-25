@@ -77,8 +77,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Completed and accepted.
 65. `TASK-0065`: Enable executable `XP-XSD10-FULL`. Completed and accepted.
 66. `TASK-0066`: Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. Completed and accepted.
-67. `TASK-0067`: Reconcile post-1.0.0 support claims against evidence. Next implementation gate.
-68. `TASK-0068`: Mine external XML binding/codegen issues into regression tasks and fixtures. Draft.
+67. `TASK-0067`: Reconcile post-1.0.0 support claims against evidence. Completed and accepted.
+68. `TASK-0068`: Mine external XML binding/codegen issues into regression tasks and fixtures. Next implementation gate.
 69. `TASK-0069`: Review current design and implementation complexity for simplicity. Draft.
 70. `TASK-0070`: Expand W3C generated-binding coverage. Draft.
 71. `TASK-0071`: Review generation and generated-code performance. Draft.
@@ -239,8 +239,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0064` | 1.0.0 | accepted | Map W3C XML Schema 1.0 rows to generated-binding execution. |
 | `TASK-0065` | 1.0.0 | accepted | Enable executable `XP-XSD10-FULL`. |
 | `TASK-0066` | 1.0.0 | accepted | Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. |
-| `TASK-0067` | post-1.0.0 reflection | next | Reconcile support claims against actual evidence. |
-| `TASK-0068` | post-1.0.0 reflection | draft | Mine external XML binding/codegen issues into regression tasks and fixtures. |
+| `TASK-0067` | post-1.0.0 reflection | accepted | Reconcile support claims against actual evidence. |
+| `TASK-0068` | post-1.0.0 reflection | next | Mine external XML binding/codegen issues into regression tasks and fixtures. |
 | `TASK-0069` | post-1.0.0 reflection | draft | Review current design and implementation complexity for simplicity. |
 | `TASK-0070` | post-1.0.0 reflection | draft | Expand W3C generated-binding coverage. |
 | `TASK-0071` | post-1.0.0 reflection | draft | Review generation and generated-code performance. |
@@ -253,10 +253,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0067` is the next implementation gate. It may reconcile support claims, release wording,
-README wording, and verification/conformance matrices against the accepted evidence only. It must
-not add product behavior, broaden support claims without evidence, create a release tag, publish
-artifacts, add dependencies, or weaken quality gates.
+`TASK-0068` is the next implementation gate. It may mine external XML binding/codegen issue themes,
+classify them against current support, add only small regression fixtures for already-supported
+behavior or stable unsupported diagnostics, and record follow-on tasks. It must not add broad
+external suite vendoring, product behavior expansion, dependencies, release metadata, publication
+behavior, XSD 1.1/XML 1.1 support, canonical XML, DOM-backed binding, or quality-gate weakening.
+
+`TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
+`XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
+broad W3C full-suite generated-binding coverage limited to explicitly mapped rows.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,

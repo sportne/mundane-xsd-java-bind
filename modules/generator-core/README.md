@@ -21,8 +21,9 @@ or cryptographic canonical XML compatibility.
 
 `TASK-0051` adds content-model coverage for required `xs:all`, all-optional `xs:all`, repeated
 element-only choices, nested singleton sequences, and single-particle repeated/optional group refs.
-`TASK-0065` enables `XP-XSD10-FULL` after the full-XSD implementation and W3C generated-binding
-mapping gates pass. `TASK-0066` adds the `1.0.0` GitHub Release workflow and release evidence.
+`TASK-0065` enables `XP-XSD10-FULL` for accepted product-scope generated-binding shapes after the
+implementation and initial W3C generated-binding mapping gates pass. `TASK-0066` adds the `1.0.0`
+GitHub Release workflow and release evidence.
 
 ## Contributor notes
 

@@ -27,11 +27,11 @@ Deliver CLI and Gradle plugin generation for supported data-structure schemas wi
 ## Future phases
 
 Future phases must be opened through new task gates after the accepted `0.6.0` hardening closeout.
-The current product program is `XP-XSD10-FULL`: complete XML Schema 1.0 support for the binding
-generator through the task sequence that began at `TASK-0048`, starting from the feature matrix in
-`docs/verification/xsd10-full-feature-matrix.md`. `TASK-0065` enables the full profile after the
-implementation and W3C generated-binding mapping gates pass. `TASK-0066` accepts final readiness,
-version metadata, and the GitHub Release workflow. Future candidates include streaming
+The current product program is `XP-XSD10-FULL`: executable XML Schema 1.0 generated-binding support
+for the project's accepted product scope, tracked by
+`docs/verification/xsd10-full-feature-matrix.md`. `TASK-0065` enables the profile after the
+implementation and initial W3C generated-binding mapping gates pass. `TASK-0066` accepts final
+readiness, version metadata, and the GitHub Release workflow. Future candidates include streaming
 optimization, broader external-suite automation, benchmark thresholds, and signed publication
 workflow exploration.
 

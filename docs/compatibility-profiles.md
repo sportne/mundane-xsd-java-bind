@@ -10,7 +10,7 @@
 | `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening, `TASK-0028` adds accepted named list/union simple types, and `TASK-0029` adds accepted initial derivation flattening. | 3 |
 | `XP-XSD10-SEMANTIC` | XSD 1.0 semantic expansion | Opt-in `0.4.0` profile composing `XP-XSD10-COMPOSED` with accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution-group behavior, and expanded generated validation for those accepted semantic paths from `TASK-0032` through `TASK-0034`. | 4 |
 | `XP-XSD10-DOCUMENT` | Document-oriented and open content | Opt-in `0.5.0` profile composing `XP-XSD10-SEMANTIC`; `TASK-0037` adds accepted direct `xs:any` wildcard retention, `TASK-0038` adds accepted mixed-content ordering, and `TASK-0039` verifies stable project serialization policy. | 5 |
-| `XP-XSD10-FULL` | Full XSD 1.0 | Executable full XML Schema 1.0 generated-binding profile for this binding generator, tracked by `docs/verification/xsd10-full-feature-matrix.md`; `TASK-0066` accepts the `1.0.0` GitHub Release workflow and artifact evidence. | 1.0.0 |
+| `XP-XSD10-FULL` | Full-profile XSD 1.0 binding scope | Executable XML Schema 1.0 generated-binding profile for this binding generator's accepted product scope, tracked by `docs/verification/xsd10-full-feature-matrix.md`; `TASK-0066` accepts the `1.0.0` GitHub Release workflow and artifact evidence without claiming broad W3C full-suite generated-binding coverage. | 1.0.0 |
 | `XP-INTEROP` | Interoperability | Round-trip and validation comparison with existing XML tooling. | Ongoing |
 
 ## Java/runtime profiles
@@ -195,7 +195,7 @@ or hard performance guarantees.
 
 ## `XP-XSD10-FULL` Baseline
 
-`TASK-0048` opened the full XML Schema 1.0 program. `TASK-0065` enables the public
+`TASK-0048` opened the XML Schema 1.0 full-profile program. `TASK-0065` enables the public
 `GeneratorProfile.XP_XSD10_FULL` token after the implementation and W3C generated-binding mapping
 gates accepted enough evidence for profile execution. The accepted sequence is:
 
@@ -225,7 +225,7 @@ GitHub Release workflow for `v1.0.0` tags.
 ## `1.0.0` Full-XSD Release Bar
 
 `TASK-0058` rejects a stable-subset interpretation for `1.0.0`. The `1.0.0` compatibility posture
-requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
-`TASK-0065` enables the public token, and `TASK-0066` accepts final readiness, version metadata, and
-the GitHub Release workflow. Broad W3C full-suite generated-binding claims beyond explicitly mapped
-rows remain out of scope.
+requires executable `XP-XSD10-FULL` generated-binding support for accepted product shapes plus W3C
+generated-binding evidence. `TASK-0065` enables the public token, and `TASK-0066` accepts final
+readiness, version metadata, and the GitHub Release workflow. Broad W3C full-suite generated-binding
+claims beyond explicitly mapped rows remain out of scope.

@@ -3,8 +3,9 @@
 Status: `1.0.0` GitHub Release notes.
 
 This release is for `mundane XSD Java Binding`, a Java 21 XML Schema 1.0 binding generator. It
-generates immutable model records, XML readers, XML writers, and generated validators for practical
-XML Schema 1.0 binding use. It is not a standalone generic XML Schema validator.
+generates immutable model records, XML readers, XML writers, and generated validators for the
+project's accepted XML Schema 1.0 binding scope. It is not a standalone generic XML Schema
+validator.
 
 ## Supported profiles
 
@@ -23,8 +24,8 @@ XML Schema 1.0 binding use. It is not a standalone generic XML Schema validator.
 - Selected local conformance fixtures cover every executable profile family, including a
   full-profile generated-binding round trip.
 - The pinned W3C XML Schema 1.0 suite intake is available through the opt-in
-  `w3cXsd10Conformance` lane and records mapped generated-binding evidence plus classification for
-  unmapped rows.
+  `w3cXsd10Conformance` lane and records three mapped `AttrDecl` generated-binding rows plus
+  classification for unmapped rows.
 - `benchmarkSmoke` records advisory generated read/write/validate baselines.
 - `nativeSmoke` and `nativeConformance` provide GraalVM Native Image evidence when `native-image` is
   available.
@@ -50,6 +51,7 @@ GitHub Release assets only:
 - XML Signature canonical forms, lexical prefix preservation, comments, processing instructions,
   DTD retention, and entity-reference identity are not claimed.
 - DOM-backed binding and code-to-schema generation are not supported.
+- Broad W3C full-suite generated-binding coverage is not claimed beyond explicitly mapped rows.
 - Benchmark output is advisory evidence, not a hard performance guarantee.
 
 ## Rollback

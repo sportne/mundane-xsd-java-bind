@@ -45,7 +45,9 @@ Supported properties and methods:
   nillable/default/fixed, direct substitution-group, and generated semantic validation behavior;
   the document profile adds accepted direct `xs:any` wildcard/open-content retention, accepted
   mixed-content sequence models, and stable project XML serialization policy evidence.
-  `XP-XSD10-FULL` enables the full XML Schema 1.0 generated-binding profile.
+  `XP-XSD10-FULL` enables the executable XML Schema 1.0 generated-binding profile for accepted
+  product-scope shapes; broad W3C full-suite generated-binding coverage remains limited to
+  explicitly mapped rows.
 - `defaultPackage`: fallback package for namespaces without an explicit mapping.
 - `namespacePackage(String, String)`: namespace-to-Java-package mapping.
 - `localRoot(Object)`: local schema root used by the resolver and declared as a task input.

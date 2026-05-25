@@ -28,8 +28,9 @@ The current executable profiles are:
   mixed choice content, retained `XmlFragment` and `XmlAttribute` values, strict/lax
   schema-known wildcard validation for accepted retained declarations, and stable project
   serialization policy.
-- `XP-XSD10-FULL`: full practical XML Schema 1.0 generated-binding profile. It runs the same
-  generated-binding pipeline and retains the explicit non-goals below.
+- `XP-XSD10-FULL`: executable XML Schema 1.0 generated-binding profile for the project's accepted
+  product scope. It runs the same generated-binding pipeline, uses the evidence limits in the
+  feature and conformance matrices, and retains the explicit non-goals below.
 
 Across the executable profiles, accepted scalar element and attribute positions use the shared XSD
 1.0 datatype engine: string, numeric, float/double, temporal, duration, binary, anyURI,
@@ -42,7 +43,9 @@ multi-particle groups, nested singleton sequences, single-particle repeated/opti
 mixed choices, wildcard choices, and shared grouped-position reader/validator checks in the
 currently executable profiles.
 
-The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
+The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`. It is the source of
+truth for which areas are fully verified, partially verified, or limited to explicitly mapped W3C
+rows.
 
 ## Not supported
 

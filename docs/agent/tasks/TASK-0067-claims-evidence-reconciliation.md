@@ -1,6 +1,6 @@
 # TASK-0067: claims-evidence-reconciliation
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0067`
 Priority: P0
@@ -26,3 +26,17 @@ verified areas are described with their exact evidence limits; `1.0.0` release w
 accurate but not broader than demonstrated behavior; non-goals remain explicit.
 Rollback notes: revert documentation and claim-validation changes.
 
+## Completion notes
+
+`TASK-0067` reconciles public `1.0.0`, `XP-XSD10-FULL`, and full-XSD wording against the current
+feature and conformance evidence. The accepted wording now describes `XP-XSD10-FULL` as executable
+for the project's accepted generated-binding product scope, not as broad W3C full-suite generated
+binding coverage.
+
+Updated docs include README, compatibility profiles, roadmap, conformance and verification plans,
+module README wording, release notes, and `docs/verification/support-claims-reconciliation.md`.
+
+Verification:
+
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
