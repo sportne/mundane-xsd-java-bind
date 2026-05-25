@@ -1,6 +1,6 @@
 # TASK-0079: conformance-schemafactory-hardening
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0079`
 Priority: P0
@@ -30,3 +30,20 @@ factory; external resource denial is covered by stable tests; no product support
 broadened.
 Rollback notes: revert conformance helper/test/doc updates.
 
+## Completion notes
+
+`TASK-0079` adds package-local `ConformanceSchemaFactories` for selected local conformance JDK
+schema oracles. The helper enables secure processing and denies `ACCESS_EXTERNAL_DTD` and
+`ACCESS_EXTERNAL_SCHEMA` before creating validators. Existing local conformance tests now use that
+helper instead of plain `SchemaFactory.newInstance(...)`.
+
+The task adds `ConformanceSchemaFactoriesTest.secureFactoryRejectsExternalSchemaAccess` for a stable
+external-schema denial regression. Product generator/runtime behavior, support claims, release
+metadata, dependencies, and quality-gate wiring are unchanged.
+
+## Evidence
+
+- `./gradlew :modules:conformance-tests:check --console=plain`
+- `bash -lc 'source "$HOME/.sdkman/bin/sdkman-init.sh" && ./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain'`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

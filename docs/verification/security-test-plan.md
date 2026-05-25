@@ -18,7 +18,8 @@ catalog policy, and include/import cycle detection. It also includes runtime-jdk
 external entity denial and generated-validator example coverage for secure adapter behavior.
 `TASK-0073` adds a path-by-path XML security posture review, W3C suite metadata DOCTYPE denial
 coverage, and a hardened W3C generated-binding JDK schema oracle that denies external DTD/schema
-resolution.
+resolution. `TASK-0079` hardens the remaining selected local conformance JDK schema oracles with
+the same external DTD/schema denial posture and adds an external-schema denial regression.
 
 Depth, oversized-token, path-sanitization, and explicitly networked integration scenarios remain
 future hardening work unless a task card accepts them.

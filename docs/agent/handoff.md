@@ -89,8 +89,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 76. `TASK-0076`: Review GraalVM Native Image sustainability. Completed and accepted.
 77. `TASK-0077`: Simplify post-1.0.0 user-facing documentation. Completed and accepted.
 78. `TASK-0078`: Fix schema resource-id collisions for same-basename schemas. Completed and accepted.
-79. `TASK-0079`: Harden remaining conformance SchemaFactory helpers. Next implementation gate.
-80. `TASK-0080`: Expand W3C generated-binding row mapping. Draft.
+79. `TASK-0079`: Harden remaining conformance SchemaFactory helpers. Completed and accepted.
+80. `TASK-0080`: Expand W3C generated-binding row mapping. Next implementation gate.
 81. `TASK-0081`: Broaden generated naming stress coverage. Draft.
 82. `TASK-0082`: Add performance phase timing and large-schema characterization. Draft.
 83. `TASK-0083`: Separate W3C intake/classification from generated-binding execution. Draft.
@@ -259,16 +259,17 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0076` | post-1.0.0 reflection | accepted | Review GraalVM Native Image sustainability. |
 | `TASK-0077` | post-1.0.0 reflection | accepted | Simplify post-1.0.0 user-facing documentation. |
 | `TASK-0078` | post-1.0.0 follow-up | accepted | Fix schema resource-id collisions for same-basename schemas. |
-| `TASK-0079` | post-1.0.0 follow-up | next | Harden remaining conformance SchemaFactory helpers. |
-| `TASK-0080` | post-1.0.0 follow-up | draft | Expand W3C generated-binding row mapping. |
+| `TASK-0079` | post-1.0.0 follow-up | accepted | Harden remaining conformance SchemaFactory helpers. |
+| `TASK-0080` | post-1.0.0 follow-up | next | Expand W3C generated-binding row mapping. |
 | `TASK-0081` | post-1.0.0 follow-up | draft | Broaden generated naming stress coverage. |
 | `TASK-0082` | post-1.0.0 follow-up | draft | Add performance phase timing and large-schema characterization. |
 | `TASK-0083` | post-1.0.0 follow-up | draft | Separate W3C intake/classification from generated-binding execution. |
 
 ## Current implementation gate
 
-`TASK-0079` is the next implementation gate. It should harden remaining conformance
-`SchemaFactory` helpers without changing product behavior or support claims.
+`TASK-0080` is the next implementation gate. It should expand W3C generated-binding row mapping
+using already-supported behavior without vendoring the W3C suite or claiming broad full-suite
+coverage.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -319,6 +320,9 @@ The post-1.0.0 follow-up sequence is ordered by risk and leverage: `TASK-0078` r
 `TASK-0078` accepted resource-ID disambiguation for same-basename schemas across multiple local
 roots. The resolver now preserves single-root relative IDs and adds the shortest distinguishing root
 suffix in a bracketed prefix only when multiple local roots are active.
+`TASK-0079` accepted conformance JDK schema oracle hardening. Selected local conformance tests now
+use `ConformanceSchemaFactories`, which enables secure processing and denies external DTD/schema
+access before creating JDK validators.
 
 The completed post-1.0.0 reflection sequence ran in priority order: P0 claim/evidence
 reconciliation and external issue mining first; P1 complexity review, W3C binding expansion,

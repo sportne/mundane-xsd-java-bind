@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
-import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -36,7 +35,6 @@ import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
@@ -208,7 +206,10 @@ final class XpXsd10DocumentConformanceTest {
   @Test
   void strictAndLaxWildcardDeepValidationMatchesJdkSchemaEvidence()
       throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
-    Schema schema = jdkSchema("/xp-xsd10-document/wildcard-deep-order.xsd");
+    Schema schema =
+        jdkSchema(
+            "/xp-xsd10-document/wildcard-deep-order.xsd",
+            "/xp-xsd10-document/wildcard-deep-extension.xsd");
     String validXml = resource("/xp-xsd10-document/wildcard-deep-valid.xml");
     String invalidXml = resource("/xp-xsd10-document/wildcard-deep-invalid.xml");
     String unknownXml = resource("/xp-xsd10-document/wildcard-deep-unknown.xml");
@@ -387,8 +388,16 @@ final class XpXsd10DocumentConformanceTest {
   }
 
   private Schema jdkSchema(String schemaResource) throws SAXException {
-    return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-        .newSchema(resourcePath(schemaResource).toFile());
+    return ConformanceSchemaFactories.newSchema(resourcePath(schemaResource));
+  }
+
+  private Schema jdkSchema(String schemaResource, String... additionalSchemaResources)
+      throws SAXException {
+    Path[] additionalPaths = new Path[additionalSchemaResources.length];
+    for (int index = 0; index < additionalSchemaResources.length; index++) {
+      additionalPaths[index] = resourcePath(additionalSchemaResources[index]);
+    }
+    return ConformanceSchemaFactories.newSchema(resourcePath(schemaResource), additionalPaths);
   }
 
   private String writeWithGeneratedWriter(Class<?> writerClass, Class<?> orderClass, Object order)

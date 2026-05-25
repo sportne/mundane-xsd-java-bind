@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
-import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -40,7 +39,6 @@ import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.xml.sax.SAXException;
@@ -174,8 +172,7 @@ final class XpXsd10DatatypeConformanceTest {
   }
 
   private Schema jdkSchema() throws SAXException {
-    return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-        .newSchema(resourcePath("/xp-xsd10-datatypes/datatypes.xsd").toFile());
+    return ConformanceSchemaFactories.newSchema(resourcePath("/xp-xsd10-datatypes/datatypes.xsd"));
   }
 
   private XmlEventReader readerFor(String xml) throws XMLStreamException {
