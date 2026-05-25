@@ -37,6 +37,11 @@ Selected W3C or external fixtures must be classified before they are executable 
 - `blocked`: the fixture cannot run locally because of licensing, toolchain, storage, or dependency
   constraints; the blocker must be documented.
 
+`docs/verification/external-issue-regression-mining.md` records post-1.0.0 issue-mining intake from
+adjacent XML Schema binding/codegen projects. Those sources can justify local regression fixtures
+only when the behavior is already claimed, or follow-on task candidates when the behavior is outside
+the current product scope.
+
 Interop comparisons must be repeatable from local inputs. Accepted comparison targets are JDK XML
 Schema validation, secure JDK XML parsing, generated binding round trips, and documented semantic
 comparisons. Byte-identical XML output, W3C XML Canonicalization, XML Signature canonical forms,

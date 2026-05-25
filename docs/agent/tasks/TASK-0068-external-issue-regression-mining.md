@@ -1,6 +1,6 @@
 # TASK-0068: external-issue-regression-mining
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0068`
 Priority: P0
@@ -29,3 +29,16 @@ that map to current support have at least one local fixture or a clear follow-on
 used to silently broaden scope.
 Rollback notes: remove the issue-mining note, fixture additions, and handoff updates.
 
+## Completion notes
+
+`TASK-0068` mined adjacent XML Schema binding/codegen projects and classified recurring failure
+themes without broad external suite vendoring or product behavior expansion. The intake is recorded
+in `docs/verification/external-issue-regression-mining.md` and linked from the conformance strategy.
+
+No new fixtures were added in this task because each high-risk theme either maps to existing local
+coverage or to the already ordered follow-on review tasks `TASK-0070` through `TASK-0077`.
+
+Verification:
+
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
