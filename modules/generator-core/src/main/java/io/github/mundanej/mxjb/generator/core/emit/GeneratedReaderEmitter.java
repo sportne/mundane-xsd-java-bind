@@ -169,6 +169,7 @@ public final class GeneratedReaderEmitter {
     private final BindingType rootType;
     private final BindingJavaName readerName;
     private final ModelIndex index;
+    private final GeneratedReaderStatePlan readerStatePlan;
     private final LinkedHashMap<SchemaQName, String> nameConstants = new LinkedHashMap<>();
     private final Set<String> helperNames = new LinkedHashSet<>();
 
@@ -178,14 +179,15 @@ public final class GeneratedReaderEmitter {
       this.rootType = plan.rootType();
       this.readerName = plan.sourceName();
       this.index = index;
+      this.readerStatePlan = GeneratedReaderStatePlan.from(rootType, index::type);
     }
 
     private String sourceText() {
       collectNames(root.xmlName(), rootType, new LinkedHashSet<>());
-      if (needsNillableSupport(rootType, new LinkedHashSet<>())) {
+      if (readerStatePlan.needsNillableSupport()) {
         nameConstant(XSI_NIL);
       }
-      if (needsXsiTypeSupport(rootType, new LinkedHashSet<>())) {
+      if (readerStatePlan.needsXsiTypeSupport()) {
         nameConstant(XSI_TYPE);
       }
       StringBuilder source = new StringBuilder();
@@ -242,7 +244,7 @@ public final class GeneratedReaderEmitter {
           .append(helperName(rootType))
           .append("(input, ")
           .append(nameConstant(root.xmlName()));
-      if (hasXsiTypeSupport()) {
+      if (readerStatePlan.needsXsiTypeSupport()) {
         source.append(", false");
       }
       source
@@ -269,7 +271,7 @@ public final class GeneratedReaderEmitter {
           .append("(\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
           .append("      io.github.mundanej.mxjb.runtime.XmlName elementName");
-      if (hasXsiTypeSupport()) {
+      if (readerStatePlan.needsXsiTypeSupport()) {
         source.append(",\n      boolean allowXsiType");
       }
       source
@@ -400,7 +402,7 @@ public final class GeneratedReaderEmitter {
       source.append("    for (int index = 0; index < input.attributeCount(); index++) {\n");
       source.append(
           "      io.github.mundanej.mxjb.runtime.XmlName attributeName = input.attributeName(index);\n");
-      if (needsXsiTypeSupport(rootType, new LinkedHashSet<>())) {
+      if (readerStatePlan.needsXsiTypeSupport()) {
         source.append("      if (allowXsiType && ").append(nameConstant(XSI_TYPE));
         source.append(".equals(attributeName)) {\n");
         source.append("        continue;\n");
@@ -1292,27 +1294,30 @@ public final class GeneratedReaderEmitter {
         return parseExpression(reference, "readTextElement(input, " + nameConstant + ")");
       }
       if ("list".equals(reference.kind())) {
+        GeneratedReaderScalarPlan scalarPlan = GeneratedReaderScalarPlan.of(reference);
         return "readDatatypeListElement(input, "
             + nameConstant
             + ", \""
-            + escape(reference.itemType().name())
+            + escape(scalarPlan.datatypeListItemName())
             + "\", "
-            + scalarClassLiteral(reference.itemType())
+            + scalarPlan.datatypeClassLiteral()
             + ")";
       }
       if (XmlSchemaBuiltIns.isListValued(reference.name())) {
+        GeneratedReaderScalarPlan scalarPlan = GeneratedReaderScalarPlan.of(reference);
         return "readDatatypeListElement(input, "
             + nameConstant
             + ", \""
-            + escape(listBuiltInItemType(reference.name()))
+            + escape(scalarPlan.datatypeListItemName())
             + "\", String.class)";
       }
+      GeneratedReaderScalarPlan scalarPlan = GeneratedReaderScalarPlan.of(reference);
       return "readDatatypeElement(input, "
           + nameConstant
           + ", \""
           + escape(reference.name())
           + "\", "
-          + scalarClassLiteral(reference)
+          + scalarPlan.datatypeClassLiteral()
           + ")";
     }
 
@@ -1430,7 +1435,7 @@ public final class GeneratedReaderEmitter {
           .append("    return input.kind() == io.github.mundanej.mxjb.runtime.XmlEventKind.TEXT\n")
           .append("        && input.text().isBlank();\n")
           .append("  }\n\n");
-      if (needsXsiTypeSupport(rootType, new LinkedHashSet<>())) {
+      if (readerStatePlan.needsXsiTypeSupport()) {
         source
             .append("  private static boolean xsiTypeMatches(\n")
             .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
@@ -1449,7 +1454,7 @@ public final class GeneratedReaderEmitter {
             .append("        && typeName.localName().equals(local);\n")
             .append("  }\n\n");
       }
-      if (needsWildcardSupport(rootType, new LinkedHashSet<>())) {
+      if (readerStatePlan.needsWildcardSupport()) {
         source
             .append("  private static boolean wildcardMatches(\n")
             .append("      io.github.mundanej.mxjb.runtime.XmlName name,\n")
@@ -1536,7 +1541,7 @@ public final class GeneratedReaderEmitter {
           .append("    }\n")
           .append("    return null;\n")
           .append("  }\n\n");
-      if (needsDefaultedElementSupport(rootType, new LinkedHashSet<>())) {
+      if (readerStatePlan.needsDefaultedElementSupport()) {
         source
             .append("  private static String defaultedText(String value, String defaultValue) {\n")
             .append("    return value.isEmpty() ? defaultValue : value;\n")
@@ -1569,7 +1574,7 @@ public final class GeneratedReaderEmitter {
           .append(
               "    throw readException(input, \"MXJB-GR-007\", \"Unclosed XML text element.\");\n")
           .append("  }\n\n");
-      if (needsNillableSupport(rootType, new LinkedHashSet<>())) {
+      if (readerStatePlan.needsNillableSupport()) {
         source
             .append("  private static boolean readNilElement(\n")
             .append("      io.github.mundanej.mxjb.runtime.XmlEventReader input,\n")
@@ -1701,7 +1706,7 @@ public final class GeneratedReaderEmitter {
           .append("      throws io.github.mundanej.mxjb.runtime.XmlReadException {\n")
           .append("    return parseDecimal(readTextElement(input, name), input.location());\n")
           .append("  }\n\n");
-      if (!needsListSupport()) {
+      if (!readerStatePlan.needsListSupport()) {
         return;
       }
       source
@@ -1795,7 +1800,7 @@ public final class GeneratedReaderEmitter {
               "      throw readException(location, \"MXJB-GR-006\", \"Invalid decimal value.\", exception);\n")
           .append("    }\n")
           .append("  }\n\n");
-      if (!needsListSupport()) {
+      if (!readerStatePlan.needsListSupport()) {
         return;
       }
       source
@@ -1899,220 +1904,7 @@ public final class GeneratedReaderEmitter {
     }
 
     private String parseExpression(BindingTypeReference reference, String valueExpression) {
-      if ("list".equals(reference.kind())) {
-        return "io.github.mundanej.mxjb.runtime.XmlDatatypes.parseList(\""
-            + escape(reference.itemType().name())
-            + "\", "
-            + valueExpression
-            + ", input, input.location(), "
-            + scalarClassLiteral(reference.itemType())
-            + ")";
-      }
-      if ("union".equals(reference.kind())) {
-        return valueExpression;
-      }
-      if (XmlSchemaBuiltIns.isListValued(reference.name())) {
-        return "io.github.mundanej.mxjb.runtime.XmlDatatypes.parseList(\""
-            + escape(listBuiltInItemType(reference.name()))
-            + "\", "
-            + valueExpression
-            + ", input, input.location(), String.class)";
-      }
-      if ("string".equals(reference.name())) {
-        return valueExpression;
-      }
-      return "("
-          + scalarType(reference)
-          + ") io.github.mundanej.mxjb.runtime.XmlDatatypes.parse(\""
-          + escape(reference.name())
-          + "\", "
-          + valueExpression
-          + ", input, input.location())";
-    }
-
-    private String listBuiltInItemType(String name) {
-      return switch (name) {
-        case "NMTOKENS" -> "NMTOKEN";
-        case "IDREFS" -> "IDREF";
-        case "ENTITIES" -> "ENTITY";
-        default -> "string";
-      };
-    }
-
-    private String scalarClassLiteral(BindingTypeReference reference) {
-      return switch (reference.name()) {
-        case "string",
-            "normalizedString",
-            "token",
-            "language",
-            "Name",
-            "NCName",
-            "NMTOKEN",
-            "ID",
-            "IDREF",
-            "ENTITY" ->
-            "String.class";
-        case "boolean" -> "Boolean.class";
-        case "decimal" -> "java.math.BigDecimal.class";
-        case "float" -> "Float.class";
-        case "double" -> "Double.class";
-        case "integer",
-            "nonPositiveInteger",
-            "negativeInteger",
-            "nonNegativeInteger",
-            "positiveInteger",
-            "unsignedLong" ->
-            "java.math.BigInteger.class";
-        case "long", "unsignedInt" -> "Long.class";
-        case "int", "unsignedShort" -> "Integer.class";
-        case "short", "unsignedByte" -> "Short.class";
-        case "byte" -> "Byte.class";
-        case "duration" -> "io.github.mundanej.mxjb.runtime.XmlDuration.class";
-        case "dateTime" -> "io.github.mundanej.mxjb.runtime.XmlDateTime.class";
-        case "date" -> "io.github.mundanej.mxjb.runtime.XmlDate.class";
-        case "time" -> "io.github.mundanej.mxjb.runtime.XmlTime.class";
-        case "gYear" -> "io.github.mundanej.mxjb.runtime.XmlGYear.class";
-        case "gYearMonth" -> "io.github.mundanej.mxjb.runtime.XmlGYearMonth.class";
-        case "gMonth" -> "io.github.mundanej.mxjb.runtime.XmlGMonth.class";
-        case "gMonthDay" -> "io.github.mundanej.mxjb.runtime.XmlGMonthDay.class";
-        case "gDay" -> "io.github.mundanej.mxjb.runtime.XmlGDay.class";
-        case "hexBinary", "base64Binary" -> "io.github.mundanej.mxjb.runtime.XmlBinary.class";
-        case "anyURI" -> "io.github.mundanej.mxjb.runtime.XmlAnyUri.class";
-        case "QName", "NOTATION" -> "io.github.mundanej.mxjb.runtime.XmlQName.class";
-        default -> "Object.class";
-      };
-    }
-
-    private boolean needsListSupport() {
-      return needsListSupport(rootType, new LinkedHashSet<>());
-    }
-
-    private boolean needsListSupport(BindingType type, Set<String> visited) {
-      if (!visited.add(type.javaName().qualifiedName())) {
-        return false;
-      }
-      for (BindingField field : type.fields()) {
-        if (containsListType(field.type())) {
-          return true;
-        }
-        BindingType nestedType = modelType(field);
-        if (nestedType != null && needsListSupport(nestedType, visited)) {
-          return true;
-        }
-        if ("choice".equals(field.kind())) {
-          for (BindingChoiceBranch branch : field.choice().branches()) {
-            if (containsListType(branch.type())) {
-              return true;
-            }
-            BindingType branchType = modelType(branch.type());
-            if (branchType != null && needsListSupport(branchType, visited)) {
-              return true;
-            }
-          }
-        }
-      }
-      return false;
-    }
-
-    private boolean needsNillableSupport(BindingType type, Set<String> visited) {
-      if (!visited.add(type.javaName().qualifiedName())) {
-        return false;
-      }
-      for (BindingField field : type.fields()) {
-        if (field.semantics().nillable()) {
-          return true;
-        }
-        BindingType nestedType = modelType(field);
-        if (nestedType != null && needsNillableSupport(nestedType, visited)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    private boolean hasXsiTypeSupport() {
-      return needsXsiTypeSupport(rootType, new LinkedHashSet<>());
-    }
-
-    private boolean needsXsiTypeSupport(BindingType type, Set<String> visited) {
-      if (!visited.add(type.javaName().qualifiedName())) {
-        return false;
-      }
-      for (BindingField field : type.fields()) {
-        if ("choice".equals(field.kind())
-            && field.choice() != null
-            && "xsiType".equals(field.choice().modelKind())) {
-          return true;
-        }
-        BindingType nestedType = modelType(field);
-        if (nestedType != null && needsXsiTypeSupport(nestedType, visited)) {
-          return true;
-        }
-        if ("choice".equals(field.kind()) && field.choice() != null) {
-          for (BindingChoiceBranch branch : field.choice().branches()) {
-            BindingType branchType = modelType(branch.type());
-            if (branchType != null && needsXsiTypeSupport(branchType, visited)) {
-              return true;
-            }
-          }
-        }
-      }
-      return false;
-    }
-
-    private boolean needsDefaultedElementSupport(BindingType type, Set<String> visited) {
-      if (!visited.add(type.javaName().qualifiedName())) {
-        return false;
-      }
-      for (BindingField field : type.fields()) {
-        if ("element".equals(field.kind()) && field.semantics().hasDefault()) {
-          return true;
-        }
-        BindingType nestedType = modelType(field);
-        if (nestedType != null && needsDefaultedElementSupport(nestedType, visited)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    private boolean needsWildcardSupport(BindingType type, Set<String> visited) {
-      if (!visited.add(type.javaName().qualifiedName())) {
-        return false;
-      }
-      for (BindingField field : type.fields()) {
-        if ("wildcard".equals(field.kind()) || "anyAttribute".equals(field.kind())) {
-          return true;
-        }
-        if ("content".equals(field.kind())
-            && field.content().branches().stream()
-                .anyMatch(branch -> "wildcard".equals(branch.kind()))) {
-          return true;
-        }
-        if ("content".equals(field.kind())) {
-          for (BindingContentBranch branch : field.content().branches()) {
-            BindingType branchType = modelType(branch.type());
-            if (branchType != null && needsWildcardSupport(branchType, visited)) {
-              return true;
-            }
-          }
-        }
-        BindingType nestedType = modelType(field);
-        if (nestedType != null && needsWildcardSupport(nestedType, visited)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    private boolean containsListType(BindingTypeReference reference) {
-      if ("list".equals(reference.kind())) {
-        return true;
-      }
-      if ("union".equals(reference.kind())) {
-        return reference.unionMembers().stream().anyMatch(this::containsListType);
-      }
-      return false;
+      return GeneratedReaderScalarPlan.of(reference).parseExpression(valueExpression);
     }
 
     private String localType(BindingField field) {
@@ -2139,33 +1931,7 @@ public final class GeneratedReaderEmitter {
     }
 
     private String scalarType(BindingTypeReference reference) {
-      return qualifiedScalarType(reference.name());
-    }
-
-    private String qualifiedScalarType(String scalar) {
-      String javaType = XmlSchemaBuiltIns.javaType(scalar);
-      if (javaType == null) {
-        return "String";
-      }
-      return switch (javaType) {
-        case "List<String>" -> "java.util.List<String>";
-        case "BigInteger" -> "java.math.BigInteger";
-        case "BigDecimal" -> "java.math.BigDecimal";
-        case "XmlDuration",
-            "XmlDateTime",
-            "XmlDate",
-            "XmlTime",
-            "XmlGYear",
-            "XmlGYearMonth",
-            "XmlGMonth",
-            "XmlGMonthDay",
-            "XmlGDay",
-            "XmlBinary",
-            "XmlAnyUri",
-            "XmlQName" ->
-            "io.github.mundanej.mxjb.runtime." + javaType;
-        default -> javaType;
-      };
+      return GeneratedReaderScalarPlan.of(reference).javaType();
     }
 
     private List<BindingField> requiredFields(BindingType type) {
@@ -2259,7 +2025,7 @@ public final class GeneratedReaderEmitter {
     private String helperInvocation(
         BindingType type, String inputExpression, String nameExpression, boolean allowXsiType) {
       String invocation = helperName(type) + "(" + inputExpression + ", " + nameExpression;
-      if (hasXsiTypeSupport()) {
+      if (readerStatePlan.needsXsiTypeSupport()) {
         invocation += ", " + allowXsiType;
       }
       return invocation + ")";

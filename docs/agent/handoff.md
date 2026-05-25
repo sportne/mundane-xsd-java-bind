@@ -277,7 +277,7 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0084` | generator architecture refactor | accepted | Start IR normalization policy extraction. |
 | `TASK-0085` | generator architecture refactor | accepted | Split binding naming/content planning helpers. |
 | `TASK-0086` | generator architecture refactor | accepted | Introduce emitter planning objects. |
-| `TASK-0087` | deeper generator architecture refactor | draft | Plan reader state and scalar emission. |
+| `TASK-0087` | deeper generator architecture refactor | accepted | Plan reader state and scalar emission. |
 | `TASK-0088` | deeper generator architecture refactor | draft | Plan writer content traversal. |
 | `TASK-0089` | deeper generator architecture refactor | draft | Plan validator traversal helpers. |
 | `TASK-0090` | deeper generator architecture refactor | draft | Extract IR particle and wildcard normalization. |
@@ -287,8 +287,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0087` is the next implementation gate. It should add reader state-machine and scalar
-conversion planning objects without changing generated reader source behavior.
+`TASK-0088` is the next implementation gate. It should add writer content traversal planning before
+writer source text assembly without changing generated writer source behavior.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -314,6 +314,10 @@ type-reference binding, substitution/dynamic branch semantics, and validation-pl
 source names, output paths, root helper names, root/type metadata, and binding-order field traversal
 inputs before source text assembly. Existing source-state traversal and generated source behavior
 are unchanged.
+`TASK-0087` accepted the first deeper reader planning tranche. Package-private
+`GeneratedReaderStatePlan` now captures reader helper feature flags before source text assembly, and
+`GeneratedReaderScalarPlan` owns reader scalar parse-expression and datatype-helper decisions while
+preserving generated reader source behavior.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports

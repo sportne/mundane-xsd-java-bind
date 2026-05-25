@@ -12,7 +12,7 @@ The largest reviewed implementation surfaces are:
 |---|---:|---|---|
 | `SchemaIrBuilder` + `SchemaIrNormalizationPolicy` | 3,266 before `TASK-0084` | XSD symbol spaces, profile gates, normalization, deterministic diagnostics. | `TASK-0084` extracts occurrence/cardinality, QName, cardinality-composition, and diagnostic ordering policy; resource-aware lookup, profile policy, component normalization, derivation flattening, wildcard composition, and identity paths remain future tranches. |
 | `BindingModelBuilder` + binding planners | 1,571 before `TASK-0085` | Java naming, product-scope binding shapes, validation plan construction. | `TASK-0085` extracts deterministic naming/package allocation and mixed/grouped content-list planning; substitution/dynamic branch binding, schema lookup, type-reference binding, and validation metadata remain future tranche candidates. |
-| `GeneratedReaderEmitter` + emitter plans | 2,430 before `TASK-0086` | Generated source must be explicit, deterministic, reflection-free, and location-aware. | `TASK-0086` introduces root source/helper/field traversal plans; state-machine decisions, diagnostic text, and Java formatting still live in source assembly. |
+| `GeneratedReaderEmitter` + emitter plans | 2,430 before `TASK-0086` | Generated source must be explicit, deterministic, reflection-free, and location-aware. | `TASK-0086` introduces root source/helper/field traversal plans; `TASK-0087` extracts reader helper-state and scalar-conversion planning; diagnostic text, element traversal, and Java formatting still live in source assembly. |
 | `GeneratedValidatorEmitter` + emitter plans | 2,652 before `TASK-0086` | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | `TASK-0086` introduces root source/helper/field traversal plans; validation traversal, identity helpers, and emitted Java snippets remain future tranche candidates. |
 | `GeneratedWriterEmitter` + emitter plans | 934 before `TASK-0086` | Deterministic XML output for generated and retained content. | `TASK-0086` names shared root source/helper/field traversal planning; scalar/content write traversal remains inside source assembly. |
 | `XmlDatatypes` | 842 | Dependency-free XML Schema lexical parsing/formatting in runtime-core. | Many datatype families share whitespace, bounds, and lexical-special-case mechanics inside one utility. |
@@ -45,9 +45,10 @@ The largest reviewed implementation surfaces are:
      `GeneratedEmitterFieldPlan`.
    - The first plan boundary captures root element/type metadata, generated source names and paths,
      root helper names, and binding-order field traversal inputs before source text assembly.
-   - Remaining candidate boundaries: content-position traversal plans, scalar conversion plans,
-     reader state-machine plans, writer content traversal plans, validator object/XML traversal
-     plans, and identity-helper plans.
+   - `TASK-0087` adds package-private reader state and scalar-conversion plans for helper feature
+     flags, scalar parse expressions, datatype list item names, and datatype helper class literals.
+   - Remaining candidate boundaries: content-position traversal plans, writer content traversal
+     plans, validator object/XML traversal plans, and identity-helper plans.
    - Test strategy: keep focused plan tests plus existing generated-source compile and smoke tests
      as end-to-end guards; no generated source output change is expected from this tranche.
 
@@ -72,8 +73,8 @@ The largest reviewed implementation surfaces are:
 - No ADR conflict is visible for these refactors because they preserve module boundaries,
   dependency policy, no-reflection generated code, and Native Image posture.
 - The highest-risk remaining refactor is deeper emitter planning because it touches generated source
-  shape; future work should split reader, writer, validator, scalar conversion, content traversal,
-  and identity planning instead of attempting one broad rewrite.
+  shape; future work should split writer, validator, content traversal, and identity planning
+  instead of attempting one broad rewrite.
 - The safest first task is binding name allocation because it has clear inputs/outputs and aligns
   with the scheduled `TASK-0075` naming review.
 - Any extraction that changes generated output must explain golden diffs and keep generated-code

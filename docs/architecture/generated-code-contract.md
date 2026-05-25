@@ -87,7 +87,22 @@ text assembly.
   entry points, source text behavior, runtime dependencies, and generated-code restrictions remain
   unchanged.
 - Deeper reader state-machine, writer content traversal, scalar conversion, validator traversal,
-  and identity-helper planning remain inside the existing emitters until later refactor tranches.
+  and identity-helper planning remain inside the existing emitters until later refactor tranches;
+  `TASK-0087` starts that sequence for reader state and scalar conversion.
+
+## `TASK-0087` reader planning boundary
+
+`TASK-0087` keeps generated reader source contracts unchanged while moving deeper reader decisions
+behind package-private plans.
+
+- `GeneratedReaderStatePlan` captures whether a generated reader root needs helper support for
+  nillable elements, `xsi:type`, retained wildcards, defaulted elements, and list parsing before
+  source text assembly.
+- `GeneratedReaderScalarPlan` captures scalar parse-expression decisions, built-in list item names,
+  and datatype-helper class literals before source text assembly.
+- The plan boundary is internal to `generator-core`. Generated reader class names, public `read`
+  entry points, helper signatures, emitted diagnostics, supported XML behavior, and generated model
+  contracts remain unchanged.
 
 ## `TASK-0023` choice model shape
 
