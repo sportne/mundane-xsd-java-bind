@@ -52,7 +52,8 @@ The root `nativeConformance` aggregate currently covers:
 - `TASK-0042` should document repeatable conformance/interop commands and decide which, if any,
   become CI jobs.
 - `TASK-0043` adds the explicit `./gradlew benchmarkSmoke --console=plain` lane and keeps it
-  outside default `qualityGate`; it may run in scheduled CI after baselines are stable.
+  outside default `qualityGate`; `TASK-0071` adds generator and javac observations to that same
+  advisory lane. It may run in scheduled CI after baselines are stable.
 - `TASK-0044` adds selected Native Image conformance execution beside `nativeSmoke`, without
   weakening existing smoke checks.
 - `TASK-0045` adds `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun --console=plain` as

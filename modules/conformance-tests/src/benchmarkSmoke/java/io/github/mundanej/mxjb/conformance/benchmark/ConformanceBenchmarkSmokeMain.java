@@ -22,6 +22,7 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -34,7 +35,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
 
-/** Advisory generated-binding benchmark smoke checks for TASK-0043. */
+/** Advisory generated-binding benchmark smoke checks for TASK-0043 and TASK-0071. */
 public final class ConformanceBenchmarkSmokeMain {
   private static final int ITERATIONS = 8;
   private static final int WARMUP_ITERATIONS = 2;
@@ -294,6 +295,8 @@ public final class ConformanceBenchmarkSmokeMain {
       throws IOException, ReflectiveOperationException {
     Path output = WORK_DIRECTORY.resolve(name).resolve("generated");
     Path classes = WORK_DIRECTORY.resolve(name).resolve("classes");
+    deleteDirectory(output);
+    deleteDirectory(classes);
     GeneratorRequest request =
         new GeneratorRequest(
             List.of(resourcePath(schemaResource)),
@@ -303,9 +306,30 @@ public final class ConformanceBenchmarkSmokeMain {
             Map.of(namespace, packageName),
             List.of(),
             Map.of());
+    MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
+    long heapBefore = memory.getHeapMemoryUsage().getUsed();
+    long generationStartNanos = System.nanoTime();
     GeneratorResult result = new CoreGenerator().generate(request);
+    long generationNanos = System.nanoTime() - generationStartNanos;
     require(result.successful(), "Generator failed: " + result.diagnostics());
+    long sourceBytes = generatedSourceBytes(output, result.generatedSources());
+    require(sourceBytes > 0, "Generated source benchmark produced empty sources.");
+    long compileStartNanos = System.nanoTime();
     compileGeneratedSources(output, result.generatedSources(), classes);
+    long compileNanos = System.nanoTime() - compileStartNanos;
+    long classCount = classFileCount(classes);
+    require(classCount > 0, "Generated source benchmark produced no classes.");
+    long heapAfter = memory.getHeapMemoryUsage().getUsed();
+    printGenerationBenchmark(
+        name,
+        request.profile(),
+        result.generatedSources().size(),
+        sourceBytes,
+        classCount,
+        generationNanos,
+        compileNanos,
+        heapBefore,
+        heapAfter);
     URLClassLoader loader =
         new URLClassLoader(
             new URL[] {classes.toUri().toURL()},
@@ -316,6 +340,33 @@ public final class ConformanceBenchmarkSmokeMain {
         loader.loadClass(packageName + ".xml.OrderXmlReader"),
         loader.loadClass(packageName + ".xml.OrderXmlWriter"),
         loader.loadClass(packageName + ".xml.OrderXmlValidator"));
+  }
+
+  private static void printGenerationBenchmark(
+      String workloadName,
+      GeneratorProfile profile,
+      int generatedSources,
+      long sourceBytes,
+      long classCount,
+      long generationNanos,
+      long compileNanos,
+      long heapBefore,
+      long heapAfter) {
+    System.out.printf(
+        Locale.ROOT,
+        "GENERATION_BENCHMARK workload=%s profile=%s schemas=1 "
+            + "pipeline=resolve-parse-ir-bind-emit-write generatedSources=%d sourceBytes=%d "
+            + "classFiles=%d generationMillis=%.3f javacMillis=%.3f "
+            + "heapBeforeBytes=%d heapAfterBytes=%d%n",
+        workloadName,
+        profile.name(),
+        generatedSources,
+        sourceBytes,
+        classCount,
+        generationNanos / 1_000_000.0d,
+        compileNanos / 1_000_000.0d,
+        heapBefore,
+        heapAfter);
   }
 
   private static void compileGeneratedSources(Path output, List<Path> relativePaths, Path classes)
@@ -370,6 +421,33 @@ public final class ConformanceBenchmarkSmokeMain {
         .filter(path -> Files.exists(Path.of(path)))
         .reduce((left, right) -> left + File.pathSeparator + right)
         .orElseThrow(() -> new IllegalStateException("No existing benchmark classpath entries."));
+  }
+
+  private static long generatedSourceBytes(Path output, List<Path> relativePaths)
+      throws IOException {
+    long total = 0;
+    for (Path relativePath : relativePaths) {
+      total += Files.size(output.resolve(relativePath));
+    }
+    return total;
+  }
+
+  private static long classFileCount(Path classes) throws IOException {
+    try (Stream<Path> stream = Files.walk(classes)) {
+      return stream.filter(path -> path.toString().endsWith(".class")).count();
+    }
+  }
+
+  private static void deleteDirectory(Path directory) throws IOException {
+    if (!Files.exists(directory)) {
+      return;
+    }
+    try (Stream<Path> stream = Files.walk(directory)) {
+      List<Path> paths = stream.sorted(Comparator.reverseOrder()).toList();
+      for (Path path : paths) {
+        Files.delete(path);
+      }
+    }
   }
 
   private interface BenchmarkOperation {

@@ -81,8 +81,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 68. `TASK-0068`: Mine external XML binding/codegen issues into regression tasks and fixtures. Completed and accepted.
 69. `TASK-0069`: Review current design and implementation complexity for simplicity. Completed and accepted.
 70. `TASK-0070`: Expand W3C generated-binding coverage. Completed and accepted.
-71. `TASK-0071`: Review generation and generated-code performance. Next implementation gate.
-72. `TASK-0072`: Validate release artifact consumption from a clean downstream project. Draft.
+71. `TASK-0071`: Review generation and generated-code performance. Completed and accepted.
+72. `TASK-0072`: Validate release artifact consumption from a clean downstream project. Next implementation gate.
 73. `TASK-0073`: Review XML security posture across every parser and generated-validation path. Draft.
 74. `TASK-0074`: Review diagnostics and user ergonomics. Draft.
 75. `TASK-0075`: Review naming, customization, and generated-source collision behavior. Draft.
@@ -245,8 +245,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0068` | post-1.0.0 reflection | accepted | Mine external XML binding/codegen issues into regression tasks and fixtures. |
 | `TASK-0069` | post-1.0.0 reflection | accepted | Review current design and implementation complexity for simplicity. |
 | `TASK-0070` | post-1.0.0 reflection | accepted | Expand W3C generated-binding coverage. |
-| `TASK-0071` | post-1.0.0 reflection | next | Review generation and generated-code performance. |
-| `TASK-0072` | post-1.0.0 reflection | draft | Validate release artifact consumption from a clean downstream project. |
+| `TASK-0071` | post-1.0.0 reflection | accepted | Review generation and generated-code performance. |
+| `TASK-0072` | post-1.0.0 reflection | next | Validate release artifact consumption from a clean downstream project. |
 | `TASK-0073` | post-1.0.0 reflection | draft | Review XML security posture across every parser and generated-validation path. |
 | `TASK-0074` | post-1.0.0 reflection | draft | Review diagnostics and user ergonomics. |
 | `TASK-0075` | post-1.0.0 reflection | draft | Review naming, customization, and generated-source collision behavior. |
@@ -255,10 +255,9 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0071` is the next implementation gate. It should characterize generation and generated-code
-performance using existing/advisory benchmark lanes, keeping thresholds opt-in and non-claiming.
-It must not add hard performance guarantees, release claims, dependencies, or quality-gate
-weakening.
+`TASK-0072` is the next implementation gate. It should validate GitHub Release Maven-layout assets
+from deterministic temporary downstream projects without remote publication or signing. It must not
+publish artifacts, add release metadata, add dependencies without approval, or weaken quality gates.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -273,6 +272,10 @@ future refactor candidates.
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports
 `binding-supported=6`, `validation-only=24433`, and `bindingExecution.passed=2`.
+`TASK-0071` accepted advisory performance characterization by extending `benchmarkSmoke` with
+generator pipeline, javac, source-size, class-count, and heap observations. The current evidence
+does not justify hard thresholds; future optimization should start with large-schema source/class
+growth and per-phase generator timing.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,
