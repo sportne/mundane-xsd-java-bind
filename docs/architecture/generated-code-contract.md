@@ -76,6 +76,19 @@ The first generated-validator emitter supports basic validation for supported da
 - Generated validator source uses fully qualified names for generated model types and `runtime-core` validation/XML types to avoid import collisions.
 - Generated validator source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, dependency injection, or external resource access.
 
+## `TASK-0086` emitter planning boundary
+
+Reader, writer, and validator source emission now builds a package-private root plan before source
+text assembly.
+
+- The plan records the root element, root binding type, generated source class name, relative output
+  path, root helper method name, and binding-order field traversal inputs.
+- The plan is an internal emitter boundary only. Generated Java source names, helper names, public
+  entry points, source text behavior, runtime dependencies, and generated-code restrictions remain
+  unchanged.
+- Deeper reader state-machine, writer content traversal, scalar conversion, validator traversal,
+  and identity-helper planning remain inside the existing emitters until later refactor tranches.
+
 ## `TASK-0023` choice model shape
 
 The `0.2.0` Practical Data Contracts implementation accepts a narrow generated model shape for

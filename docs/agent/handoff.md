@@ -96,7 +96,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 83. `TASK-0083`: Separate W3C intake/classification from generated-binding execution. Completed and accepted.
 84. `TASK-0084`: Start IR normalization policy extraction. Completed and accepted.
 85. `TASK-0085`: Split binding naming/content planning helpers. Completed and accepted.
-86. `TASK-0086`: Introduce emitter planning objects. Next implementation gate.
+86. `TASK-0086`: Introduce emitter planning objects. Completed and accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -269,12 +269,13 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0083` | post-1.0.0 follow-up | accepted | Separate W3C intake/classification from generated-binding execution. |
 | `TASK-0084` | generator architecture refactor | accepted | Start IR normalization policy extraction. |
 | `TASK-0085` | generator architecture refactor | accepted | Split binding naming/content planning helpers. |
-| `TASK-0086` | generator architecture refactor | next | Introduce emitter planning objects. |
+| `TASK-0086` | generator architecture refactor | accepted | Introduce emitter planning objects. |
 
 ## Current implementation gate
 
-`TASK-0086` is the next implementation gate. It should introduce reader/writer/validator planning
-objects before emitter text assembly without changing generated source behavior.
+No draft implementation gate is currently promoted. The most relevant future refactor candidates are
+deeper emitter content/scalar/identity planning, runtime datatype helper grouping, and W3C report
+writer extraction.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -295,6 +296,11 @@ configuration diagnostics. Package-private `BindingContentPlanner` now owns mixe
 content-list field planning, grouped-position metadata, wildcard branch metadata, and composed
 branch cardinality helpers. `BindingModelBuilder` still owns schema indexing, declaration lookup,
 type-reference binding, substitution/dynamic branch semantics, and validation-plan text.
+`TASK-0086` accepted the first emitter planning tranche. Package-private `GeneratedEmitterPlan`,
+`GeneratedEmitterKind`, and `GeneratedEmitterFieldPlan` now capture reader/writer/validator root
+source names, output paths, root helper names, root/type metadata, and binding-order field traversal
+inputs before source text assembly. Existing source-state traversal and generated source behavior
+are unchanged.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports

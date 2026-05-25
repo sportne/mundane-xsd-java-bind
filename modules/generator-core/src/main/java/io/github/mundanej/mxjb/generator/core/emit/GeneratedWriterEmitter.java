@@ -13,7 +13,6 @@ import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -22,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import javax.xml.XMLConstants;
 
 /** Emits deterministic XML writer source from the internal binding model. */
 public final class GeneratedWriterEmitter {
@@ -61,7 +61,8 @@ public final class GeneratedWriterEmitter {
         diagnostics.add(invalidModel("Missing root writer model type " + root.type().name() + "."));
         continue;
       }
-      BindingJavaName writerName = writerName(rootType.javaName());
+      BindingJavaName writerName =
+          GeneratedEmitterPlan.sourceName(GeneratedEmitterKind.WRITER, rootType.javaName());
       if (!writerNames.add(writerName.qualifiedName())) {
         diagnostics.add(invalidModel("Duplicate root writer " + writerName.qualifiedName() + "."));
       }
@@ -146,25 +147,18 @@ public final class GeneratedWriterEmitter {
 
   private GeneratedJavaSource emitRootWriter(BindingRootElement root, ModelIndex index) {
     BindingType rootType = Objects.requireNonNull(index.type(root.type().name()));
-    BindingJavaName writerName = writerName(rootType.javaName());
-    SourceState sourceState = new SourceState(root, rootType, writerName, index);
-    return new GeneratedJavaSource(writerName, relativePath(writerName), sourceState.sourceText());
-  }
-
-  private BindingJavaName writerName(BindingJavaName modelName) {
-    return new BindingJavaName(
-        modelName.packageName() + ".xml", modelName.simpleName() + "XmlWriter");
-  }
-
-  private Path relativePath(BindingJavaName writerName) {
-    return Path.of(writerName.packageName().replace('.', '/'), writerName.simpleName() + ".java");
+    GeneratedEmitterPlan plan = GeneratedEmitterPlan.writer(root, rootType);
+    SourceState sourceState = new SourceState(plan, index);
+    return new GeneratedJavaSource(
+        plan.sourceName(), plan.relativePath(), sourceState.sourceText());
   }
 
   private static final class SourceState {
     private static final SchemaQName XSI_NIL =
-        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "nil");
+        new SchemaQName(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
     private static final SchemaQName XSI_TYPE =
-        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "type");
+        new SchemaQName(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
+    private final GeneratedEmitterPlan plan;
     private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName writerName;
@@ -172,14 +166,11 @@ public final class GeneratedWriterEmitter {
     private final LinkedHashMap<SchemaQName, String> nameConstants = new LinkedHashMap<>();
     private final Set<String> helperNames = new LinkedHashSet<>();
 
-    private SourceState(
-        BindingRootElement root,
-        BindingType rootType,
-        BindingJavaName writerName,
-        ModelIndex index) {
-      this.root = root;
-      this.rootType = rootType;
-      this.writerName = writerName;
+    private SourceState(GeneratedEmitterPlan plan, ModelIndex index) {
+      this.plan = plan;
+      this.root = plan.root();
+      this.rootType = plan.rootType();
+      this.writerName = plan.sourceName();
       this.index = index;
     }
 
@@ -888,6 +879,9 @@ public final class GeneratedWriterEmitter {
     }
 
     private String helperName(BindingType type) {
+      if (type.javaName().equals(rootType.javaName())) {
+        return plan.rootHelperName();
+      }
       return "write" + type.javaName().simpleName();
     }
 

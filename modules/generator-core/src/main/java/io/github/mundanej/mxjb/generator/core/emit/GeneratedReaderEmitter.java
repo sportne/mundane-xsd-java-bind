@@ -15,7 +15,6 @@ import io.github.mundanej.mxjb.generator.core.bind.XmlSchemaBuiltIns;
 import io.github.mundanej.mxjb.generator.core.diagnostics.DiagnosticCode;
 import io.github.mundanej.mxjb.generator.core.diagnostics.SchemaDiagnostic;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -25,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import javax.xml.XMLConstants;
 
 /** Emits deterministic XML reader source from the internal binding model. */
 public final class GeneratedReaderEmitter {
@@ -64,7 +64,8 @@ public final class GeneratedReaderEmitter {
         diagnostics.add(invalidModel("Missing root reader model type " + root.type().name() + "."));
         continue;
       }
-      BindingJavaName readerName = readerName(rootType.javaName());
+      BindingJavaName readerName =
+          GeneratedEmitterPlan.sourceName(GeneratedEmitterKind.READER, rootType.javaName());
       if (!readerNames.add(readerName.qualifiedName())) {
         diagnostics.add(invalidModel("Duplicate root reader " + readerName.qualifiedName() + "."));
       }
@@ -152,25 +153,18 @@ public final class GeneratedReaderEmitter {
 
   private GeneratedJavaSource emitRootReader(BindingRootElement root, ModelIndex index) {
     BindingType rootType = Objects.requireNonNull(index.type(root.type().name()));
-    BindingJavaName readerName = readerName(rootType.javaName());
-    SourceState sourceState = new SourceState(root, rootType, readerName, index);
-    return new GeneratedJavaSource(readerName, relativePath(readerName), sourceState.sourceText());
-  }
-
-  private BindingJavaName readerName(BindingJavaName modelName) {
-    return new BindingJavaName(
-        modelName.packageName() + ".xml", modelName.simpleName() + "XmlReader");
-  }
-
-  private Path relativePath(BindingJavaName readerName) {
-    return Path.of(readerName.packageName().replace('.', '/'), readerName.simpleName() + ".java");
+    GeneratedEmitterPlan plan = GeneratedEmitterPlan.reader(root, rootType);
+    SourceState sourceState = new SourceState(plan, index);
+    return new GeneratedJavaSource(
+        plan.sourceName(), plan.relativePath(), sourceState.sourceText());
   }
 
   private static final class SourceState {
     private static final SchemaQName XSI_NIL =
-        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "nil");
+        new SchemaQName(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
     private static final SchemaQName XSI_TYPE =
-        new SchemaQName("http://www.w3.org/2001/XMLSchema-instance", "type");
+        new SchemaQName(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
+    private final GeneratedEmitterPlan plan;
     private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName readerName;
@@ -178,14 +172,11 @@ public final class GeneratedReaderEmitter {
     private final LinkedHashMap<SchemaQName, String> nameConstants = new LinkedHashMap<>();
     private final Set<String> helperNames = new LinkedHashSet<>();
 
-    private SourceState(
-        BindingRootElement root,
-        BindingType rootType,
-        BindingJavaName readerName,
-        ModelIndex index) {
-      this.root = root;
-      this.rootType = rootType;
-      this.readerName = readerName;
+    private SourceState(GeneratedEmitterPlan plan, ModelIndex index) {
+      this.plan = plan;
+      this.root = plan.root();
+      this.rootType = plan.rootType();
+      this.readerName = plan.sourceName();
       this.index = index;
     }
 
@@ -2393,6 +2384,9 @@ public final class GeneratedReaderEmitter {
     }
 
     private String helperName(BindingType type) {
+      if (type.javaName().equals(rootType.javaName())) {
+        return plan.rootHelperName();
+      }
       return "read" + type.javaName().simpleName();
     }
 

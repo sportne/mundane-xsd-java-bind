@@ -22,7 +22,6 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityField;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityPath;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrIdentityStep;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -71,7 +70,8 @@ public final class GeneratedValidatorEmitter {
             invalidModel("Missing root validator model type " + root.type().name() + "."));
         continue;
       }
-      BindingJavaName validatorName = validatorName(rootType.javaName());
+      BindingJavaName validatorName =
+          GeneratedEmitterPlan.sourceName(GeneratedEmitterKind.VALIDATOR, rootType.javaName());
       if (!validatorNames.add(validatorName.qualifiedName())) {
         diagnostics.add(
             invalidModel("Duplicate root validator " + validatorName.qualifiedName() + "."));
@@ -161,23 +161,14 @@ public final class GeneratedValidatorEmitter {
 
   private GeneratedJavaSource emitRootValidator(BindingRootElement root, ModelIndex index) {
     BindingType rootType = Objects.requireNonNull(index.type(root.type().name()));
-    BindingJavaName validatorName = validatorName(rootType.javaName());
-    SourceState sourceState = new SourceState(root, rootType, validatorName, index);
+    GeneratedEmitterPlan plan = GeneratedEmitterPlan.validator(root, rootType);
+    SourceState sourceState = new SourceState(plan, index);
     return new GeneratedJavaSource(
-        validatorName, relativePath(validatorName), sourceState.sourceText());
-  }
-
-  private BindingJavaName validatorName(BindingJavaName modelName) {
-    return new BindingJavaName(
-        modelName.packageName() + ".xml", modelName.simpleName() + "XmlValidator");
-  }
-
-  private Path relativePath(BindingJavaName validatorName) {
-    return Path.of(
-        validatorName.packageName().replace('.', '/'), validatorName.simpleName() + ".java");
+        plan.sourceName(), plan.relativePath(), sourceState.sourceText());
   }
 
   private static final class SourceState {
+    private final GeneratedEmitterPlan plan;
     private final BindingRootElement root;
     private final BindingType rootType;
     private final BindingJavaName validatorName;
@@ -185,14 +176,11 @@ public final class GeneratedValidatorEmitter {
     private final Set<String> helperNames = new LinkedHashSet<>();
     private final Set<String> identityHelperNames = new LinkedHashSet<>();
 
-    private SourceState(
-        BindingRootElement root,
-        BindingType rootType,
-        BindingJavaName validatorName,
-        ModelIndex index) {
-      this.root = root;
-      this.rootType = rootType;
-      this.validatorName = validatorName;
+    private SourceState(GeneratedEmitterPlan plan, ModelIndex index) {
+      this.plan = plan;
+      this.root = plan.root();
+      this.rootType = plan.rootType();
+      this.validatorName = plan.sourceName();
       this.index = index;
     }
 
@@ -2596,6 +2584,9 @@ public final class GeneratedValidatorEmitter {
     }
 
     private String helperName(BindingType type) {
+      if (type.javaName().equals(rootType.javaName())) {
+        return plan.rootHelperName();
+      }
       return "validate" + type.javaName().simpleName();
     }
 
