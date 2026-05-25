@@ -1,3 +1,5 @@
+import java.nio.file.Files
+
 // The root build file defines tasks that apply to the whole repository.
 plugins {
     // The base plugin gives the root project standard lifecycle tasks like clean and check.
@@ -264,6 +266,244 @@ tasks.register('publicationDryRun') {
     group = 'publishing'
     description = 'Stages approved Maven artifacts locally and validates release metadata without publishing remotely.'
     dependsOn tasks.named('validatePublicationStaging')
+}
+
+def releaseConsumerSmokeDirectory = layout.buildDirectory.dir('release-consumer-smoke')
+def gradleExecutablePath = new File(
+        gradle.gradleHomeDir,
+        "bin/gradle${System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? '.bat' : ''}").absolutePath
+
+tasks.register('releaseConsumerSmoke') {
+    group = 'verification'
+    description = 'Validates staged GitHub Release Maven-layout assets from a clean downstream project.'
+    dependsOn tasks.named('publicationDryRun')
+    inputs.dir(publicationStagingDirectory)
+    outputs.dir(releaseConsumerSmokeDirectory)
+    doLast {
+        def smokeDirectory = releaseConsumerSmokeDirectory.get().asFile
+        if (smokeDirectory.exists() && !smokeDirectory.deleteDir()) {
+            throw new GradleException("Unable to delete release consumer smoke directory: ${smokeDirectory}")
+        }
+        smokeDirectory.mkdirs()
+
+        def assetZip = new File(smokeDirectory, "mxjb-staging-repository-${publicationCandidateVersion}.zip")
+        def assetRepository = new File(smokeDirectory, 'asset-repository')
+        def stagedRepository = publicationStagingDirectory.get().asFile
+        def stagedRoot = stagedRepository.toPath()
+        new java.util.zip.ZipOutputStream(new BufferedOutputStream(new FileOutputStream(assetZip))).withCloseable { zip ->
+            Files.walk(stagedRoot).withCloseable { paths ->
+                paths.filter { Files.isRegularFile(it) }.forEach { path ->
+                    def entryName = stagedRoot.relativize(path).toString().replace(File.separatorChar, '/' as char)
+                    zip.putNextEntry(new java.util.zip.ZipEntry(entryName))
+                    Files.copy(path, zip)
+                    zip.closeEntry()
+                }
+            }
+        }
+        assetRepository.mkdirs()
+        def assetRoot = assetRepository.toPath()
+        new java.util.zip.ZipInputStream(new BufferedInputStream(new FileInputStream(assetZip))).withCloseable { zip ->
+            def entry = zip.nextEntry
+            while (entry != null) {
+                def target = assetRoot.resolve(entry.name).normalize()
+                if (!target.startsWith(assetRoot)) {
+                    throw new GradleException("Release consumer smoke zip entry escapes output directory: ${entry.name}")
+                }
+                if (entry.directory) {
+                    Files.createDirectories(target)
+                } else {
+                    Files.createDirectories(target.parent)
+                    Files.copy(zip, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+                zip.closeEntry()
+                entry = zip.nextEntry
+            }
+        }
+
+        def consumerProject = new File(smokeDirectory, 'consumer-project')
+        ReleaseConsumerProjectWriter.write(consumerProject)
+
+        def runConsumerGradle = { File repository, List<String> arguments ->
+            def command = ([gradleExecutablePath] + arguments +
+                    ["-Pmxjb.consumer.repo=${repository.absolutePath}", '--offline', '--console=plain'])
+                    .collect { it.toString() }
+            def processBuilder = new ProcessBuilder(command)
+                    .directory(consumerProject)
+                    .redirectErrorStream(true)
+            processBuilder.environment().put('GRADLE_USER_HOME', new File(smokeDirectory, 'gradle-user-home').absolutePath)
+            def process = processBuilder.start()
+            def output = process.inputStream.getText('UTF-8')
+            [exitValue: process.waitFor(), output: output]
+        }
+
+        def missing = runConsumerGradle(new File(smokeDirectory, 'missing-repository'), ['help'])
+        if (missing.exitValue == 0 || !missing.output.contains('Configured release artifact repository does not exist')) {
+            throw new GradleException("Consumer smoke missing-repository diagnostic failed:\n${missing.output}")
+        }
+
+        def valid = runConsumerGradle(assetRepository, ['clean', 'runConsumerSmoke'])
+        if (valid.exitValue != 0) {
+            throw new GradleException("Consumer smoke build failed:\n${valid.output}")
+        }
+        if (!valid.output.contains('release-consumer-smoke ok')) {
+            throw new GradleException("Consumer smoke did not run generated binding round trip:\n${valid.output}")
+        }
+        println "Validated downstream release asset consumption for ${publicationCandidateVersion}."
+    }
+}
+
+class ReleaseConsumerProjectWriter {
+static void write(File projectDirectory) {
+    def schemaDirectory = new File(projectDirectory, 'src/main/resources/schema')
+    def sourceDirectory = new File(projectDirectory, 'src/main/java/com/example/consumer')
+    schemaDirectory.mkdirs()
+    sourceDirectory.mkdirs()
+    new File(projectDirectory, 'settings.gradle').text = '''
+        pluginManagement {
+            def releaseRepoPath = providers.gradleProperty('mxjb.consumer.repo').orNull
+            if (releaseRepoPath == null || releaseRepoPath.isBlank()) {
+                throw new GradleException('mxjb.consumer.repo is required for release consumer smoke.')
+            }
+            def releaseRepo = file(releaseRepoPath)
+            if (!releaseRepo.isDirectory()) {
+                throw new GradleException("Configured release artifact repository does not exist: ${releaseRepo}")
+            }
+            repositories {
+                maven { url = releaseRepo.toURI() }
+            }
+        }
+        dependencyResolutionManagement {
+            def releaseRepoPath = providers.gradleProperty('mxjb.consumer.repo').orNull
+            if (releaseRepoPath == null || releaseRepoPath.isBlank()) {
+                throw new GradleException('mxjb.consumer.repo is required for release consumer smoke.')
+            }
+            def releaseRepo = file(releaseRepoPath)
+            if (!releaseRepo.isDirectory()) {
+                throw new GradleException("Configured release artifact repository does not exist: ${releaseRepo}")
+            }
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                maven { url = releaseRepo.toURI() }
+            }
+        }
+        rootProject.name = 'mxjb-release-consumer-smoke'
+        '''.stripIndent()
+    new File(projectDirectory, 'build.gradle').text = '''
+        plugins {
+            id 'java'
+            id 'io.github.mundanej.mxjb' version '1.0.0'
+        }
+
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+        }
+
+        dependencies {
+            implementation platform('io.github.mundanej:mxjb-bom:1.0.0')
+            implementation 'io.github.mundanej:mxjb-runtime-core'
+            implementation 'io.github.mundanej:mxjb-runtime-jdkxml'
+        }
+
+        mxjb {
+            schema('src/main/resources/schema/purchase-order.xsd')
+            namespacePackage('urn:purchase', 'com.example.purchase')
+        }
+
+        tasks.register('runConsumerSmoke', JavaExec) {
+            dependsOn tasks.named('classes')
+            classpath = sourceSets.main.runtimeClasspath
+            mainClass = 'com.example.consumer.ConsumerSmoke'
+        }
+        '''.stripIndent()
+    new File(schemaDirectory, 'purchase-order.xsd').text = '''
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:purchase"
+            xmlns:p="urn:purchase"
+            elementFormDefault="qualified"
+            attributeFormDefault="qualified">
+          <xs:element name="order" type="p:Order"/>
+          <xs:complexType name="Order">
+            <xs:sequence>
+              <xs:element name="id" type="xs:string"/>
+              <xs:element name="line" type="p:Line" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:string" use="optional"/>
+          </xs:complexType>
+          <xs:complexType name="Line">
+            <xs:sequence>
+              <xs:element name="sku" type="xs:string"/>
+              <xs:element name="quantity" type="xs:int"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        '''.stripIndent()
+    new File(sourceDirectory, 'ConsumerSmoke.java').text = '''
+        package com.example.consumer;
+
+        import com.example.purchase.Order;
+        import com.example.purchase.xml.OrderXmlReader;
+        import com.example.purchase.xml.OrderXmlValidator;
+        import com.example.purchase.xml.OrderXmlWriter;
+        import io.github.mundanej.mxjb.runtime.ValidationResult;
+        import io.github.mundanej.mxjb.runtime.XmlEventReader;
+        import io.github.mundanej.mxjb.runtime.XmlOutput;
+        import io.github.mundanej.mxjb.runtime.jdkxml.JdkXmlAdapters;
+        import java.io.StringReader;
+        import java.io.StringWriter;
+        import javax.xml.stream.XMLInputFactory;
+        import javax.xml.stream.XMLOutputFactory;
+        import javax.xml.stream.XMLStreamReader;
+        import javax.xml.stream.XMLStreamWriter;
+
+        public final class ConsumerSmoke {
+          private ConsumerSmoke() {}
+
+          public static void main(String[] args) throws Exception {
+            String xml = """
+                <p:order xmlns:p="urn:purchase" p:version="1.0">
+                  <p:id>PO-RELEASE</p:id>
+                  <p:line><p:sku>SKU-1</p:sku><p:quantity>2</p:quantity></p:line>
+                </p:order>
+                """;
+            Order order = OrderXmlReader.read(readerFor(xml));
+            ValidationResult objectValidation = OrderXmlValidator.validate(order);
+            if (!objectValidation.isValid()) {
+              throw new IllegalStateException("Generated object validation failed: " + objectValidation);
+            }
+            String written = writeXml(order);
+            Order reread = OrderXmlReader.read(readerFor(written));
+            if (!order.equals(reread)) {
+              throw new IllegalStateException("Generated binding round trip changed the model.");
+            }
+            ValidationResult xmlValidation = OrderXmlValidator.validate(readerFor(written));
+            if (!xmlValidation.isValid()) {
+              throw new IllegalStateException("Generated XML validation failed: " + xmlValidation);
+            }
+            System.out.println("release-consumer-smoke ok");
+          }
+
+          private static String writeXml(Order order) throws Exception {
+            StringWriter target = new StringWriter();
+            XMLStreamWriter streamWriter = XMLOutputFactory.newFactory().createXMLStreamWriter(target);
+            XmlOutput output = JdkXmlAdapters.output(streamWriter);
+            output.startDocument();
+            OrderXmlWriter.write(output, order);
+            output.endDocument();
+            output.flush();
+            streamWriter.close();
+            return target.toString();
+          }
+
+          private static XmlEventReader readerFor(String xml) throws Exception {
+            XMLInputFactory factory = JdkXmlAdapters.secureInputFactory();
+            XMLStreamReader streamReader = factory.createXMLStreamReader(new StringReader(xml));
+            return JdkXmlAdapters.eventReader(streamReader);
+          }
+        }
+        '''.stripIndent()
+}
 }
 
 // This help task prints the artifacts that publishToMavenLocal or a real publish will create.

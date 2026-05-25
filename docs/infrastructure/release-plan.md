@@ -82,6 +82,18 @@ conformance/interop, advisory benchmark, Native Image conformance, and publicati
 agree with public documentation. It does not convert `0.6.0-alpha.0` into a released artifact,
 authorize signing or remote staging, create a release tag, or broaden supported schema claims.
 
+`TASK-0072` adds downstream release-asset consumption evidence:
+
+```bash
+./gradlew releaseConsumerSmoke --console=plain
+```
+
+The lane depends on `publicationDryRun`, zips and unpacks the Maven-layout staging repository like
+the GitHub Release asset, creates a clean temporary Gradle consumer project, verifies a missing local
+repository path fails with a clear diagnostic, and then runs generated source compilation plus
+generated read/write/validate offline from the unpacked asset repository. It does not publish
+remotely, sign artifacts, retag a release, or use Maven Central/package registries.
+
 `TASK-0056` closed the earlier `XP-XSD10-FULL` readiness sequence with a negative broad-support
 decision. `TASK-0064` maps the first three W3C rows to generated-binding execution, `TASK-0065`
 enables the profile for accepted product-scope generated-binding shapes, and `TASK-0066` accepts

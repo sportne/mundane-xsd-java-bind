@@ -167,6 +167,11 @@ is `TASK-0042` through `TASK-0046`.
   approved publication coordinates under `build/staging-repository`, validates Maven layout and
   POM/module metadata, verifies Gradle plugin marker publication, checks release-note non-claims,
   and does not publish remotely, sign, bump `gradle.properties`, or create release tags.
+- Release asset consumption: `TASK-0072` adds
+  `./gradlew releaseConsumerSmoke --console=plain`, which consumes the staged Maven-layout
+  repository as an unpacked GitHub Release asset from a clean temporary downstream Gradle project,
+  verifies the local-repository path diagnostic, and runs generated source compilation plus
+  generated read/write/validate offline.
 - Readiness: `TASK-0046` records final `0.6.0` evidence and confirms public claims match
   conformance, benchmark, native, release, and security evidence. It keeps `qualityGate` as the
   stable JVM correctness gate, treats benchmark output as advisory, records local Native Image

@@ -1,6 +1,6 @@
 # TASK-0072: release-artifact-consumer-validation
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0072`
 Priority: P1
@@ -23,3 +23,25 @@ Acceptance criteria: release assets are demonstrably usable by a downstream proj
 docs explain the supported consumption path; no remote publication or signing is introduced.
 Rollback notes: remove consumer-smoke harness and docs.
 
+## Completion notes
+
+`TASK-0072` adds the root `releaseConsumerSmoke` lane. The lane depends on `publicationDryRun`,
+creates a Maven-layout zip from `build/staging-repository`, unpacks it under
+`build/release-consumer-smoke/asset-repository`, and builds a deterministic clean Gradle consumer
+project from that unpacked repository in offline mode. The consumer uses the published Gradle plugin
+marker, BOM, `mxjb-runtime-core`, and `mxjb-runtime-jdkxml` artifacts; it generates purchase-order
+bindings, compiles generated sources, reads XML, validates the generated object, writes XML, re-reads
+it, and validates the written XML.
+
+The lane also executes a missing-repository-path check and requires the stable diagnostic
+`Configured release artifact repository does not exist`, so users get an actionable local-path
+failure instead of a generic plugin resolution failure.
+
+No Maven Central/package-registry publication, signing, retagging, product behavior change, or new
+dependency is introduced.
+
+## Evidence
+
+- `./gradlew releaseConsumerSmoke --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

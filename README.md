@@ -75,9 +75,12 @@ Native Image and publication dry-run lanes are explicit opt-in evidence commands
 ./gradlew nativeSmoke
 ./gradlew nativeConformance
 ./gradlew -Pmxjb.version=1.0.0 publicationDryRun
+./gradlew releaseConsumerSmoke
 ```
 
 `nativeSmoke` and `nativeConformance` require `native-image` on `PATH`.
+`releaseConsumerSmoke` validates the GitHub Release Maven-layout asset path locally; it does not
+publish to Maven Central, sign artifacts, or contact a package registry.
 
 ## CLI example
 

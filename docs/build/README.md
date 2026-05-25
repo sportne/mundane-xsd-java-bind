@@ -33,6 +33,9 @@ See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
 - `./gradlew -Pmxjb.version=1.0.0 publicationDryRun` stages the approved Maven-layout artifacts
   under `build/staging-repository` and validates local publication metadata without Maven Central,
   signing, or remote staging.
+- `./gradlew releaseConsumerSmoke` stages those artifacts, zips and unpacks the Maven-layout
+  repository like a GitHub Release asset, and runs a clean downstream Gradle project offline from
+  that unpacked repository.
 - `./gradlew printOfflineBuildInstructions` prints the offline build command pattern.
 - `generateMxjbSources` is registered by the public `io.github.mundanej.mxjb` plugin in consumer
   builds and generates Java sources from explicit schema inputs.
