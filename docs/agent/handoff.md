@@ -79,8 +79,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 66. `TASK-0066`: Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. Completed and accepted.
 67. `TASK-0067`: Reconcile post-1.0.0 support claims against evidence. Completed and accepted.
 68. `TASK-0068`: Mine external XML binding/codegen issues into regression tasks and fixtures. Completed and accepted.
-69. `TASK-0069`: Review current design and implementation complexity for simplicity. Next implementation gate.
-70. `TASK-0070`: Expand W3C generated-binding coverage. Draft.
+69. `TASK-0069`: Review current design and implementation complexity for simplicity. Completed and accepted.
+70. `TASK-0070`: Expand W3C generated-binding coverage. Next implementation gate.
 71. `TASK-0071`: Review generation and generated-code performance. Draft.
 72. `TASK-0072`: Validate release artifact consumption from a clean downstream project. Draft.
 73. `TASK-0073`: Review XML security posture across every parser and generated-validation path. Draft.
@@ -241,8 +241,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0066` | 1.0.0 | accepted | Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. |
 | `TASK-0067` | post-1.0.0 reflection | accepted | Reconcile support claims against actual evidence. |
 | `TASK-0068` | post-1.0.0 reflection | accepted | Mine external XML binding/codegen issues into regression tasks and fixtures. |
-| `TASK-0069` | post-1.0.0 reflection | next | Review current design and implementation complexity for simplicity. |
-| `TASK-0070` | post-1.0.0 reflection | draft | Expand W3C generated-binding coverage. |
+| `TASK-0069` | post-1.0.0 reflection | accepted | Review current design and implementation complexity for simplicity. |
+| `TASK-0070` | post-1.0.0 reflection | next | Expand W3C generated-binding coverage. |
 | `TASK-0071` | post-1.0.0 reflection | draft | Review generation and generated-code performance. |
 | `TASK-0072` | post-1.0.0 reflection | draft | Validate release artifact consumption from a clean downstream project. |
 | `TASK-0073` | post-1.0.0 reflection | draft | Review XML security posture across every parser and generated-validation path. |
@@ -253,10 +253,10 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0069` is the next implementation gate. It may review current generator/runtime/conformance
-complexity and add only documentation or small characterization tests that preserve current
-behavior. It must not perform broad refactors, change product behavior, change generated APIs, add
-dependencies, add release metadata, or weaken quality gates.
+`TASK-0070` is the next implementation gate. It may expand W3C generated-binding mapping and
+execution evidence for already accepted product-scope rows, using an untracked local suite under
+`build/w3c/`. It must not vendor broad W3C suites, expand product schema behavior without a separate
+task, add dependencies, add release metadata, or weaken quality gates.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -264,6 +264,9 @@ broad W3C full-suite generated-binding coverage limited to explicitly mapped row
 `TASK-0068` accepted external issue mining across JAXB RI, jaxb-tools, xsdata, and
 XmlSchemaClassGenerator. It classified recurring failure themes and mapped them to existing coverage
 or follow-on review tasks without broad suite vendoring or product behavior expansion.
+`TASK-0069` accepted a complexity review that prioritizes IR normalization, binding naming/content
+planning, emitter planning objects, datatype helper grouping, and W3C intake/execution separation as
+future refactor candidates.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,

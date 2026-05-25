@@ -38,3 +38,7 @@ Compile-time verification + runtime tests + native-image tests
 - Generator may use dependencies, but must not leak them into generated runtime paths.
 - Validation is modeled as a generated validation plan from day one.
 - The schema component graph and binding model are separate from any concrete XML parser library.
+
+`docs/architecture/complexity-review.md` records the post-1.0.0 simplicity review and the preferred
+order for future refactors that make the current full-profile implementation easier to test without
+changing product behavior.

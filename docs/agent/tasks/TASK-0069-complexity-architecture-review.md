@@ -1,6 +1,6 @@
 # TASK-0069: complexity-architecture-review
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0069`
 Priority: P1
@@ -27,3 +27,15 @@ which refactors should be tackled first; every proposed refactor has a scoped fo
 and no ADR conflict is hidden.
 Rollback notes: revert architecture notes, characterization tests, and handoff updates.
 
+## Completion notes
+
+`TASK-0069` reviewed the largest generator, runtime datatype, and W3C intake surfaces and produced
+the prioritized simplification plan in `docs/architecture/complexity-review.md`.
+
+No characterization tests were added in this task because the accepted output is a refactor plan;
+the recommended follow-on tasks identify where characterization tests should precede extraction.
+
+Verification:
+
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
