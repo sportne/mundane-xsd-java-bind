@@ -1,6 +1,6 @@
 # TASK-0080: w3c-binding-mapping-expansion
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0080`
 Priority: P1
@@ -30,3 +30,17 @@ generated-binding evidence passes; summary counts and docs match the implementat
 content is tracked.
 Rollback notes: revert W3C mapping/test/doc updates.
 
+Completion notes:
+- Added an explicit W3C generated-binding mapping for
+  `sunData/Wildcard/psContents/psContents00102m/psContents00102m1.xsd` plus its positive and
+  negative instances.
+- Preserved the existing `AttrDecl` and `nsConstraint` mappings and kept all unmapped W3C rows as
+  classification evidence only.
+- Updated conformance/verification/traceability docs to report nine binding-supported rows and
+  three generated-binding executions without broad full-suite claims.
+
+Evidence:
+- `./gradlew :modules:conformance-tests:check --console=plain`
+- `./gradlew -Pmxjb.w3cXsd10SuiteDir=/mnt/d/projects/mundane-xsd-java-bind/build/w3c/xmlschema2006-11-06 w3cXsd10Conformance --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

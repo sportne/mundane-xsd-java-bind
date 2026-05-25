@@ -62,12 +62,13 @@ and future-study rows are classification evidence only; they do not create runna
 The accepted full-suite intake classifies every discovered W3C schema or instance document into one
 category: `binding-supported`, `validation-only`, `tolerated-metadata`, `expected-diagnostic`,
 `product-scope-incompatible`, or `blocked`. `TASK-0064` adds the first explicit generated-binding
-mapping for the selected `AttrDecl` row subset, and `TASK-0070` adds a selected wildcard row subset.
+mapping for the selected `AttrDecl` row subset, `TASK-0070` adds a selected wildcard row subset,
+and `TASK-0080` adds a strict `anyAttribute` wildcard row subset.
 The current pinned-suite evidence is:
 
 ```text
-w3c-xsd10-summary total=24796 binding-supported=6 validation-only=24433 tolerated-metadata=98 expected-diagnostic=2 product-scope-incompatible=167 blocked=90
-w3c-xsd10-binding-execution passed=2
+w3c-xsd10-summary total=24796 binding-supported=9 validation-only=24433 tolerated-metadata=98 expected-diagnostic=2 product-scope-incompatible=164 blocked=90
+w3c-xsd10-binding-execution passed=3
 ```
 
 The `binding-supported` count is limited to explicitly mapped rows. Unmapped rows remain

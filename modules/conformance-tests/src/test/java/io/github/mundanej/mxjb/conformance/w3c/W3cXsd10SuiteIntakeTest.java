@@ -20,11 +20,12 @@ final class W3cXsd10SuiteIntakeTest {
     Path suiteRoot = writeSuite();
     writeMappedAttrDeclFixture(suiteRoot);
     writeMappedWildcardFixture(suiteRoot);
+    writeMappedStrictWildcardFixture(suiteRoot);
     W3cXsd10SuiteIntake.Report report =
         new W3cXsd10SuiteIntake().run(suiteRoot, tempDirectory.resolve("reports"));
 
-    assertEquals(31, report.total());
-    assertEquals(6, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
+    assertEquals(34, report.total());
+    assertEquals(9, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
     assertEquals(18, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.VALIDATION_ONLY));
     assertEquals(2, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.TOLERATED_METADATA));
     assertEquals(1, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.EXPECTED_DIAGNOSTIC));
@@ -41,11 +42,12 @@ final class W3cXsd10SuiteIntakeTest {
     Path suiteRoot = writeSuite();
     writeMappedAttrDeclFixture(suiteRoot);
     writeMappedWildcardFixture(suiteRoot);
+    writeMappedStrictWildcardFixture(suiteRoot);
     Path reportDirectory = tempDirectory.resolve("main-reports");
 
     W3cXsd10ConformanceMain.main(new String[] {suiteRoot.toString(), reportDirectory.toString()});
 
-    assertTrue(Files.readString(reportDirectory.resolve("summary.txt")).contains("total=31"));
+    assertTrue(Files.readString(reportDirectory.resolve("summary.txt")).contains("total=34"));
   }
 
   @Test
@@ -84,20 +86,23 @@ final class W3cXsd10SuiteIntakeTest {
     Path suiteRoot = writeSuite();
     writeMappedAttrDeclFixture(suiteRoot);
     writeMappedWildcardFixture(suiteRoot);
+    writeMappedStrictWildcardFixture(suiteRoot);
     Path reportDirectory = tempDirectory.resolve("mapped-reports");
 
     W3cXsd10SuiteIntake.Report report = new W3cXsd10SuiteIntake().run(suiteRoot, reportDirectory);
 
-    assertEquals(31, report.total());
-    assertEquals(6, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
+    assertEquals(34, report.total());
+    assertEquals(9, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
     String summary = Files.readString(reportDirectory.resolve("summary.txt"));
-    assertTrue(summary.contains("binding-supported=6"));
-    assertTrue(summary.contains("bindingExecution.passed=2"));
+    assertTrue(summary.contains("binding-supported=9"));
+    assertTrue(summary.contains("bindingExecution.passed=3"));
     String executions = Files.readString(reportDirectory.resolve("binding-executions.tsv"));
     assertTrue(executions.contains("sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1.xsd"));
     assertTrue(
         executions.contains(
             "sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd"));
+    assertTrue(
+        executions.contains("sunData/Wildcard/psContents/psContents00102m/psContents00102m1.xsd"));
   }
 
   @Test
@@ -359,8 +364,66 @@ final class W3cXsd10SuiteIntakeTest {
         mappedWildcardInstance(true));
   }
 
+  private void writeMappedStrictWildcardFixture(Path root) throws IOException {
+    Path metadata = root.resolve("sunMeta/Wildcard.testSet");
+    write(
+        metadata,
+        testSetWithGroups(
+            "Wildcard",
+            "SUN",
+            testGroup(
+                "nsConstraint00101m1",
+                "TASK-0070 mapped generated-binding wildcard row",
+                schemaTest(
+                    "nsConstraint00101m1",
+                    "../sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd",
+                    "valid",
+                    "accepted"),
+                instanceTest(
+                    "Positive",
+                    "../sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_p.xml",
+                    "valid",
+                    "accepted"),
+                instanceTest(
+                    "Negative",
+                    "../sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_n.xml",
+                    "invalid",
+                    "accepted")),
+            testGroup(
+                "psContents00102m1",
+                "TASK-0080 mapped generated-binding strict wildcard row",
+                schemaTest(
+                    "psContents00102m1",
+                    "../sunData/Wildcard/psContents/psContents00102m/psContents00102m1.xsd",
+                    "valid",
+                    "accepted"),
+                instanceTest(
+                    "Positive",
+                    "../sunData/Wildcard/psContents/psContents00102m/psContents00102m1_p.xml",
+                    "valid",
+                    "accepted"),
+                instanceTest(
+                    "Negative",
+                    "../sunData/Wildcard/psContents/psContents00102m/psContents00102m1_n.xml",
+                    "invalid",
+                    "accepted"))));
+    write(
+        root.resolve("sunData/Wildcard/psContents/psContents00102m/psContents00102m1.xsd"),
+        mappedStrictWildcardSchema());
+    write(
+        root.resolve("sunData/Wildcard/psContents/psContents00102m/psContents00102m1_p.xml"),
+        mappedStrictWildcardInstance(false));
+    write(
+        root.resolve("sunData/Wildcard/psContents/psContents00102m/psContents00102m1_n.xml"),
+        mappedStrictWildcardInstance(true));
+  }
+
   private static String testSet(
       String name, String contributor, String groupName, String description, String... tests) {
+    return testSetWithGroups(name, contributor, testGroup(groupName, description, tests));
+  }
+
+  private static String testSetWithGroups(String name, String contributor, String... groups) {
     return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         + "<testSet name=\""
         + name
@@ -368,15 +431,19 @@ final class W3cXsd10SuiteIntakeTest {
         + contributor
         + "\" xmlns=\"http://www.w3.org/XML/2004/xml-schema-test-suite/\""
         + " xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n"
-        + "  <testGroup name=\""
+        + String.join("\n", groups)
+        + "\n</testSet>\n";
+  }
+
+  private static String testGroup(String groupName, String description, String... tests) {
+    return "  <testGroup name=\""
         + groupName
         + "\">\n"
         + "    <annotation><documentation><Description>"
         + description
         + "</Description></documentation></annotation>\n"
         + String.join("\n", tests)
-        + "\n  </testGroup>\n"
-        + "</testSet>\n";
+        + "\n  </testGroup>";
   }
 
   private static String schemaTest(String name, String href, String validity, String status) {
@@ -471,6 +538,27 @@ final class W3cXsd10SuiteIntakeTest {
   private static String mappedWildcardInstance(boolean missingWildcard) {
     String content = missingWildcard ? "" : "<date>2002-04-29</date>\n";
     return "<test:a xmlns:test=\"nsConstraint\">\n" + content + "</test:a>\n";
+  }
+
+  private static String mappedStrictWildcardSchema() {
+    return """
+        <xsd:schema
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns="psContents"
+            targetNamespace="psContents">
+          <xsd:attribute name="date" type="xsd:date"/>
+          <xsd:element name="a">
+            <xsd:complexType>
+              <xsd:anyAttribute namespace="##any" processContents="strict"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        """;
+  }
+
+  private static String mappedStrictWildcardInstance(boolean missingWildcard) {
+    String attribute = missingWildcard ? "time=\"20:20:20\"" : "test:date=\"2002-04-29\"";
+    return "<test:a xmlns:test=\"psContents\" " + attribute + "/>\n";
   }
 
   private static String redefineSchema() {

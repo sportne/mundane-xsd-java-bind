@@ -37,10 +37,11 @@ tolerated-metadata, expected-diagnostic, product-scope-incompatible, or blocked.
 reports under `build/` and remains outside `qualityGate`.
 
 `TASK-0056` reconciles that intake as evidence only. `TASK-0064` adds the first explicit
-generated-binding mapping for three W3C `AttrDecl` rows, and `TASK-0070` adds one W3C wildcard
-schema plus its positive and negative instances. The current mapped executions generate, compile,
-read, validate, write, re-read, and re-validate the bindings while preserving JDK XML Schema
-validation as the oracle. The lane strips only `xsi:schemaLocation` and
+generated-binding mapping for three W3C `AttrDecl` rows, `TASK-0070` adds one W3C wildcard
+schema plus its positive and negative instances, and `TASK-0080` adds a strict `anyAttribute`
+wildcard schema plus its positive and negative instances. The current mapped executions generate,
+compile, read, validate, write, re-read, and re-validate the bindings while preserving JDK XML
+Schema validation as the oracle. The lane strips only `xsi:schemaLocation` and
 `xsi:noNamespaceSchemaLocation` validator hints before generated reader input. The project does not
 claim a W3C full-suite generated-binding pass beyond explicitly mapped rows; unmapped rows remain
 classified as validation-only, tolerated metadata, expected diagnostics, product-scope-incompatible,

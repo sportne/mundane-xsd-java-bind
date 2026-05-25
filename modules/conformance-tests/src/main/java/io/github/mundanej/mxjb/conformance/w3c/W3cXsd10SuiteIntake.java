@@ -78,6 +78,13 @@ public final class W3cXsd10SuiteIntake {
               List.of("sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_n.xml"),
               "nsConstraint",
               "com.example.w3c.wildcard",
+              "A"),
+          new BindingMapping(
+              "sunData/Wildcard/psContents/psContents00102m/psContents00102m1.xsd",
+              List.of("sunData/Wildcard/psContents/psContents00102m/psContents00102m1_p.xml"),
+              List.of("sunData/Wildcard/psContents/psContents00102m/psContents00102m1_n.xml"),
+              "psContents",
+              "com.example.w3c.wildcard.strict",
               "A"));
   private static final Set<String> KNOWN_VALIDITY = Set.of("valid", "invalid");
   private static final Set<String> KNOWN_STATUS = Set.of("accepted", "queried");
