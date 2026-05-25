@@ -247,17 +247,16 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0070` | post-1.0.0 reflection | accepted | Expand W3C generated-binding coverage. |
 | `TASK-0071` | post-1.0.0 reflection | accepted | Review generation and generated-code performance. |
 | `TASK-0072` | post-1.0.0 reflection | accepted | Validate release artifact consumption from a clean downstream project. |
-| `TASK-0073` | post-1.0.0 reflection | next | Review XML security posture across every parser and generated-validation path. |
-| `TASK-0074` | post-1.0.0 reflection | draft | Review diagnostics and user ergonomics. |
+| `TASK-0073` | post-1.0.0 reflection | accepted | Review XML security posture across every parser and generated-validation path. |
+| `TASK-0074` | post-1.0.0 reflection | next | Review diagnostics and user ergonomics. |
 | `TASK-0075` | post-1.0.0 reflection | draft | Review naming, customization, and generated-source collision behavior. |
 | `TASK-0076` | post-1.0.0 reflection | draft | Review GraalVM Native Image sustainability. |
 | `TASK-0077` | post-1.0.0 reflection | draft | Simplify post-1.0.0 user-facing documentation. |
 
 ## Current implementation gate
 
-`TASK-0073` is the next implementation gate. It should threat-model and test XML parser/security
-paths, making only narrow confirmed security fixes. Native evidence must use SDKMAN GraalVM via
-`source "$HOME/.sdkman/bin/sdkman-init.sh"`.
+`TASK-0074` is the next implementation gate. It should improve public diagnostics for common CLI,
+API, Gradle, and conformance failures with stable tests and no product behavior expansion.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -279,6 +278,10 @@ growth and per-phase generator timing.
 `TASK-0072` accepted `releaseConsumerSmoke`, which validates the staged Maven-layout release asset
 from a clean offline downstream Gradle project and checks missing local repository path diagnostics
 without remote publication, signing, or release retagging.
+`TASK-0073` accepted the XML security posture review. It documents every XML parser and
+generated-validation path, adds W3C suite metadata DOCTYPE rejection coverage, and hardens the W3C
+generated-binding JDK schema oracle with `ACCESS_EXTERNAL_DTD` and `ACCESS_EXTERNAL_SCHEMA` denial.
+Native evidence used SDKMAN GraalVM via `source "$HOME/.sdkman/bin/sdkman-init.sh"`.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,

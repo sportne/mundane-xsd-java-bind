@@ -16,6 +16,9 @@
 The first public vertical slice includes resolver tests for denied network access, local-root and
 catalog policy, and include/import cycle detection. It also includes runtime-jdkxml tests for
 external entity denial and generated-validator example coverage for secure adapter behavior.
+`TASK-0073` adds a path-by-path XML security posture review, W3C suite metadata DOCTYPE denial
+coverage, and a hardened W3C generated-binding JDK schema oracle that denies external DTD/schema
+resolution.
 
 Depth, oversized-token, path-sanitization, and explicitly networked integration scenarios remain
 future hardening work unless a task card accepts them.

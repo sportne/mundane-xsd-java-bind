@@ -1,6 +1,6 @@
 # TASK-0073: xml-security-posture-review
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0073`
 Priority: P1
@@ -28,3 +28,25 @@ entities.
 Rollback notes: revert security tests/docs/fixes and re-open a blocker task if a defect cannot be
 fixed narrowly.
 
+## Completion notes
+
+`TASK-0073` documents every XML parser and generated-validation path in
+`docs/verification/xml-security-posture-review.md`. The review confirms that generated code does not
+own XML resource resolution, that project examples and conformance lanes use the secure JDK XML
+adapter, and that retained wildcard fragments remain immutable data rather than parser/resource
+handles.
+
+The only narrow code hardening is in the opt-in W3C generated-binding execution harness: mapped-row
+JDK XML Schema validation now uses a `SchemaFactory` with `ACCESS_EXTERNAL_DTD` and
+`ACCESS_EXTERNAL_SCHEMA` set to empty strings. Regression tests cover both W3C metadata DOCTYPE
+rejection and the hardened schema factory rejecting external schema resolution.
+
+No DTD/entity identity preservation, default network fetching, DOM-backed binding, XML 1.1/XSD 1.1,
+lexical-prefix preservation, canonical XML behavior, or product behavior expansion is introduced.
+
+## Evidence
+
+- `./gradlew :modules:conformance-tests:check --console=plain`
+- `bash -lc 'source "$HOME/.sdkman/bin/sdkman-init.sh" && ./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain'`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.xml.sax.SAXException;
 
 final class W3cXsd10SuiteIntakeTest {
   @TempDir private Path tempDirectory;
@@ -158,6 +159,51 @@ final class W3cXsd10SuiteIntakeTest {
             IllegalArgumentException.class, () -> new W3cXsd10SuiteIntake().parse(suiteRoot));
 
     assertTrue(exception.getMessage().contains("Unknown W3C expected validity"));
+  }
+
+  @Test
+  void rejectsDoctypeInSuiteMetadata() throws IOException {
+    Path suiteRoot = writeSuite();
+    Files.writeString(
+        suiteRoot.resolve("sunMeta/AttrDecl.testSet"),
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE testSet [
+          <!ENTITY external SYSTEM "file:///etc/passwd">
+        ]>
+        <testSet name="AttrDecl" contributor="SUN"
+            xmlns="http://www.w3.org/XML/2004/xml-schema-test-suite/"
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+          <testGroup name="doctype">
+            <annotation><documentation><Description>&external;</Description></documentation></annotation>
+          </testGroup>
+        </testSet>
+        """);
+
+    IOException exception =
+        assertThrows(IOException.class, () -> new W3cXsd10SuiteIntake().parse(suiteRoot));
+
+    assertTrue(exception.getMessage().contains("Unable to parse W3C test-set metadata"));
+  }
+
+  @Test
+  void secureSchemaFactoryRejectsExternalSchemaAccess() throws IOException {
+    Path schema = tempDirectory.resolve("external-import.xsd");
+    Files.writeString(
+        schema,
+        """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+          <xs:import namespace="urn:external" schemaLocation="https://example.invalid/external.xsd"/>
+          <xs:element name="root" type="xs:string"/>
+        </xs:schema>
+        """);
+
+    SAXException exception =
+        assertThrows(
+            SAXException.class,
+            () -> W3cXsd10SuiteIntake.secureSchemaFactory().newSchema(schema.toFile()));
+
+    assertTrue(exception.getMessage().contains("accessExternalSchema"));
   }
 
   private Path writeSuite() throws IOException {

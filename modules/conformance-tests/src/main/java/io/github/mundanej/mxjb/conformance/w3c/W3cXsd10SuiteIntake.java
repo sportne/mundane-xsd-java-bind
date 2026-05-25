@@ -445,9 +445,7 @@ public final class W3cXsd10SuiteIntake {
       BindingMapping mapping, Path suiteRoot, Path schemaPath, ClassLoader classLoader)
       throws IOException {
     try {
-      Schema schema =
-          SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-              .newSchema(schemaPath.toFile());
+      Schema schema = secureSchemaFactory().newSchema(schemaPath.toFile());
       Class<?> modelClass =
           classLoader.loadClass(mapping.packageName() + "." + mapping.rootClass());
       Class<?> readerClass =
@@ -512,6 +510,13 @@ public final class W3cXsd10SuiteIntake {
     XMLInputFactory factory = JdkXmlAdapters.secureInputFactory();
     XMLStreamReader streamReader = factory.createXMLStreamReader(new StringReader(xml));
     return JdkXmlAdapters.eventReader(streamReader);
+  }
+
+  static SchemaFactory secureSchemaFactory() throws SAXException {
+    SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+    factory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+    return factory;
   }
 
   private static String generatedBindingXml(String xml) throws XMLStreamException {
