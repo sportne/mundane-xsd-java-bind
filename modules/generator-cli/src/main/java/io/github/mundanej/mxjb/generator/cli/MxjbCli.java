@@ -16,6 +16,9 @@ import java.util.Map;
 /** Command-line entry point for mundane XSD Java Binding. */
 public final class MxjbCli {
   private static final String INVALID_ARGUMENT = "GENERATOR_CLI_INVALID_ARGUMENT";
+  private static final String SUPPORTED_PROFILES =
+      "XP-DATA-10, XP-DATA-10-CHOICE, XP-VALIDATION-10-BASIC, XP-XSD10-COMPOSED, "
+          + "XP-XSD10-SEMANTIC, XP-XSD10-DOCUMENT, XP-XSD10-FULL";
   private static final String HELP =
       """
       Usage:
@@ -49,7 +52,8 @@ public final class MxjbCli {
       return 0;
     }
     if (!"generate".equals(args[0])) {
-      printDiagnostic(err, diagnostic("cli", "Expected subcommand generate."));
+      printDiagnostic(
+          err, diagnostic("cli", "Expected subcommand generate. Run mxjb --help for usage."));
       return 2;
     }
     ParseResult parseResult = parseGenerate(java.util.Arrays.copyOfRange(args, 1, args.length));
@@ -118,7 +122,13 @@ public final class MxjbCli {
               profile = parsedProfile.orElseThrow();
             } else {
               diagnostics.add(
-                  diagnostic(optionName, "Unsupported generator profile " + value.text() + "."));
+                  diagnostic(
+                      optionName,
+                      "Unsupported generator profile "
+                          + value.text()
+                          + ". Use one of: "
+                          + SUPPORTED_PROFILES
+                          + "."));
             }
           }
           index = value.index();
@@ -191,7 +201,14 @@ public final class MxjbCli {
       List<GeneratorDiagnostic> diagnostics) {
     if (inlineValue != null) {
       if (inlineValue.isBlank()) {
-        diagnostics.add(diagnostic(option, "Missing value for option " + option + "."));
+        diagnostics.add(
+            diagnostic(
+                option,
+                "Missing value for option "
+                    + option
+                    + ". Provide a non-empty value after the option or as "
+                    + option
+                    + "=<value>."));
         return new Value(false, "", index);
       }
       return new Value(true, inlineValue, index);
@@ -200,7 +217,14 @@ public final class MxjbCli {
     if (valueIndex >= args.length
         || args[valueIndex].startsWith("--")
         || args[valueIndex].isBlank()) {
-      diagnostics.add(diagnostic(option, "Missing value for option " + option + "."));
+      diagnostics.add(
+          diagnostic(
+              option,
+              "Missing value for option "
+                  + option
+                  + ". Provide a non-empty value after the option or as "
+                  + option
+                  + "=<value>."));
       return new Value(false, "", index);
     }
     return new Value(true, args[valueIndex], valueIndex);
@@ -211,7 +235,10 @@ public final class MxjbCli {
     int separator = value.indexOf('=');
     if (separator < 0 || separator == value.length() - 1) {
       diagnostics.add(
-          diagnostic("--namespace-package", "Expected namespace package mapping ns=package."));
+          diagnostic(
+              "--namespace-package",
+              "Expected namespace package mapping ns=package. Use --namespace-package "
+                  + "urn:example=com.example."));
       return;
     }
     namespacePackages.put(value.substring(0, separator), value.substring(separator + 1));
@@ -221,7 +248,11 @@ public final class MxjbCli {
       String value, Map<URI, Path> catalogMappings, List<GeneratorDiagnostic> diagnostics) {
     int separator = value.indexOf('=');
     if (separator <= 0 || separator == value.length() - 1) {
-      diagnostics.add(diagnostic("--catalog", "Expected catalog mapping uri=path."));
+      diagnostics.add(
+          diagnostic(
+              "--catalog",
+              "Expected catalog mapping uri=path. Use --catalog "
+                  + "https://example.invalid/schema.xsd=path/to/schema.xsd."));
       return;
     }
     try {
@@ -229,7 +260,11 @@ public final class MxjbCli {
           URI.create(value.substring(0, separator)), Path.of(value.substring(separator + 1)));
     } catch (IllegalArgumentException exception) {
       diagnostics.add(
-          diagnostic("--catalog", "Invalid catalog URI " + value.substring(0, separator) + "."));
+          diagnostic(
+              "--catalog",
+              "Invalid catalog URI "
+                  + value.substring(0, separator)
+                  + ". Use an absolute URI or local schemaLocation key."));
     }
   }
 

@@ -8,7 +8,7 @@
 | Golden source tests | Generated source must match approved output exactly. |
 | Compile tests | Generated source compiles under Java 21 and Java 25 lanes. |
 | Round-trip tests | Object → XML → object and XML → object → XML. |
-| Negative tests | Invalid XML/schema/profile inputs produce deterministic diagnostics. |
+| Negative tests | Invalid XML/schema/profile inputs produce deterministic diagnostics with a stable code, resource, and useful next action where the surface can provide one. |
 | Differential tests | Compare selected behavior with JDK XML validation/tooling where useful. |
 | Conformance harness | Run selected W3C XML/XSD tests by profile. |
 | Architecture tests | Enforce module boundaries and forbidden runtime behavior. |

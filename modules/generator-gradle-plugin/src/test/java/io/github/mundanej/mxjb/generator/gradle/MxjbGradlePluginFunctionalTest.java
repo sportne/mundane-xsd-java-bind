@@ -193,6 +193,7 @@ final class MxjbGradlePluginFunctionalTest {
 
     assertTrue(result.getOutput().contains("GENERATOR_GRADLE_INVALID_ARGUMENT"));
     assertTrue(result.getOutput().contains("Unsupported generator profile XP-DATA-11"));
+    assertTrue(result.getOutput().contains("Use one of: XP-DATA-10"));
   }
 
   @Test
@@ -211,6 +212,7 @@ final class MxjbGradlePluginFunctionalTest {
 
     BuildResult missing = fail("generateMxjbSources");
     assertTrue(missing.getOutput().contains("GENERATOR_REQUEST_INVALID"));
+    assertTrue(missing.getOutput().contains("Add a schema path to the request"));
 
     writeBuild(
         """

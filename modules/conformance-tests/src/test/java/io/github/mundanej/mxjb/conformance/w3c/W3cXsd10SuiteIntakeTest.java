@@ -110,6 +110,18 @@ final class W3cXsd10SuiteIntakeTest {
   }
 
   @Test
+  void rejectsMissingSuiteDirectoryWithNextAction() {
+    Path missingRoot = tempDirectory.resolve(W3cXsd10SuiteIntake.EXPECTED_ROOT_NAME);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> new W3cXsd10SuiteIntake().parse(missingRoot));
+
+    assertTrue(exception.getMessage().contains("Missing W3C XSD 1.0 suite directory"));
+    assertTrue(exception.getMessage().contains("Download and extract the pinned suite"));
+  }
+
+  @Test
   void rejectsUnexpectedSuiteRootName() throws IOException {
     Path wrongRoot = tempDirectory.resolve("not-the-w3c-root");
     Files.createDirectories(wrongRoot);
@@ -119,6 +131,7 @@ final class W3cXsd10SuiteIntakeTest {
             IllegalArgumentException.class, () -> new W3cXsd10SuiteIntake().parse(wrongRoot));
 
     assertTrue(exception.getMessage().contains("xmlschema2006-11-06"));
+    assertTrue(exception.getMessage().contains("not its parent"));
   }
 
   @Test

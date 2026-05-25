@@ -164,6 +164,7 @@ final class MxjbGradlePluginUnitTest {
 
     assertTrue(exception.getMessage().contains("GENERATOR_GRADLE_INVALID_ARGUMENT"));
     assertTrue(exception.getMessage().contains("XP-DATA-11"));
+    assertTrue(exception.getMessage().contains("Use one of: XP-DATA-10"));
   }
 
   @Test
@@ -178,6 +179,23 @@ final class MxjbGradlePluginUnitTest {
 
     assertTrue(exception.getMessage().contains("SCHEMA_RESOURCE_NETWORK_DENIED"));
     assertTrue(exception.getMessage().contains(" | "));
+    assertTrue(exception.getMessage().contains("Add an explicit catalog mapping"));
+  }
+
+  @Test
+  void invalidCatalogUriThrowsStableGradleDiagnostic() throws IOException {
+    Project project = configuredProject();
+    Path schema =
+        writeSchema("src/main/resources/schema/purchase-order.xsd", purchaseOrderSchema());
+    MxjbExtension extension = extension(project);
+    extension.schema(schema.toFile());
+    extension.catalog("http://[bad", schema.toFile());
+
+    GradleException exception = assertThrows(GradleException.class, () -> task(project).generate());
+
+    assertTrue(exception.getMessage().contains("GENERATOR_GRADLE_INVALID_ARGUMENT | catalog"));
+    assertTrue(exception.getMessage().contains("Invalid catalog URI http://[bad"));
+    assertTrue(exception.getMessage().contains("Use an absolute URI or local schemaLocation key"));
   }
 
   @Test
@@ -187,6 +205,7 @@ final class MxjbGradlePluginUnitTest {
     GradleException exception = assertThrows(GradleException.class, () -> task(project).generate());
 
     assertTrue(exception.getMessage().contains("GENERATOR_REQUEST_INVALID"));
+    assertTrue(exception.getMessage().contains("Add a schema path to the request"));
     assertEquals("XP-DATA-10", task(project).getProfile().get());
   }
 

@@ -1,6 +1,6 @@
 # TASK-0074: diagnostics-user-ergonomics-review
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0074`
 Priority: P2
@@ -23,3 +23,23 @@ codes are preserved or migrated deliberately; no user-facing output leaks local 
 the path was user-provided and necessary.
 Rollback notes: revert diagnostic and docs changes.
 
+## Completion notes
+
+`TASK-0074` adds `docs/verification/diagnostics-ergonomics-review.md`, which maps common public
+failure paths to stable diagnostic evidence and next actions. The implementation keeps existing
+manifest-line output shape (`CODE | resource | message`) and narrows changes to message text and
+tests.
+
+Public API/core request validation, CLI parse failures, resolver failures, Gradle plugin failures,
+and W3C suite path mistakes now have regression assertions that the message includes both a stable
+code/category and a concrete next action. Existing generated XML validation diagnostics remain
+covered by conformance and generated-validator tests without changing generated behavior.
+
+No schema-feature expansion, dependency, release metadata, alternate output format, or quality-gate
+weakening is introduced.
+
+## Evidence
+
+- `./gradlew :modules:generator-api:check :modules:generator-core:check :modules:generator-cli:check :modules:generator-gradle-plugin:check :modules:conformance-tests:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

@@ -26,6 +26,44 @@ final class CoreGeneratorTest {
   @TempDir private Path tempDirectory;
 
   @Test
+  void requestValidationDiagnosticsIncludeNextActions() {
+    GeneratorRequest request =
+        new GeneratorRequest(List.of(), null, null, "", Map.of(), List.of(), Map.of());
+
+    GeneratorResult result = new CoreGenerator().generate(request);
+
+    assertFalse(result.successful());
+    List<String> diagnostics =
+        result.diagnostics().stream().map(diagnostic -> diagnostic.toManifestLine()).toList();
+    assertTrue(
+        diagnostics.stream()
+            .anyMatch(
+                line ->
+                    line.equals(
+                        "GENERATOR_REQUEST_INVALID | schema | At least one schema is required. "
+                            + "Add a schema path to the request.")));
+    assertTrue(
+        diagnostics.stream()
+            .anyMatch(
+                line ->
+                    line.equals(
+                        "GENERATOR_REQUEST_INVALID | output | Output directory is required. "
+                            + "Set the generated-source output directory.")));
+  }
+
+  @Test
+  void nullRequestDiagnosticIncludesNextAction() {
+    GeneratorResult result = new CoreGenerator().generate(null);
+
+    assertFalse(result.successful());
+    assertEquals(1, result.diagnostics().size());
+    assertEquals(
+        "GENERATOR_REQUEST_INVALID | request | Generator request is required. Create a "
+            + "GeneratorRequest with schema paths and an output directory.",
+        result.diagnostics().getFirst().toManifestLine());
+  }
+
+  @Test
   void generatesDeterministicPurchaseOrderSourcesAndCompilesThem() throws IOException {
     Path schema = writeSchema("purchase-order.xsd", purchaseOrderSchema());
     Path output = tempDirectory.resolve("generated");

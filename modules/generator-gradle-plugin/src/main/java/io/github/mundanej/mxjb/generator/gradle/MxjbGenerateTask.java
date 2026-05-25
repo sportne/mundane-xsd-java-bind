@@ -32,6 +32,9 @@ import org.gradle.api.tasks.TaskAction;
 /** Generates Java sources from explicit XSD inputs. */
 @CacheableTask
 public class MxjbGenerateTask extends DefaultTask {
+  private static final String SUPPORTED_PROFILES =
+      "XP-DATA-10, XP-DATA-10-CHOICE, XP-VALIDATION-10-BASIC, XP-XSD10-COMPOSED, "
+          + "XP-XSD10-SEMANTIC, XP-XSD10-DOCUMENT, XP-XSD10-FULL";
   private final ConfigurableFileCollection schemas;
   private final DirectoryProperty outputDirectory;
   private final Property<String> profile;
@@ -141,13 +144,23 @@ public class MxjbGenerateTask extends DefaultTask {
                 new GradleException(
                     "GENERATOR_GRADLE_INVALID_ARGUMENT | profile | Unsupported generator profile "
                         + token
+                        + ". Use one of: "
+                        + SUPPORTED_PROFILES
                         + "."));
   }
 
   private Map<URI, Path> catalogMappings() {
     TreeMap<URI, Path> sorted = new TreeMap<>(Comparator.comparing(URI::toString));
     for (Map.Entry<String, String> entry : catalogMappings.get().entrySet()) {
-      sorted.put(URI.create(entry.getKey()), Path.of(entry.getValue()));
+      try {
+        sorted.put(URI.create(entry.getKey()), Path.of(entry.getValue()));
+      } catch (IllegalArgumentException exception) {
+        throw new GradleException(
+            "GENERATOR_GRADLE_INVALID_ARGUMENT | catalog | Invalid catalog URI "
+                + entry.getKey()
+                + ". Use an absolute URI or local schemaLocation key.",
+            exception);
+      }
     }
     return Map.copyOf(sorted);
   }

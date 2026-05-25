@@ -45,12 +45,20 @@ public final class CoreGenerator implements Generator {
   static final String REQUEST_INVALID = "GENERATOR_REQUEST_INVALID";
   static final String DUPLICATE_OUTPUT = "GENERATOR_DUPLICATE_OUTPUT";
   static final String WRITE_FAILED = "GENERATOR_WRITE_FAILED";
+  private static final String SUPPORTED_PROFILES =
+      "XP-DATA-10, XP-DATA-10-CHOICE, XP-VALIDATION-10-BASIC, XP-XSD10-COMPOSED, "
+          + "XP-XSD10-SEMANTIC, XP-XSD10-DOCUMENT, XP-XSD10-FULL";
 
   @Override
   public GeneratorResult generate(GeneratorRequest request) {
     if (request == null) {
       return GeneratorResult.failure(
-          List.of(diagnostic(REQUEST_INVALID, "request", "Generator request is required.")));
+          List.of(
+              diagnostic(
+                  REQUEST_INVALID,
+                  "request",
+                  "Generator request is required. Create a GeneratorRequest with schema paths "
+                      + "and an output directory.")));
     }
 
     List<GeneratorDiagnostic> diagnostics = validateRequest(request);
@@ -98,15 +106,27 @@ public final class CoreGenerator implements Generator {
   private List<GeneratorDiagnostic> validateRequest(GeneratorRequest request) {
     List<GeneratorDiagnostic> diagnostics = new ArrayList<>();
     if (request.schemaPaths().isEmpty()) {
-      diagnostics.add(diagnostic(REQUEST_INVALID, "schema", "At least one schema is required."));
+      diagnostics.add(
+          diagnostic(
+              REQUEST_INVALID,
+              "schema",
+              "At least one schema is required. Add a schema path to the request."));
     }
     for (Path schemaPath : request.schemaPaths()) {
       if (schemaPath == null) {
-        diagnostics.add(diagnostic(REQUEST_INVALID, "schema", "Schema path must not be null."));
+        diagnostics.add(
+            diagnostic(
+                REQUEST_INVALID,
+                "schema",
+                "Schema path must not be null. Remove the null entry or provide a schema path."));
       }
     }
     if (request.outputDirectory() == null) {
-      diagnostics.add(diagnostic(REQUEST_INVALID, "output", "Output directory is required."));
+      diagnostics.add(
+          diagnostic(
+              REQUEST_INVALID,
+              "output",
+              "Output directory is required. Set the generated-source output directory."));
     }
     if (request.profile() != GeneratorProfile.XP_DATA_10
         && request.profile() != GeneratorProfile.XP_DATA_10_CHOICE
@@ -119,7 +139,11 @@ public final class CoreGenerator implements Generator {
           diagnostic(
               REQUEST_INVALID,
               "profile",
-              "Unsupported generator profile " + request.profile() + "."));
+              "Unsupported generator profile "
+                  + request.profile()
+                  + ". Use one of: "
+                  + SUPPORTED_PROFILES
+                  + "."));
     }
     return diagnostics;
   }

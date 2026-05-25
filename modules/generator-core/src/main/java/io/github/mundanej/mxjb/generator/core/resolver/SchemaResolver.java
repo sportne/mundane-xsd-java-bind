@@ -85,7 +85,7 @@ public final class SchemaResolver {
           new SchemaDiagnostic(
               DiagnosticCode.SCHEMA_RESOURCE_NOT_FOUND,
               resourceId(path),
-              "Schema resource does not exist."));
+              "Schema resource does not exist. Check the schema path or catalog mapping."));
       return;
     }
 
@@ -113,7 +113,8 @@ public final class SchemaResolver {
           new SchemaDiagnostic(
               DiagnosticCode.SCHEMA_RESOURCE_NETWORK_DENIED,
               uri.toString(),
-              "Network schema resolution is denied by default."));
+              "Network schema resolution is denied by default. Add an explicit catalog mapping "
+                  + "or local schema copy."));
       return null;
     }
     if (uri.getScheme() == null) {
@@ -148,7 +149,8 @@ public final class SchemaResolver {
           new SchemaDiagnostic(
               DiagnosticCode.SCHEMA_RESOURCE_OUTSIDE_LOCAL_ROOT,
               resource,
-              "Schema resource is outside configured local roots."));
+              "Schema resource is outside configured local roots. Add the directory to local "
+                  + "roots or catalog the resource explicitly."));
       return null;
     }
     return normalized;

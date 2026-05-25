@@ -248,15 +248,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0071` | post-1.0.0 reflection | accepted | Review generation and generated-code performance. |
 | `TASK-0072` | post-1.0.0 reflection | accepted | Validate release artifact consumption from a clean downstream project. |
 | `TASK-0073` | post-1.0.0 reflection | accepted | Review XML security posture across every parser and generated-validation path. |
-| `TASK-0074` | post-1.0.0 reflection | next | Review diagnostics and user ergonomics. |
-| `TASK-0075` | post-1.0.0 reflection | draft | Review naming, customization, and generated-source collision behavior. |
+| `TASK-0074` | post-1.0.0 reflection | accepted | Review diagnostics and user ergonomics. |
+| `TASK-0075` | post-1.0.0 reflection | next | Review naming, customization, and generated-source collision behavior. |
 | `TASK-0076` | post-1.0.0 reflection | draft | Review GraalVM Native Image sustainability. |
 | `TASK-0077` | post-1.0.0 reflection | draft | Simplify post-1.0.0 user-facing documentation. |
 
 ## Current implementation gate
 
-`TASK-0074` is the next implementation gate. It should improve public diagnostics for common CLI,
-API, Gradle, and conformance failures with stable tests and no product behavior expansion.
+`TASK-0075` is the next implementation gate. It should stress naming, package, and customization
+collisions with generated-source tests and only narrow deterministic fixes.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -282,6 +282,10 @@ without remote publication, signing, or release retagging.
 generated-validation path, adds W3C suite metadata DOCTYPE rejection coverage, and hardens the W3C
 generated-binding JDK schema oracle with `ACCESS_EXTERNAL_DTD` and `ACCESS_EXTERNAL_SCHEMA` denial.
 Native evidence used SDKMAN GraalVM via `source "$HOME/.sdkman/bin/sdkman-init.sh"`.
+`TASK-0074` accepted diagnostics ergonomics improvements for public API/core request validation, CLI
+parse failures, resolver failures, Gradle plugin failures, and W3C suite path mistakes. The public
+manifest-line diagnostic shape is unchanged, but reviewed messages now include concrete next
+actions where the surface can provide one.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,

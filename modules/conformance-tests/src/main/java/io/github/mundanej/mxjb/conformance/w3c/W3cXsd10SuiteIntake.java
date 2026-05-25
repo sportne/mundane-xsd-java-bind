@@ -123,14 +123,19 @@ public final class W3cXsd10SuiteIntake {
 
   private static void validateSuiteRoot(Path suiteRoot) {
     if (!Files.isDirectory(suiteRoot)) {
-      throw new IllegalArgumentException("Missing W3C XSD 1.0 suite directory: " + suiteRoot);
+      throw new IllegalArgumentException(
+          "Missing W3C XSD 1.0 suite directory: "
+              + suiteRoot
+              + ". Download and extract the pinned suite, then pass the xmlschema2006-11-06 "
+              + "directory.");
     }
     if (!EXPECTED_ROOT_NAME.equals(fileName(suiteRoot))) {
       throw new IllegalArgumentException(
           "Expected W3C XSD 1.0 suite root named "
               + EXPECTED_ROOT_NAME
               + " but got "
-              + fileName(suiteRoot));
+              + fileName(suiteRoot)
+              + ". Pass the extracted xmlschema2006-11-06 directory, not its parent.");
     }
   }
 

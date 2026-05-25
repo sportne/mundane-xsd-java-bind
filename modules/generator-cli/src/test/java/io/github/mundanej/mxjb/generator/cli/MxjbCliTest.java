@@ -219,6 +219,7 @@ final class MxjbCliTest {
     assertEquals(2, result.exitCode());
     assertTrue(result.err().contains("GENERATOR_CLI_INVALID_ARGUMENT | --schema | Missing value"));
     assertTrue(result.err().contains("Unsupported generator profile XP-DATA-11"));
+    assertTrue(result.err().contains("Use one of: XP-DATA-10"));
     assertTrue(result.err().contains("Unknown option --unknown"));
     assertTrue(result.err().contains("Code-to-schema generation is not supported"));
   }
@@ -231,6 +232,37 @@ final class MxjbCliTest {
     assertTrue(result.err().contains("GENERATOR_CLI_INVALID_ARGUMENT | --schema | Missing value"));
     assertTrue(result.err().contains("GENERATOR_CLI_INVALID_ARGUMENT | --output | Missing value"));
     assertTrue(result.err().contains("GENERATOR_CLI_INVALID_ARGUMENT | --profile | Missing value"));
+    assertTrue(result.err().contains("Provide a non-empty value after the option"));
+  }
+
+  @Test
+  void invalidMappingOptionsReturnActionableDiagnostics() {
+    CliResult result =
+        run(
+            "generate",
+            "--schema",
+            "order.xsd",
+            "--output",
+            "out",
+            "--namespace-package",
+            "urn:orders",
+            "--catalog",
+            "https://example.invalid/schema.xsd",
+            "--catalog",
+            "http://[bad=local.xsd");
+
+    assertEquals(2, result.exitCode());
+    assertTrue(
+        result
+            .err()
+            .contains(
+                "GENERATOR_CLI_INVALID_ARGUMENT | --namespace-package | Expected namespace "
+                    + "package mapping ns=package."));
+    assertTrue(result.err().contains("Use --namespace-package urn:example=com.example."));
+    assertTrue(result.err().contains("Expected catalog mapping uri=path."));
+    assertTrue(result.err().contains("Use --catalog https://example.invalid/schema.xsd"));
+    assertTrue(result.err().contains("Invalid catalog URI http://[bad."));
+    assertTrue(result.err().contains("Use an absolute URI or local schemaLocation key."));
   }
 
   @Test
@@ -243,6 +275,21 @@ final class MxjbCliTest {
 
     assertEquals(1, result.exitCode());
     assertTrue(result.err().contains("SCHEMA_RESOURCE_NETWORK_DENIED"));
+    assertTrue(result.err().contains("Add an explicit catalog mapping or local schema copy"));
+    assertFalse(Files.exists(output));
+  }
+
+  @Test
+  void missingSchemaFileReturnsActionableResourceDiagnostic() {
+    Path schema = tempDirectory.resolve("missing.xsd");
+    Path output = tempDirectory.resolve("missing-generated");
+
+    CliResult result =
+        run("generate", "--schema", schema.toString(), "--output", output.toString());
+
+    assertEquals(1, result.exitCode());
+    assertTrue(result.err().contains("SCHEMA_RESOURCE_NOT_FOUND | missing.xsd"));
+    assertTrue(result.err().contains("Check the schema path or catalog mapping"));
     assertFalse(Files.exists(output));
   }
 
@@ -252,6 +299,7 @@ final class MxjbCliTest {
 
     assertEquals(2, result.exitCode());
     assertTrue(result.err().contains("Expected subcommand generate"));
+    assertTrue(result.err().contains("Run mxjb --help for usage"));
   }
 
   private CliResult run(String... args) {
