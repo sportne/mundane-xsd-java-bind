@@ -15,6 +15,9 @@
 
 - Stable traversal order.
 - Stable diagnostics order.
+- Stable schema resource IDs. With one local root, diagnostics use the schema path relative to that
+  root. With multiple local roots, diagnostics include a bracketed shortest distinguishing
+  local-root suffix before the relative schema path so same-basename schemas do not collide.
 - Stable source formatting.
 - Stable generated package/type/member names.
 - Stable namespace prefix policy for generated output unless configured otherwise.

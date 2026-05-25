@@ -1,6 +1,6 @@
 # TASK-0078: schema-resource-id-collisions
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0078`
 Priority: P0
@@ -30,3 +30,20 @@ match; true duplicate schema components still report deterministic diagnostics; 
 unchanged except for corrected diagnostics/resource identity behavior.
 Rollback notes: revert resolver/resource-ID changes and related regression tests/docs.
 
+## Completion notes
+
+`TASK-0078` keeps resolver allow-list behavior unchanged while making diagnostic/resource IDs stable
+for multiple local roots. Single-root resource IDs remain relative to the local root. When more than
+one local root is active, resource IDs include a bracketed shortest distinguishing local-root suffix
+before the schema-relative path, preventing same-basename schemas such as `root[first]/order.xsd`
+and `root[second]/order.xsd` from collapsing to the same `order.xsd` ID.
+
+The CoreGenerator regression now uses same-basename schemas in different directories for the
+duplicate local type/package collision case. True generated helper collisions and duplicate schema
+component diagnostics remain unchanged.
+
+## Evidence
+
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

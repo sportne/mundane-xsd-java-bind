@@ -1040,9 +1040,8 @@ final class CoreGeneratorTest {
 
   @Test
   void namespaceMappingsCanPlaceDuplicateLocalTypeNamesInOnePackage() throws IOException {
-    Path first = writeSchema("first/first-order.xsd", duplicateLocalTypeSchema("urn:first", "f"));
-    Path second =
-        writeSchema("second/second-order.xsd", duplicateLocalTypeSchema("urn:second", "s"));
+    Path first = writeSchema("first/order.xsd", duplicateLocalTypeSchema("urn:first", "f"));
+    Path second = writeSchema("second/order.xsd", duplicateLocalTypeSchema("urn:second", "s"));
     Path output = tempDirectory.resolve("same-package-collision");
     GeneratorRequest request =
         new GeneratorRequest(

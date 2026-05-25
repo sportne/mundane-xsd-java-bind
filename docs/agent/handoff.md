@@ -88,8 +88,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 75. `TASK-0075`: Review naming, customization, and generated-source collision behavior. Completed and accepted.
 76. `TASK-0076`: Review GraalVM Native Image sustainability. Completed and accepted.
 77. `TASK-0077`: Simplify post-1.0.0 user-facing documentation. Completed and accepted.
-78. `TASK-0078`: Fix schema resource-id collisions for same-basename schemas. Next implementation gate.
-79. `TASK-0079`: Harden remaining conformance SchemaFactory helpers. Draft.
+78. `TASK-0078`: Fix schema resource-id collisions for same-basename schemas. Completed and accepted.
+79. `TASK-0079`: Harden remaining conformance SchemaFactory helpers. Next implementation gate.
 80. `TASK-0080`: Expand W3C generated-binding row mapping. Draft.
 81. `TASK-0081`: Broaden generated naming stress coverage. Draft.
 82. `TASK-0082`: Add performance phase timing and large-schema characterization. Draft.
@@ -258,8 +258,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0075` | post-1.0.0 reflection | accepted | Review naming, customization, and generated-source collision behavior. |
 | `TASK-0076` | post-1.0.0 reflection | accepted | Review GraalVM Native Image sustainability. |
 | `TASK-0077` | post-1.0.0 reflection | accepted | Simplify post-1.0.0 user-facing documentation. |
-| `TASK-0078` | post-1.0.0 follow-up | next | Fix schema resource-id collisions for same-basename schemas. |
-| `TASK-0079` | post-1.0.0 follow-up | draft | Harden remaining conformance SchemaFactory helpers. |
+| `TASK-0078` | post-1.0.0 follow-up | accepted | Fix schema resource-id collisions for same-basename schemas. |
+| `TASK-0079` | post-1.0.0 follow-up | next | Harden remaining conformance SchemaFactory helpers. |
 | `TASK-0080` | post-1.0.0 follow-up | draft | Expand W3C generated-binding row mapping. |
 | `TASK-0081` | post-1.0.0 follow-up | draft | Broaden generated naming stress coverage. |
 | `TASK-0082` | post-1.0.0 follow-up | draft | Add performance phase timing and large-schema characterization. |
@@ -267,9 +267,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0078` is the next implementation gate. It should fix schema resource-id collisions for
-same-basename schemas in different directories without broadening schema support or weakening
-diagnostics.
+`TASK-0079` is the next implementation gate. It should harden remaining conformance
+`SchemaFactory` helpers without changing product behavior or support claims.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -317,6 +316,9 @@ The post-1.0.0 follow-up sequence is ordered by risk and leverage: `TASK-0078` r
 `TASK-0079` conformance schema-factory hardening, `TASK-0080` W3C generated-binding mapping,
 `TASK-0081` generated naming stress coverage, `TASK-0082` advisory performance phase timing, and
 `TASK-0083` W3C architecture refactor.
+`TASK-0078` accepted resource-ID disambiguation for same-basename schemas across multiple local
+roots. The resolver now preserves single-root relative IDs and adds the shortest distinguishing root
+suffix in a bracketed prefix only when multiple local roots are active.
 
 The completed post-1.0.0 reflection sequence ran in priority order: P0 claim/evidence
 reconciliation and external issue mining first; P1 complexity review, W3C binding expansion,

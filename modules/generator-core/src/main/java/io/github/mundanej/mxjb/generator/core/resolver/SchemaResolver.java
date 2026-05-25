@@ -233,7 +233,7 @@ public final class SchemaResolver {
     Path normalized = path.toAbsolutePath().normalize();
     for (Path root : policy.localRoots()) {
       if (normalized.startsWith(root)) {
-        return root.relativize(normalized).toString().replace('\\', '/');
+        return resourceId(root, normalized);
       }
     }
     for (Map.Entry<URI, Path> entry : policy.catalogMappings().entrySet()) {
@@ -243,6 +243,39 @@ public final class SchemaResolver {
     }
     Path fileName = normalized.getFileName();
     return fileName == null ? normalized.toString() : fileName.toString();
+  }
+
+  private String resourceId(Path root, Path normalized) {
+    String relative = root.relativize(normalized).toString().replace('\\', '/');
+    if (policy.localRoots().size() == 1) {
+      return relative;
+    }
+    String prefix = displayPrefix(root);
+    return prefix.isBlank() ? relative : "root[" + prefix + "]/" + relative;
+  }
+
+  private String displayPrefix(Path root) {
+    List<Path> roots = policy.localRoots();
+    for (int nameCount = 1; nameCount <= root.getNameCount(); nameCount++) {
+      Path suffix = root.subpath(root.getNameCount() - nameCount, root.getNameCount());
+      boolean unique =
+          roots.stream()
+              .filter(other -> !other.equals(root))
+              .noneMatch(other -> endsWith(other, suffix));
+      if (unique) {
+        return suffix.toString().replace('\\', '/');
+      }
+    }
+    return root.toString().replace('\\', '/');
+  }
+
+  private boolean endsWith(Path root, Path suffix) {
+    if (root.getNameCount() < suffix.getNameCount()) {
+      return false;
+    }
+    Path rootSuffix =
+        root.subpath(root.getNameCount() - suffix.getNameCount(), root.getNameCount());
+    return rootSuffix.equals(suffix);
   }
 
   private String cycleText(ArrayDeque<Path> stack, Path repeated) {
