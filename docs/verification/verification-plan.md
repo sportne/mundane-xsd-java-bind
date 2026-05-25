@@ -156,8 +156,10 @@ is `TASK-0042` through `TASK-0046`.
 - Performance and streaming: `TASK-0043` adds benchmark fixtures and documented baselines for
   representative generated reader, writer, validator, and document/open-content workloads.
   `TASK-0071` extends the same lane with end-to-end generator pipeline and javac observations for
-  generated document bindings. These are baselines, not performance guarantees. The explicit
-  command is `./gradlew benchmarkSmoke --console=plain`; it remains outside `qualityGate`.
+  generated document bindings. `TASK-0082` adds benchmark-only generator phase timing rows and a
+  deterministic large-schema/source-growth sample. These are baselines, not performance guarantees.
+  The explicit command is `./gradlew benchmarkSmoke --console=plain`; it remains outside
+  `qualityGate`.
 - Native Image conformance: `TASK-0044` adds `./gradlew nativeConformance --console=plain` beside
   `nativeSmoke`. The selected executable covers supported profile round trips, unsupported
   diagnostics, and resolver/entity denial while keeping native tooling outside the default JVM

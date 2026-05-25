@@ -51,6 +51,11 @@ public final class CoreGenerator implements Generator {
 
   @Override
   public GeneratorResult generate(GeneratorRequest request) {
+    return generate(request, (phaseName, elapsedNanos) -> {});
+  }
+
+  GeneratorResult generate(GeneratorRequest request, GenerationTimingSink timingSink) {
+    Objects.requireNonNull(timingSink, "timingSink");
     if (request == null) {
       return GeneratorResult.failure(
           List.of(
@@ -61,35 +66,45 @@ public final class CoreGenerator implements Generator {
                       + "and an output directory.")));
     }
 
-    List<GeneratorDiagnostic> diagnostics = validateRequest(request);
+    List<GeneratorDiagnostic> diagnostics =
+        timePhase("request-validation", timingSink, () -> validateRequest(request));
     if (!diagnostics.isEmpty()) {
       return GeneratorResult.failure(diagnostics);
     }
 
-    SchemaResolutionResult resolutionResult = resolveSchemas(request);
+    SchemaResolutionResult resolutionResult =
+        timePhase("schema-resolution", timingSink, () -> resolveSchemas(request));
     if (resolutionResult.hasErrors()) {
       return GeneratorResult.failure(publicDiagnostics(resolutionResult.diagnostics()));
     }
 
     XsdSyntaxResult syntaxResult =
-        new XsdSyntaxParser().parse(resolutionResult.manifest(), request.profile());
+        timePhase(
+            "xsd-syntax-parse",
+            timingSink,
+            () -> new XsdSyntaxParser().parse(resolutionResult.manifest(), request.profile()));
     if (syntaxResult.hasErrors()) {
       return GeneratorResult.failure(publicDiagnostics(syntaxResult.diagnostics()));
     }
 
-    SchemaIrResult irResult = new SchemaIrBuilder().build(syntaxResult);
+    SchemaIrResult irResult =
+        timePhase("ir-build", timingSink, () -> new SchemaIrBuilder().build(syntaxResult));
     if (irResult.hasErrors()) {
       return GeneratorResult.failure(publicDiagnostics(irResult.diagnostics()));
     }
 
     BindingConfiguration bindingConfiguration =
         new BindingConfiguration(request.defaultPackage(), request.namespacePackages());
-    BindingResult bindingResult = new BindingModelBuilder().build(irResult, bindingConfiguration);
+    BindingResult bindingResult =
+        timePhase(
+            "binding-plan",
+            timingSink,
+            () -> new BindingModelBuilder().build(irResult, bindingConfiguration));
     if (bindingResult.hasErrors()) {
       return GeneratorResult.failure(publicDiagnostics(bindingResult.diagnostics()));
     }
 
-    Emission emission = emitSources(bindingResult);
+    Emission emission = timePhase("source-emission", timingSink, () -> emitSources(bindingResult));
     if (!emission.diagnostics().isEmpty()) {
       return GeneratorResult.failure(publicDiagnostics(emission.diagnostics()));
     }
@@ -100,7 +115,16 @@ public final class CoreGenerator implements Generator {
       return GeneratorResult.failure(diagnostics);
     }
 
-    return writeSources(request.outputDirectory(), sources);
+    return timePhase(
+        "output-write", timingSink, () -> writeSources(request.outputDirectory(), sources));
+  }
+
+  private <T> T timePhase(
+      String phaseName, GenerationTimingSink timingSink, PhaseOperation<T> operation) {
+    long startNanos = System.nanoTime();
+    T result = operation.run();
+    timingSink.record(phaseName, System.nanoTime() - startNanos);
+    return result;
   }
 
   private List<GeneratorDiagnostic> validateRequest(GeneratorRequest request) {
@@ -291,4 +315,14 @@ public final class CoreGenerator implements Generator {
   }
 
   private record Emission(List<GeneratedJavaSource> sources, List<SchemaDiagnostic> diagnostics) {}
+
+  @FunctionalInterface
+  private interface PhaseOperation<T> {
+    T run();
+  }
+
+  @FunctionalInterface
+  interface GenerationTimingSink {
+    void record(String phaseName, long elapsedNanos);
+  }
 }

@@ -3,7 +3,9 @@ package io.github.mundanej.mxjb.conformance.benchmark;
 import io.github.mundanej.mxjb.generator.api.GeneratorProfile;
 import io.github.mundanej.mxjb.generator.api.GeneratorRequest;
 import io.github.mundanej.mxjb.generator.api.GeneratorResult;
-import io.github.mundanej.mxjb.generator.core.CoreGenerator;
+import io.github.mundanej.mxjb.generator.core.CoreGeneratorTimingProbe;
+import io.github.mundanej.mxjb.generator.core.CoreGeneratorTimingProbe.PhaseTiming;
+import io.github.mundanej.mxjb.generator.core.CoreGeneratorTimingProbe.TimedGeneration;
 import io.github.mundanej.mxjb.runtime.ValidationResult;
 import io.github.mundanej.mxjb.runtime.XmlEventReader;
 import io.github.mundanej.mxjb.runtime.XmlOutput;
@@ -23,9 +25,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -41,7 +45,18 @@ public final class ConformanceBenchmarkSmokeMain {
   private static final int WARMUP_ITERATIONS = 2;
   private static final int LINE_COUNT = 240;
   private static final int DOCUMENT_FRAGMENT_COUNT = 120;
+  private static final int LARGE_SCHEMA_ELEMENT_COUNT = 96;
+  private static final int LARGE_SCHEMA_ATTRIBUTE_COUNT = 32;
   private static final Path WORK_DIRECTORY = Path.of("build", "benchmarkSmoke", "runtime");
+  private static final List<String> EXPECTED_GENERATOR_PHASES =
+      List.of(
+          "request-validation",
+          "schema-resolution",
+          "xsd-syntax-parse",
+          "ir-build",
+          "binding-plan",
+          "source-emission",
+          "output-write");
 
   private ConformanceBenchmarkSmokeMain() {}
 
@@ -59,6 +74,7 @@ public final class ConformanceBenchmarkSmokeMain {
                 "/xp-xsd10-document/mixed-order.xsd",
                 "urn:mixed-document",
                 "com.example.benchmark.mixed")) {
+      runLargeSchemaGenerationBenchmark();
       runBenchmark(
           "xp-data-10-purchase-read-write-validate",
           () -> runPurchaseWorkload(purchaseOrderXml(LINE_COUNT), LINE_COUNT));
@@ -197,6 +213,98 @@ public final class ConformanceBenchmarkSmokeMain {
     return output.toString(StandardCharsets.UTF_8);
   }
 
+  private static void runLargeSchemaGenerationBenchmark() throws IOException {
+    String workloadName = "large-schema";
+    Path workDirectory = WORK_DIRECTORY.resolve(workloadName);
+    Path schema = workDirectory.resolve("large-schema.xsd");
+    Path output = workDirectory.resolve("generated");
+    Path classes = workDirectory.resolve("classes");
+    deleteDirectory(workDirectory);
+    Files.createDirectories(workDirectory);
+    Files.writeString(
+        schema,
+        largeSchema(LARGE_SCHEMA_ELEMENT_COUNT, LARGE_SCHEMA_ATTRIBUTE_COUNT),
+        StandardCharsets.UTF_8);
+    GeneratorRequest request =
+        new GeneratorRequest(
+            List.of(schema),
+            output,
+            GeneratorProfile.XP_XSD10_FULL,
+            "com.example.benchmark.large",
+            Map.of("urn:large-schema", "com.example.benchmark.large"),
+            List.of(),
+            Map.of());
+    MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
+    long heapBefore = memory.getHeapMemoryUsage().getUsed();
+    long generationStartNanos = System.nanoTime();
+    TimedGeneration generation = CoreGeneratorTimingProbe.generate(request);
+    long generationNanos = System.nanoTime() - generationStartNanos;
+    GeneratorResult result = generation.result();
+    require(result.successful(), "Large schema generator failed: " + result.diagnostics());
+    requireGeneratorPhaseTimings(workloadName, generation.phaseTimings());
+    long sourceBytes = generatedSourceBytes(output, result.generatedSources());
+    require(sourceBytes > 0, "Large schema benchmark produced empty sources.");
+    long compileStartNanos = System.nanoTime();
+    compileGeneratedSources(output, result.generatedSources(), classes);
+    long compileNanos = System.nanoTime() - compileStartNanos;
+    long classCount = classFileCount(classes);
+    require(classCount > 0, "Large schema benchmark produced no classes.");
+    long heapAfter = memory.getHeapMemoryUsage().getUsed();
+    printGenerationBenchmark(
+        workloadName,
+        request.profile(),
+        result.generatedSources().size(),
+        sourceBytes,
+        classCount,
+        generationNanos,
+        compileNanos,
+        heapBefore,
+        heapAfter);
+    printGeneratorPhaseTimings(workloadName, generation.phaseTimings());
+    printLargeSchemaGrowthBenchmark(
+        workloadName,
+        LARGE_SCHEMA_ELEMENT_COUNT,
+        LARGE_SCHEMA_ATTRIBUTE_COUNT,
+        result.generatedSources().size(),
+        sourceBytes,
+        classCount);
+  }
+
+  private static String largeSchema(int elementCount, int attributeCount) {
+    StringBuilder schema = new StringBuilder();
+    schema.append(
+        """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:large-schema"
+            xmlns="urn:large-schema"
+            xmlns:tns="urn:large-schema"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+          <xs:element name="catalog" type="tns:catalogType"/>
+          <xs:complexType name="catalogType">
+            <xs:sequence>
+        """);
+    for (int index = 1; index <= elementCount; index++) {
+      schema
+          .append("      <xs:element name=\"item")
+          .append(String.format(Locale.ROOT, "%03d", index))
+          .append("\" type=\"xs:string\" minOccurs=\"0\"/>\n");
+    }
+    schema.append("    </xs:sequence>\n");
+    for (int index = 1; index <= attributeCount; index++) {
+      schema
+          .append("    <xs:attribute name=\"flag")
+          .append(String.format(Locale.ROOT, "%03d", index))
+          .append("\" type=\"xs:string\" use=\"optional\"/>\n");
+    }
+    schema.append(
+        """
+          </xs:complexType>
+        </xs:schema>
+        """);
+    return schema.toString();
+  }
+
   private static String writeMultiNamespaceOrder(com.example.orders.Order order)
       throws XMLStreamException, XmlWriteException {
     ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -309,9 +417,11 @@ public final class ConformanceBenchmarkSmokeMain {
     MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
     long heapBefore = memory.getHeapMemoryUsage().getUsed();
     long generationStartNanos = System.nanoTime();
-    GeneratorResult result = new CoreGenerator().generate(request);
+    TimedGeneration generation = CoreGeneratorTimingProbe.generate(request);
+    GeneratorResult result = generation.result();
     long generationNanos = System.nanoTime() - generationStartNanos;
     require(result.successful(), "Generator failed: " + result.diagnostics());
+    requireGeneratorPhaseTimings(name, generation.phaseTimings());
     long sourceBytes = generatedSourceBytes(output, result.generatedSources());
     require(sourceBytes > 0, "Generated source benchmark produced empty sources.");
     long compileStartNanos = System.nanoTime();
@@ -330,6 +440,7 @@ public final class ConformanceBenchmarkSmokeMain {
         compileNanos,
         heapBefore,
         heapAfter);
+    printGeneratorPhaseTimings(name, generation.phaseTimings());
     URLClassLoader loader =
         new URLClassLoader(
             new URL[] {classes.toUri().toURL()},
@@ -367,6 +478,66 @@ public final class ConformanceBenchmarkSmokeMain {
         compileNanos / 1_000_000.0d,
         heapBefore,
         heapAfter);
+  }
+
+  private static void requireGeneratorPhaseTimings(
+      String workloadName, List<PhaseTiming> phaseTimings) {
+    require(!phaseTimings.isEmpty(), "Missing generator phase timings for " + workloadName + ".");
+    Set<String> observedPhases = new LinkedHashSet<>();
+    long totalNanos = 0;
+    for (PhaseTiming phaseTiming : phaseTimings) {
+      require(
+          !phaseTiming.phaseName().isBlank(),
+          "Blank generator phase name for " + workloadName + ".");
+      require(
+          phaseTiming.elapsedNanos() >= 0,
+          "Negative generator phase timing for " + workloadName + ".");
+      observedPhases.add(phaseTiming.phaseName());
+      totalNanos += phaseTiming.elapsedNanos();
+    }
+    for (String expectedPhase : EXPECTED_GENERATOR_PHASES) {
+      require(
+          observedPhases.contains(expectedPhase),
+          "Missing generator phase " + expectedPhase + " for " + workloadName + ".");
+    }
+    require(totalNanos > 0, "Generator phase timings were empty for " + workloadName + ".");
+  }
+
+  private static void printGeneratorPhaseTimings(
+      String workloadName, List<PhaseTiming> phaseTimings) {
+    for (PhaseTiming phaseTiming : phaseTimings) {
+      System.out.printf(
+          Locale.ROOT,
+          "GENERATION_PHASE_BENCHMARK workload=%s phase=%s elapsedMillis=%.3f "
+              + "elapsedNanos=%d%n",
+          workloadName,
+          phaseTiming.phaseName(),
+          phaseTiming.elapsedNanos() / 1_000_000.0d,
+          phaseTiming.elapsedNanos());
+    }
+  }
+
+  private static void printLargeSchemaGrowthBenchmark(
+      String workloadName,
+      int elementCount,
+      int attributeCount,
+      int generatedSources,
+      long sourceBytes,
+      long classCount) {
+    int schemaMembers = elementCount + attributeCount;
+    System.out.printf(
+        Locale.ROOT,
+        "GENERATION_GROWTH_BENCHMARK workload=%s elements=%d attributes=%d "
+            + "schemaMembers=%d generatedSources=%d sourceBytes=%d classFiles=%d "
+            + "sourceBytesPerMember=%.3f%n",
+        workloadName,
+        elementCount,
+        attributeCount,
+        schemaMembers,
+        generatedSources,
+        sourceBytes,
+        classCount,
+        sourceBytes / (double) schemaMembers);
   }
 
   private static void compileGeneratedSources(Path output, List<Path> relativePaths, Path classes)

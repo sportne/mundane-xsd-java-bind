@@ -1,6 +1,6 @@
 # TASK-0082: performance-phase-timing
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0082`
 Priority: P2
@@ -28,3 +28,18 @@ Acceptance criteria: benchmark output includes per-phase timing and large-schema
 observations; docs state advisory status and no hard guarantees; `qualityGate` remains unchanged.
 Rollback notes: revert benchmark and performance-doc updates.
 
+Completion notes:
+- Added an internal `generator-core` timing sink used by public `CoreGenerator.generate` only through
+  a no-op default path, preserving the public generator API.
+- Added a benchmark-only timing probe and `GENERATION_PHASE_BENCHMARK` output for request
+  validation, schema resolution, XSD syntax parse, IR build, binding planning, source emission, and
+  source write.
+- Added a deterministic `large-schema` benchmark sample with 96 optional elements and 32 optional
+  attributes, plus `GENERATION_GROWTH_BENCHMARK` source-growth output.
+- Updated advisory performance, CI, traceability, and handoff docs without changing `qualityGate` or
+  adding hard performance claims.
+
+Evidence:
+- `./gradlew benchmarkSmoke --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
