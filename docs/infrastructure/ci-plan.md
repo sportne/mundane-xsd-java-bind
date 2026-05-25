@@ -67,6 +67,15 @@ The root `nativeConformance` aggregate currently covers:
 `nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes. `publicationDryRun` and
 `w3cXsd10Conformance` are opt-in evidence lanes and are not wired into `qualityGate`.
 
+Local Native Image evidence uses SDKMAN GraalVM:
+
+```bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain
+```
+
+The GitHub workflow uses `graalvm/setup-graalvm`; it does not depend on SDKMAN.
+
 `TASK-0046` confirms the hardening lanes above are evidence lanes, not new required default gates.
 Future CI changes for real publication, broader external suites, or benchmark thresholds require a
 new accepted task and must not be inferred from the `0.6.0` readiness closeout.

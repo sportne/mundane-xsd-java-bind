@@ -11,6 +11,12 @@ Native Image compatibility is a first-class acceptance criterion, not a release 
 - Resource access must be explicit and bounded.
 - Optional adapters that need metadata must declare it and remain outside generated-runtime requirements.
 - Native Image checks must start as soon as there is meaningful executable runtime or generated binding behavior; generated sample bindings expand that lane rather than introduce it for the first time.
+- Local Native Image evidence should be gathered with SDKMAN GraalVM by sourcing
+  `$HOME/.sdkman/bin/sdkman-init.sh` before running Gradle, so Gradle can discover
+  `native-image` from the active GraalVM candidate.
+- Experimental resource flags in native test lanes must be documented and limited to fixture or JDK
+  XML message resources; they are not license to add reflection, proxy, or classpath scanning
+  behavior to generated/runtime code.
 
 ## Native test stages
 

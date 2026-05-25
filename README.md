@@ -72,13 +72,15 @@ rows.
 Native Image and publication dry-run lanes are explicit opt-in evidence commands:
 
 ```bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
 ./gradlew nativeSmoke
 ./gradlew nativeConformance
 ./gradlew -Pmxjb.version=1.0.0 publicationDryRun
 ./gradlew releaseConsumerSmoke
 ```
 
-`nativeSmoke` and `nativeConformance` require `native-image` on `PATH`.
+`nativeSmoke` and `nativeConformance` require GraalVM `native-image`; this repository's local
+evidence uses SDKMAN GraalVM, so source SDKMAN before running the native Gradle lanes.
 `releaseConsumerSmoke` validates the GitHub Release Maven-layout asset path locally; it does not
 publish to Maven Central, sign artifacts, or contact a package registry.
 

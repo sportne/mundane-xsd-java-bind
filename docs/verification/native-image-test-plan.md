@@ -29,9 +29,8 @@ Native Image checks are not part of the default `qualityGate` because they requi
 Run the representative Native Image smoke lane with GraalVM native-image available:
 
 ```bash
-JAVA_HOME=$HOME/.sdkman/candidates/java/21.0.2-graalce \
-PATH=$HOME/.sdkman/candidates/java/21.0.2-graalce/bin:$PATH \
-./gradlew nativeSmoke --console=plain
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+./gradlew validateDesignControlPack nativeSmoke --console=plain
 ```
 
 The `nativeSmoke` aggregate depends on runtime-core native tests, runtime-jdkxml native tests,
@@ -53,9 +52,8 @@ If `native-image` is not on `PATH` and `JAVA_HOME` does not point to a GraalVM i
 Run the selected Native Image conformance lane with GraalVM native-image available:
 
 ```bash
-JAVA_HOME=$HOME/.sdkman/candidates/java/21.0.2-graalce \
-PATH=$HOME/.sdkman/candidates/java/21.0.2-graalce/bin:$PATH \
-./gradlew nativeConformance --console=plain
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+./gradlew validateDesignControlPack nativeConformance --console=plain
 ```
 
 The `nativeConformance` aggregate depends on
@@ -73,6 +71,17 @@ GraalVM Native Image workflow.
 If `native-image` is unavailable locally, `:modules:conformance-tests:checkNativeConformanceToolchain`
 fails before attempting native compilation with the same concrete toolchain message as the
 generated-code smoke lane.
+
+For post-`1.0.0` local evidence, `TASK-0076` uses the combined SDKMAN GraalVM command:
+
+```bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain
+```
+
+`docs/verification/native-image-sustainability-review.md` records why the generated and runtime
+paths remain Native Image friendly, which resource flags are native-lane-only, and which GraalVM
+warnings should be watched in future toolchain maintenance.
 
 ## Failure policy
 

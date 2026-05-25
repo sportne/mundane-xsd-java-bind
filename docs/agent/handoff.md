@@ -83,11 +83,11 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 70. `TASK-0070`: Expand W3C generated-binding coverage. Completed and accepted.
 71. `TASK-0071`: Review generation and generated-code performance. Completed and accepted.
 72. `TASK-0072`: Validate release artifact consumption from a clean downstream project. Completed and accepted.
-73. `TASK-0073`: Review XML security posture across every parser and generated-validation path. Next implementation gate.
-74. `TASK-0074`: Review diagnostics and user ergonomics. Draft.
-75. `TASK-0075`: Review naming, customization, and generated-source collision behavior. Draft.
-76. `TASK-0076`: Review GraalVM Native Image sustainability. Draft.
-77. `TASK-0077`: Simplify post-1.0.0 user-facing documentation. Draft.
+73. `TASK-0073`: Review XML security posture across every parser and generated-validation path. Completed and accepted.
+74. `TASK-0074`: Review diagnostics and user ergonomics. Completed and accepted.
+75. `TASK-0075`: Review naming, customization, and generated-source collision behavior. Completed and accepted.
+76. `TASK-0076`: Review GraalVM Native Image sustainability. Completed and accepted.
+77. `TASK-0077`: Simplify post-1.0.0 user-facing documentation. Next implementation gate.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -250,14 +250,13 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0073` | post-1.0.0 reflection | accepted | Review XML security posture across every parser and generated-validation path. |
 | `TASK-0074` | post-1.0.0 reflection | accepted | Review diagnostics and user ergonomics. |
 | `TASK-0075` | post-1.0.0 reflection | accepted | Review naming, customization, and generated-source collision behavior. |
-| `TASK-0076` | post-1.0.0 reflection | next | Review GraalVM Native Image sustainability. |
-| `TASK-0077` | post-1.0.0 reflection | draft | Simplify post-1.0.0 user-facing documentation. |
+| `TASK-0076` | post-1.0.0 reflection | accepted | Review GraalVM Native Image sustainability. |
+| `TASK-0077` | post-1.0.0 reflection | next | Simplify post-1.0.0 user-facing documentation. |
 
 ## Current implementation gate
 
-`TASK-0076` is the next implementation gate. It should review GraalVM Native Image sustainability,
-run SDKMAN GraalVM native lanes, and document setup without changing native support claims beyond
-the evidence.
+`TASK-0077` is the next implementation gate. It should simplify post-1.0.0 user-facing
+documentation while preserving evidence depth and avoiding broader support claims.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -291,6 +290,11 @@ actions where the surface can provide one.
 same-package duplicate local type suffixing, Java keyword field escaping, existing duplicate-root
 helper collision diagnostics, and clearer invalid Java package customization guidance without adding
 new customization syntax.
+`TASK-0076` accepted Native Image sustainability documentation. Local native evidence uses SDKMAN
+GraalVM via `source "$HOME/.sdkman/bin/sdkman-init.sh"` and the combined
+`validateDesignControlPack nativeSmoke nativeConformance` lane. The review documents static-source
+generated bindings, runtime/native coverage, selected conformance resource flags, CI behavior, and
+known experimental Native Image warnings without changing build tasks or support claims.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,
