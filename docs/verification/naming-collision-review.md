@@ -17,3 +17,9 @@ keeps customization limited to the existing default-package and namespace-packag
 adds generated-source naming stress coverage for dynamic `xsi:type` branch naming, substitution
 branch naming, grouped content branch names, and retained wildcard content/attribute names without
 adding new customization APIs.
+
+`TASK-0085` moves deterministic package/type/field allocation into package-private
+`BindingNameAllocator`, with focused tests for duplicate local type names, inline/generated
+type-name collisions, package mapping, and Java field collisions. Grouped and mixed content-list
+branch naming now lives in package-private `BindingContentPlanner`, with tests that preserve branch
+order, wildcard XML names, and grouped-position metadata.

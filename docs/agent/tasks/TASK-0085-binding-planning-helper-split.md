@@ -1,6 +1,6 @@
 # TASK-0085: binding-planning-helper-split
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0085`
 Priority: P2
@@ -27,3 +27,22 @@ Commands to run: `./gradlew :modules:generator-core:check --console=plain`,
 Acceptance criteria: package-private naming/content helpers exist; existing binding and generated
 source behavior remains unchanged; no new customization API or support claim is added.
 Rollback notes: revert helper extraction, focused tests, and docs.
+
+Completion notes:
+- Extracted package-private `BindingNameAllocator` from `BindingModelBuilder` to own Java package
+  derivation, type-name suffix allocation, field-name collision helpers, and binding configuration
+  diagnostics.
+- Extracted package-private `BindingContentPlanner` to own mixed/grouped content-list field
+  planning, branch ordering, grouped-position metadata, wildcard branch metadata, and composed
+  branch cardinality helpers.
+- Kept `BindingModelBuilder` responsible for schema indexing, global declaration lookup,
+  type-reference binding, substitution/dynamic branch semantics, validation-plan text, and public
+  `BindingModel` shape.
+- Added focused allocator/planner tests for duplicate local names, inline/generated type-name
+  collisions, package mapping, field collisions, grouped content positions, wildcard branch
+  metadata, and mixed-content branch planning.
+
+Evidence:
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

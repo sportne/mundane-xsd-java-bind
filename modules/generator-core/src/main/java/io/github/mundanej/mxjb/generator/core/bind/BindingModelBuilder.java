@@ -22,17 +22,13 @@ import io.github.mundanej.mxjb.generator.core.schema.SchemaIrTypeReference;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrValueSemantics;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcard;
 import io.github.mundanej.mxjb.generator.core.schema.SchemaQName;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -61,7 +57,6 @@ public final class BindingModelBuilder {
   }
 
   private static final class BuildState {
-    private final BindingConfiguration configuration;
     private final Map<SchemaQName, SchemaIrElement> globalElements = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrAttribute> globalAttributes = new LinkedHashMap<>();
     private final Map<SchemaQName, SchemaIrComplexType> complexTypes = new LinkedHashMap<>();
@@ -71,32 +66,23 @@ public final class BindingModelBuilder {
     private final Map<SchemaQName, BindingJavaName> complexTypeNames = new LinkedHashMap<>();
     private final IdentityHashMap<SchemaIrComplexType, BindingJavaName> inlineComplexTypeNames =
         new IdentityHashMap<>();
-    private final Map<String, Set<String>> usedTypeNamesByPackage = new HashMap<>();
     private final List<SchemaDiagnostic> diagnostics = new ArrayList<>();
+    private final BindingNameAllocator names;
+    private final BindingContentPlanner contentPlanner;
 
     private BuildState(BindingConfiguration configuration) {
-      this.configuration = configuration;
+      this.names = new BindingNameAllocator(configuration);
+      this.contentPlanner =
+          new BindingContentPlanner(
+              names,
+              element -> globalElements.get(element.name()),
+              this::bindTypeReference,
+              this::knownWildcardElements,
+              this::unsupportedGroupedContent);
     }
 
     private void validateConfiguration() {
-      if (!JavaNames.isPackageName(configuration.defaultPackage())) {
-        diagnostic(
-            DiagnosticCode.SCHEMA_BINDING_INVALID_CONFIGURATION,
-            "binding",
-            "Invalid default package "
-                + configuration.defaultPackage()
-                + ". Use Java package syntax, for example com.example.generated.");
-      }
-      for (String packageName : configuration.namespacePackages().values()) {
-        if (!JavaNames.isPackageName(packageName)) {
-          diagnostic(
-              DiagnosticCode.SCHEMA_BINDING_INVALID_CONFIGURATION,
-              "binding",
-              "Invalid namespace package "
-                  + packageName
-                  + ". Use Java package syntax, for example com.example.generated.");
-        }
-      }
+      diagnostics.addAll(names.validateConfiguration());
     }
 
     private BindingModel buildModel(SchemaIrModel model) {
@@ -123,7 +109,7 @@ public final class BindingModelBuilder {
         substitutionGroups.put(substitutionGroup.head(), substitutionGroup);
       }
       for (SchemaIrComplexType complexType : model.complexTypes()) {
-        complexTypeNames.put(complexType.name(), javaName(complexType.name()));
+        complexTypeNames.put(complexType.name(), names.javaName(complexType.name()));
       }
       for (SchemaIrComplexType complexType : model.complexTypes()) {
         allocateInlineTypeNames(complexType);
@@ -143,7 +129,7 @@ public final class BindingModelBuilder {
         if (inlineComplexType == null) {
           continue;
         }
-        inlineComplexTypeNames.put(inlineComplexType, javaName(element.name()));
+        inlineComplexTypeNames.put(inlineComplexType, names.javaName(element.name()));
         for (SchemaIrSequence sequence : inlineComplexType.sequences()) {
           allocateInlineTypeNames(sequence.elements());
         }
@@ -191,7 +177,8 @@ public final class BindingModelBuilder {
         fields.add(field);
         validationRules.add("simpleContent " + field.javaName());
       } else if (complexType.mixed()) {
-        BindingField field = bindContentField(complexType, javaName, usedFieldNames, order);
+        BindingField field =
+            contentPlanner.mixedContentField(complexType, javaName, usedFieldNames, order);
         fields.add(field);
         validationRules.add("content " + field.javaName() + " " + field.cardinality().toText());
       } else {
@@ -208,7 +195,7 @@ public final class BindingModelBuilder {
               BindingField field =
                   choice.wildcardBranches().isEmpty()
                       ? bindChoiceField(complexType, javaName, choice, usedFieldNames, order)
-                      : bindGroupedContentField(
+                      : contentPlanner.groupedContentField(
                           complexType,
                           javaName,
                           "choice",
@@ -227,7 +214,7 @@ public final class BindingModelBuilder {
             } else if (particle instanceof SchemaIrAll all) {
               if (requiresGroupedAll(all)) {
                 BindingField field =
-                    bindGroupedContentField(
+                    contentPlanner.groupedContentField(
                         complexType,
                         javaName,
                         "all",
@@ -250,7 +237,7 @@ public final class BindingModelBuilder {
               }
             } else if (particle instanceof SchemaIrGroup group) {
               BindingField field =
-                  bindGroupedContentField(
+                  contentPlanner.groupedContentField(
                       complexType,
                       javaName,
                       group.modelKind(),
@@ -288,7 +275,7 @@ public final class BindingModelBuilder {
         cardinality = effectiveAttributeCardinality(cardinality, semantics);
         validateListSimpleTypeCardinality(bindingType, cardinality, attribute.name());
         validateValueSemantics("attribute", attribute.name(), bindingType, cardinality, semantics);
-        String fieldName = JavaNames.uniqueFieldName(attribute.name(), usedFieldNames);
+        String fieldName = names.uniqueFieldName(attribute.name(), usedFieldNames);
         boolean required = "required".equals(attribute.use());
         fields.add(
             new BindingField(
@@ -330,7 +317,7 @@ public final class BindingModelBuilder {
       return new BindingField(
           "simpleContent",
           new SchemaQName("", "#text"),
-          JavaNames.unique("value", usedFieldNames),
+          names.unique("value", usedFieldNames),
           type,
           new BindingCardinality("required", 1, "1"),
           0,
@@ -341,7 +328,7 @@ public final class BindingModelBuilder {
         SchemaIrAnyAttribute anyAttribute,
         List<SchemaQName> prohibitedAttributes,
         Set<String> usedFieldNames) {
-      String fieldName = JavaNames.unique("wildcardAttributes", usedFieldNames);
+      String fieldName = names.unique("wildcardAttributes", usedFieldNames);
       return new BindingField(
           "anyAttribute",
           new SchemaQName("", "@*"),
@@ -378,7 +365,7 @@ public final class BindingModelBuilder {
       BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
       validateListSimpleTypeCardinality(bindingType, cardinality, element.name());
       validateValueSemantics("element", element.name(), bindingType, cardinality, semantics);
-      String fieldName = JavaNames.uniqueFieldName(element.name(), usedFieldNames);
+      String fieldName = names.uniqueFieldName(element.name(), usedFieldNames);
       boolean required = cardinality.minOccurs() > 0;
       return new BindingField(
           "element",
@@ -414,9 +401,9 @@ public final class BindingModelBuilder {
         return null;
       }
       BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
-      String packageName = javaName(element.name()).packageName();
+      String packageName = names.javaName(element.name()).packageName();
       String dynamicSimpleName =
-          uniqueTypeName(packageName, JavaNames.typeName(element.name()) + "DynamicType");
+          names.uniqueTypeName(packageName, names.typeName(element.name()) + "DynamicType");
       BindingJavaName dynamicName = new BindingJavaName(packageName, dynamicSimpleName);
       Set<String> branchNames = new HashSet<>();
       List<BindingChoiceBranch> branches = new ArrayList<>();
@@ -437,7 +424,7 @@ public final class BindingModelBuilder {
                 + " without legal concrete xsi:type candidates.");
       }
       BindingChoice choice = new BindingChoice(dynamicName, branches, "xsiType");
-      String fieldName = JavaNames.unique(JavaNames.fieldName(element.name()), usedFieldNames);
+      String fieldName = names.unique(names.fieldName(element.name()), usedFieldNames);
       return new BindingField(
           "choice",
           element.name(),
@@ -457,9 +444,9 @@ public final class BindingModelBuilder {
         boolean defaultDynamicType) {
       BindingJavaName modelName = complexTypeNames.get(type.name());
       BindingTypeReference bindingType = BindingTypeReference.model(modelName);
-      String branchFieldName = JavaNames.uniqueFieldName(type.name(), branchNames);
+      String branchFieldName = names.uniqueFieldName(type.name(), branchNames);
       String branchSimpleName =
-          uniqueTypeName(packageName, JavaNames.typeName(type.name()) + "DynamicTypeBranch");
+          names.uniqueTypeName(packageName, names.typeName(type.name()) + "DynamicTypeBranch");
       return new BindingChoiceBranch(
           element.name(),
           branchFieldName,
@@ -512,338 +499,16 @@ public final class BindingModelBuilder {
       return false;
     }
 
-    private BindingField bindContentField(
-        SchemaIrComplexType complexType,
-        BindingJavaName ownerName,
-        Set<String> usedFieldNames,
-        int order) {
-      String packageName = ownerName.packageName();
-      String contentSimpleName = uniqueTypeName(packageName, ownerName.simpleName() + "Content");
-      BindingJavaName contentName = new BindingJavaName(packageName, contentSimpleName);
-      Set<String> branchNames = new HashSet<>();
-      List<BindingContentBranch> branches = new ArrayList<>();
-      List<BindingContentGroup> groups = new ArrayList<>();
-      branches.add(
-          new BindingContentBranch(
-              "text",
-              new SchemaQName("", "#text"),
-              "text",
-              BindingTypeReference.scalar("string"),
-              new BindingJavaName(
-                  packageName, uniqueTypeName(packageName, ownerName.simpleName() + "TextContent")),
-              new BindingCardinality("list", 0, "unbounded"),
-              0,
-              null));
-      int branchOrder = 1;
-      for (SchemaIrSequence sequence : complexType.sequences()) {
-        for (SchemaIrParticle particle : sequence.particles()) {
-          branchOrder =
-              addContentBranches(
-                  particle,
-                  packageName,
-                  ownerName.simpleName(),
-                  branchNames,
-                  branches,
-                  groups,
-                  branchOrder);
-          branchOrder++;
-        }
-      }
-      String fieldName = JavaNames.unique("content", usedFieldNames);
-      return new BindingField(
-          "content",
-          complexType.name() == null ? new SchemaQName("", fieldName) : complexType.name(),
-          fieldName,
-          BindingTypeReference.choice(contentName),
-          new BindingCardinality("list", 0, "unbounded"),
-          order,
-          false,
-          new BindingContent(contentName, branches, "mixed content", groups));
-    }
-
-    private BindingField bindGroupedContentField(
-        SchemaIrComplexType complexType,
-        BindingJavaName ownerName,
-        String modelKind,
-        SchemaCardinality cardinality,
-        List<SchemaIrParticle> particles,
-        Set<String> usedFieldNames,
-        int order) {
-      String packageName = ownerName.packageName();
-      String contentSimpleName =
-          uniqueTypeName(
-              packageName, ownerName.simpleName() + JavaNames.capitalize(modelKind) + "Content");
-      BindingJavaName contentName = new BindingJavaName(packageName, contentSimpleName);
-      Set<String> branchNames = new HashSet<>();
-      List<BindingContentBranch> branches = new ArrayList<>();
-      List<BindingContentGroup> groups = new ArrayList<>();
-      int branchOrder = 1;
-      for (SchemaIrParticle particle : particles) {
-        branchOrder =
-            addContentBranches(
-                particle,
-                packageName,
-                ownerName.simpleName(),
-                branchNames,
-                branches,
-                groups,
-                branchOrder);
-        branchOrder++;
-      }
-      String fieldName =
-          JavaNames.unique(JavaNames.fieldNameFromTypeName(contentSimpleName), usedFieldNames);
-      return new BindingField(
-          "content",
-          complexType.name() == null ? new SchemaQName("", fieldName) : complexType.name(),
-          fieldName,
-          BindingTypeReference.choice(contentName),
-          new BindingCardinality("list", cardinality.minOccurs(), cardinality.maxOccurs()),
-          order,
-          cardinality.minOccurs() > 0,
-          new BindingContent(
-              contentName,
-              branches,
-              modelKind,
-              groups.isEmpty()
-                  ? List.of(
-                      new BindingContentGroup(
-                          modelKind,
-                          new BindingCardinality(
-                              "list", cardinality.minOccurs(), cardinality.maxOccurs()),
-                          branches))
-                  : groups));
-    }
-
-    private int addContentBranches(
-        SchemaIrParticle particle,
-        String packageName,
-        String ownerSimpleName,
-        Set<String> branchNames,
-        List<BindingContentBranch> branches,
-        List<BindingContentGroup> groups,
-        int branchOrder) {
-      if (particle instanceof SchemaIrElement element) {
-        branches.add(bindElementContentBranch(element, packageName, branchNames, branchOrder));
-        return branchOrder;
-      }
-      if (particle instanceof SchemaIrWildcard wildcard) {
-        branches.add(
-            bindWildcardContentBranch(
-                wildcard, packageName, ownerSimpleName, branchNames, branchOrder));
-        return branchOrder;
-      }
-      if (particle instanceof SchemaIrChoice choice) {
-        List<BindingContentBranch> groupBranches = new ArrayList<>();
-        for (SchemaIrParticle branch : choice.branches()) {
-          int beforeSize = branches.size();
-          addContentBranches(
-              withChoiceBranchCardinality(branch, choice.cardinality()),
-              packageName,
-              ownerSimpleName,
-              branchNames,
-              branches,
-              groups,
-              branchOrder);
-          groupBranches.addAll(branches.subList(beforeSize, branches.size()));
-        }
-        groups.add(
-            new BindingContentGroup(
-                "choice",
-                new BindingCardinality(
-                    "list", choice.cardinality().minOccurs(), choice.cardinality().maxOccurs()),
-                groupBranches,
-                List.of(
-                    new BindingContentPosition(
-                        new BindingCardinality(
-                            "list",
-                            choice.cardinality().minOccurs(),
-                            choice.cardinality().maxOccurs()),
-                        groupBranches))));
-        return branchOrder;
-      }
-      if (particle instanceof SchemaIrAll all) {
-        List<BindingContentBranch> groupBranches = new ArrayList<>();
-        List<BindingContentPosition> groupPositions = new ArrayList<>();
-        for (SchemaIrElement element : all.elements()) {
-          BindingContentBranch branch =
-              bindElementContentBranch(
-                  withElementCardinality(element, SchemaCardinality.ONE),
-                  packageName,
-                  branchNames,
-                  branchOrder);
-          branches.add(branch);
-          groupBranches.add(branch);
-          groupPositions.add(new BindingContentPosition(branch.cardinality(), List.of(branch)));
-          branchOrder++;
-        }
-        groups.add(
-            new BindingContentGroup(
-                "all",
-                new BindingCardinality(
-                    "list", all.cardinality().minOccurs(), all.cardinality().maxOccurs()),
-                groupBranches,
-                groupPositions));
-        return branchOrder - 1;
-      }
-      if (particle instanceof SchemaIrGroup group) {
-        List<BindingContentBranch> groupBranches = new ArrayList<>();
-        List<BindingContentPosition> groupPositions = new ArrayList<>();
-        for (SchemaIrParticle nested : group.particles()) {
-          if (nested instanceof SchemaIrChoice choice) {
-            List<BindingContentBranch> positionBranches = new ArrayList<>();
-            BindingCardinality positionCardinality = BindingCardinality.from(choice.cardinality());
-            SchemaCardinality effectiveChoiceCardinality =
-                composeCardinality(group.cardinality(), choice.cardinality());
-            for (SchemaIrParticle choiceBranch : choice.branches()) {
-              int beforeSize = branches.size();
-              addContentBranches(
-                  withChoiceBranchCardinality(choiceBranch, effectiveChoiceCardinality),
-                  packageName,
-                  ownerSimpleName,
-                  branchNames,
-                  branches,
-                  groups,
-                  branchOrder);
-              positionBranches.addAll(branches.subList(beforeSize, branches.size()));
-            }
-            groupBranches.addAll(positionBranches);
-            groupPositions.add(new BindingContentPosition(positionCardinality, positionBranches));
-            branchOrder++;
-            continue;
-          }
-          int beforeSize = branches.size();
-          branchOrder =
-              addContentBranches(
-                  nested, packageName, ownerSimpleName, branchNames, branches, groups, branchOrder);
-          List<BindingContentBranch> positionBranches =
-              new ArrayList<>(branches.subList(beforeSize, branches.size()));
-          groupBranches.addAll(positionBranches);
-          groupPositions.add(
-              new BindingContentPosition(positionCardinality(nested), positionBranches));
-          branchOrder++;
-        }
-        groups.add(
-            new BindingContentGroup(
-                group.modelKind(),
-                new BindingCardinality(
-                    "list", group.cardinality().minOccurs(), group.cardinality().maxOccurs()),
-                groupBranches,
-                groupPositions));
-        return branchOrder - 1;
-      }
+    private void unsupportedGroupedContent() {
       diagnostic(
           DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
           "binding",
           "Unsupported schema particle in grouped content binding.");
-      return branchOrder;
-    }
-
-    private SchemaIrParticle withChoiceBranchCardinality(
-        SchemaIrParticle particle, SchemaCardinality cardinality) {
-      SchemaCardinality effective = new SchemaCardinality(0, cardinality.maxOccurs());
-      return withBranchCardinality(particle, effective);
-    }
-
-    private BindingCardinality positionCardinality(SchemaIrParticle particle) {
-      if (particle instanceof SchemaIrElement element) {
-        return BindingCardinality.from(element.cardinality());
-      }
-      if (particle instanceof SchemaIrWildcard wildcard) {
-        return BindingCardinality.from(wildcard.cardinality());
-      }
-      if (particle instanceof SchemaIrChoice choice) {
-        return BindingCardinality.from(choice.cardinality());
-      }
-      if (particle instanceof SchemaIrAll all) {
-        return BindingCardinality.from(all.cardinality());
-      }
-      if (particle instanceof SchemaIrGroup group) {
-        return BindingCardinality.from(group.cardinality());
-      }
-      return new BindingCardinality("required", 1, "1");
-    }
-
-    private SchemaIrParticle withBranchCardinality(
-        SchemaIrParticle particle, SchemaCardinality cardinality) {
-      if (particle instanceof SchemaIrElement element) {
-        return withElementCardinality(element, cardinality);
-      }
-      if (particle instanceof SchemaIrWildcard wildcard) {
-        return new SchemaIrWildcard(
-            composeCardinality(cardinality, wildcard.cardinality()),
-            wildcard.namespaceConstraint(),
-            wildcard.processContents());
-      }
-      if (particle instanceof SchemaIrChoice choice) {
-        return new SchemaIrChoice(
-            composeCardinality(cardinality, choice.cardinality()), choice.branches());
-      }
-      return particle;
-    }
-
-    private SchemaIrElement withElementCardinality(
-        SchemaIrElement element, SchemaCardinality cardinality) {
-      return new SchemaIrElement(
-          element.name(),
-          element.type(),
-          composeCardinality(cardinality, element.cardinality()),
-          element.inlineComplexType(),
-          element.semantics(),
-          element.substitutionGroup(),
-          element.abstractElement(),
-          element.blockControls(),
-          element.identityConstraints(),
-          element.reference());
-    }
-
-    private BindingContentBranch bindElementContentBranch(
-        SchemaIrElement element, String packageName, Set<String> branchNames, int order) {
-      SchemaIrElement declaration =
-          element.reference() ? globalElements.get(element.name()) : element;
-      SchemaIrTypeReference type = declaration == null ? element.type() : declaration.type();
-      BindingTypeReference bindingType = bindTypeReference(type, declaration, element.name());
-      String branchFieldName = JavaNames.uniqueFieldName(element.name(), branchNames);
-      String branchSimpleName =
-          uniqueTypeName(packageName, JavaNames.typeName(element.name()) + "Content");
-      return new BindingContentBranch(
-          "element",
-          element.name(),
-          branchFieldName,
-          bindingType,
-          new BindingJavaName(packageName, branchSimpleName),
-          BindingCardinality.from(element.cardinality()),
-          order,
-          null);
-    }
-
-    private BindingContentBranch bindWildcardContentBranch(
-        SchemaIrWildcard wildcard,
-        String packageName,
-        String ownerSimpleName,
-        Set<String> branchNames,
-        int order) {
-      String branchFieldName = JavaNames.unique("wildcardContent", branchNames);
-      String branchSimpleName = uniqueTypeName(packageName, ownerSimpleName + "WildcardContent");
-      return new BindingContentBranch(
-          "wildcard",
-          new SchemaQName("", "*"),
-          branchFieldName,
-          BindingTypeReference.fragment(),
-          new BindingJavaName(packageName, branchSimpleName),
-          new BindingCardinality(
-              "list", wildcard.cardinality().minOccurs(), wildcard.cardinality().maxOccurs()),
-          order,
-          new BindingWildcard(
-              wildcard.namespaceConstraint(),
-              wildcard.processContents(),
-              List.of(),
-              knownWildcardElements(wildcard.namespaceConstraint()),
-              List.of()));
     }
 
     private BindingField bindWildcardField(
         SchemaIrWildcard wildcard, Set<String> usedFieldNames, int order) {
-      String fieldName = JavaNames.unique("wildcardContent", usedFieldNames);
+      String fieldName = names.unique("wildcardContent", usedFieldNames);
       BindingCardinality cardinality =
           new BindingCardinality(
               "list", wildcard.cardinality().minOccurs(), wildcard.cardinality().maxOccurs());
@@ -905,18 +570,18 @@ public final class BindingModelBuilder {
         Set<String> usedFieldNames,
         int order) {
       BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
-      String packageName = javaName(element.name()).packageName();
+      String packageName = names.javaName(element.name()).packageName();
       String substitutionSimpleName =
-          uniqueTypeName(packageName, JavaNames.typeName(element.name()) + "Substitution");
+          names.uniqueTypeName(packageName, names.typeName(element.name()) + "Substitution");
       BindingJavaName substitutionName = new BindingJavaName(packageName, substitutionSimpleName);
       Set<String> branchNames = new HashSet<>();
       List<BindingChoiceBranch> branches = new ArrayList<>();
       for (SchemaIrElement branch : substitutionGroup.branches()) {
         validateSubstitutionBranch(branch);
         BindingTypeReference bindingType = bindTypeReference(branch.type(), branch, branch.name());
-        String branchFieldName = JavaNames.uniqueFieldName(branch.name(), branchNames);
+        String branchFieldName = names.uniqueFieldName(branch.name(), branchNames);
         String branchSimpleName =
-            uniqueTypeName(packageName, JavaNames.typeName(branch.name()) + "SubstitutionBranch");
+            names.uniqueTypeName(packageName, names.typeName(branch.name()) + "SubstitutionBranch");
         branches.add(
             new BindingChoiceBranch(
                 branch.name(),
@@ -931,7 +596,7 @@ public final class BindingModelBuilder {
             "Substitution group head " + element.name().toText() + " has no concrete branches.");
       }
       BindingChoice bindingChoice = new BindingChoice(substitutionName, branches, "substitution");
-      String fieldName = JavaNames.unique(JavaNames.fieldName(element.name()), usedFieldNames);
+      String fieldName = names.unique(names.fieldName(element.name()), usedFieldNames);
       boolean required = cardinality.minOccurs() > 0;
       return new BindingField(
           "choice",
@@ -974,7 +639,8 @@ public final class BindingModelBuilder {
         Set<String> usedFieldNames,
         int order) {
       String packageName = ownerName.packageName();
-      String choiceSimpleName = uniqueTypeName(packageName, ownerName.simpleName() + "Choice");
+      String choiceSimpleName =
+          names.uniqueTypeName(packageName, ownerName.simpleName() + "Choice");
       BindingJavaName choiceName = new BindingJavaName(packageName, choiceSimpleName);
       Set<String> branchNames = new HashSet<>();
       List<BindingChoiceBranch> branches = new ArrayList<>();
@@ -983,9 +649,9 @@ public final class BindingModelBuilder {
             branch.reference() ? globalElements.get(branch.name()) : branch;
         SchemaIrTypeReference type = declaration == null ? branch.type() : declaration.type();
         BindingTypeReference bindingType = bindTypeReference(type, declaration, branch.name());
-        String branchFieldName = JavaNames.uniqueFieldName(branch.name(), branchNames);
+        String branchFieldName = names.uniqueFieldName(branch.name(), branchNames);
         String branchSimpleName =
-            uniqueTypeName(packageName, JavaNames.typeName(branch.name()) + "Choice");
+            names.uniqueTypeName(packageName, names.typeName(branch.name()) + "Choice");
         branches.add(
             new BindingChoiceBranch(
                 branch.name(),
@@ -995,8 +661,8 @@ public final class BindingModelBuilder {
       }
       BindingChoice bindingChoice = new BindingChoice(choiceName, branches);
       BindingCardinality cardinality = BindingCardinality.from(choice.cardinality());
-      String baseFieldName = JavaNames.fieldNameFromTypeName(choiceSimpleName);
-      String fieldName = JavaNames.unique(baseFieldName, usedFieldNames);
+      String baseFieldName = names.fieldNameFromTypeName(choiceSimpleName);
+      String fieldName = names.unique(baseFieldName, usedFieldNames);
       boolean required = cardinality.minOccurs() > 0;
       return new BindingField(
           "choice",
@@ -1206,18 +872,6 @@ public final class BindingModelBuilder {
       return cardinality;
     }
 
-    private SchemaCardinality composeCardinality(SchemaCardinality outer, SchemaCardinality inner) {
-      return new SchemaCardinality(
-          outer.minOccurs() * inner.minOccurs(), multiplyMax(outer.maxOccurs(), inner.maxOccurs()));
-    }
-
-    private String multiplyMax(String left, String right) {
-      if ("unbounded".equals(left) || "unbounded".equals(right)) {
-        return "unbounded";
-      }
-      return Integer.toString(Integer.parseInt(left) * Integer.parseInt(right));
-    }
-
     private void validateValueSemantics(
         String kind,
         SchemaQName name,
@@ -1330,54 +984,6 @@ public final class BindingModelBuilder {
       return new BindingCardinality("optional", 0, "1");
     }
 
-    private BindingJavaName javaName(SchemaQName schemaName) {
-      String packageName = packageName(schemaName.namespace());
-      Set<String> usedTypeNames =
-          usedTypeNamesByPackage.computeIfAbsent(packageName, ignored -> new HashSet<>());
-      String simpleName = JavaNames.uniqueTypeName(schemaName, usedTypeNames);
-      return new BindingJavaName(packageName, simpleName);
-    }
-
-    private String uniqueTypeName(String packageName, String baseName) {
-      Set<String> usedTypeNames =
-          usedTypeNamesByPackage.computeIfAbsent(packageName, ignored -> new HashSet<>());
-      return JavaNames.unique(JavaNames.sanitizeIdentifier(baseName, true), usedTypeNames);
-    }
-
-    private String packageName(String namespace) {
-      String override = configuration.namespacePackages().get(namespace);
-      if (override != null) {
-        return override;
-      }
-      if (namespace == null || namespace.isBlank()) {
-        return configuration.defaultPackage();
-      }
-      if (namespace.startsWith("urn:")) {
-        List<String> tokens = JavaNames.packageTokens(namespace.substring("urn:".length()));
-        return tokens.isEmpty()
-            ? configuration.defaultPackage()
-            : configuration.defaultPackage() + "." + String.join(".", tokens);
-      }
-      try {
-        URI uri = new URI(namespace);
-        if ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())) {
-          List<String> tokens = new ArrayList<>();
-          String host = uri.getHost();
-          if (host != null) {
-            List<String> parts = JavaNames.splitOnDot(host);
-            for (int index = parts.size() - 1; index >= 0; index--) {
-              tokens.addAll(JavaNames.packageTokens(parts.get(index)));
-            }
-          }
-          tokens.addAll(JavaNames.packageTokens(uri.getPath()));
-          return tokens.isEmpty() ? configuration.defaultPackage() : String.join(".", tokens);
-        }
-      } catch (URISyntaxException ignored) {
-        return configuration.defaultPackage();
-      }
-      return configuration.defaultPackage();
-    }
-
     private void diagnostic(DiagnosticCode code, String resource, String message) {
       diagnostics.add(new SchemaDiagnostic(code, resource, message));
     }
@@ -1389,187 +995,6 @@ public final class BindingModelBuilder {
                   .thenComparing(diagnostic -> diagnostic.code().name())
                   .thenComparing(SchemaDiagnostic::message))
           .toList();
-    }
-  }
-
-  private static final class JavaNames {
-    private static final Set<String> KEYWORDS =
-        Set.of(
-            "abstract",
-            "assert",
-            "boolean",
-            "break",
-            "byte",
-            "case",
-            "catch",
-            "char",
-            "class",
-            "const",
-            "continue",
-            "default",
-            "do",
-            "double",
-            "else",
-            "enum",
-            "extends",
-            "final",
-            "finally",
-            "float",
-            "for",
-            "goto",
-            "if",
-            "implements",
-            "import",
-            "instanceof",
-            "int",
-            "interface",
-            "long",
-            "native",
-            "new",
-            "package",
-            "private",
-            "protected",
-            "public",
-            "record",
-            "return",
-            "sealed",
-            "short",
-            "static",
-            "strictfp",
-            "super",
-            "switch",
-            "synchronized",
-            "this",
-            "throw",
-            "throws",
-            "transient",
-            "try",
-            "var",
-            "void",
-            "volatile",
-            "while",
-            "yield");
-
-    private static String uniqueTypeName(SchemaQName schemaName, Set<String> used) {
-      return unique(typeName(schemaName), used);
-    }
-
-    private static String uniqueFieldName(SchemaQName schemaName, Set<String> used) {
-      return unique(fieldName(schemaName), used);
-    }
-
-    private static String typeName(SchemaQName schemaName) {
-      return sanitizeIdentifier(upperCamel(tokens(schemaName.localName())), true);
-    }
-
-    private static String fieldName(SchemaQName schemaName) {
-      return sanitizeIdentifier(lowerCamel(tokens(schemaName.localName())), false);
-    }
-
-    private static String fieldNameFromTypeName(String typeName) {
-      if (typeName == null || typeName.isBlank()) {
-        return "value";
-      }
-      return sanitizeIdentifier(
-          typeName.substring(0, 1).toLowerCase(Locale.ROOT) + typeName.substring(1), false);
-    }
-
-    private static String unique(String base, Set<String> used) {
-      String candidate = base;
-      int suffix = 2;
-      while (!used.add(candidate)) {
-        candidate = base + suffix;
-        suffix++;
-      }
-      return candidate;
-    }
-
-    private static boolean isPackageName(String value) {
-      if (value == null || value.isBlank()) {
-        return false;
-      }
-      for (String part : splitOnDot(value)) {
-        if (part.isEmpty() || !part.equals(sanitizeIdentifier(part, false))) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    private static List<String> packageTokens(String value) {
-      return tokens(value).stream()
-          .map(token -> sanitizeIdentifier(token.toLowerCase(Locale.ROOT), false))
-          .filter(token -> !token.isBlank())
-          .toList();
-    }
-
-    private static List<String> tokens(String value) {
-      List<String> result = new ArrayList<>();
-      StringBuilder token = new StringBuilder();
-      for (int index = 0; index < value.length(); index++) {
-        char character = value.charAt(index);
-        if (Character.isLetterOrDigit(character)) {
-          token.append(character);
-        } else if (!token.isEmpty()) {
-          result.add(token.toString());
-          token.setLength(0);
-        }
-      }
-      if (!token.isEmpty()) {
-        result.add(token.toString());
-      }
-      return result;
-    }
-
-    private static List<String> splitOnDot(String value) {
-      List<String> result = new ArrayList<>();
-      int start = 0;
-      for (int index = 0; index < value.length(); index++) {
-        if (value.charAt(index) == '.') {
-          result.add(value.substring(start, index));
-          start = index + 1;
-        }
-      }
-      result.add(value.substring(start));
-      return result;
-    }
-
-    private static String upperCamel(List<String> tokens) {
-      if (tokens.isEmpty()) {
-        return "Value";
-      }
-      return tokens.stream()
-          .map(JavaNames::capitalize)
-          .collect(java.util.stream.Collectors.joining());
-    }
-
-    private static String lowerCamel(List<String> tokens) {
-      String upper = upperCamel(tokens);
-      return Character.toLowerCase(upper.charAt(0)) + upper.substring(1);
-    }
-
-    private static String capitalize(String value) {
-      String lower = value.toLowerCase(Locale.ROOT);
-      return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
-    }
-
-    private static String sanitizeIdentifier(String value, boolean typeName) {
-      if (value == null || value.isBlank()) {
-        value = typeName ? "Value" : "value";
-      }
-      StringBuilder builder = new StringBuilder();
-      for (int index = 0; index < value.length(); index++) {
-        char character = value.charAt(index);
-        builder.append(Character.isLetterOrDigit(character) || character == '_' ? character : '_');
-      }
-      String sanitized = builder.toString();
-      if (!Character.isJavaIdentifierStart(sanitized.charAt(0))) {
-        sanitized = "_" + sanitized;
-      }
-      if (KEYWORDS.contains(sanitized)) {
-        sanitized = "_" + sanitized;
-      }
-      return sanitized;
     }
   }
 }

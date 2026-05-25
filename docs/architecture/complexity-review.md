@@ -11,7 +11,7 @@ The largest reviewed implementation surfaces are:
 | Surface | Approx. lines | Essential complexity | Accidental complexity |
 |---|---:|---|---|
 | `SchemaIrBuilder` + `SchemaIrNormalizationPolicy` | 3,266 before `TASK-0084` | XSD symbol spaces, profile gates, normalization, deterministic diagnostics. | `TASK-0084` extracts occurrence/cardinality, QName, cardinality-composition, and diagnostic ordering policy; resource-aware lookup, profile policy, component normalization, derivation flattening, wildcard composition, and identity paths remain future tranches. |
-| `BindingModelBuilder` | 1,571 | Java naming, product-scope binding shapes, validation plan construction. | Naming allocation, field collision handling, content-list binding, wildcard binding, dynamic branch binding, and validation metadata are intertwined. |
+| `BindingModelBuilder` + binding planners | 1,571 before `TASK-0085` | Java naming, product-scope binding shapes, validation plan construction. | `TASK-0085` extracts deterministic naming/package allocation and mixed/grouped content-list planning; substitution/dynamic branch binding, schema lookup, type-reference binding, and validation metadata remain future tranche candidates. |
 | `GeneratedReaderEmitter` | 2,430 | Generated source must be explicit, deterministic, reflection-free, and location-aware. | Source text assembly mixes traversal planning, state-machine decisions, diagnostic text, and Java formatting. |
 | `GeneratedValidatorEmitter` | 2,652 | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | Validation traversal planning and emitted Java snippets are difficult to inspect independently. |
 | `GeneratedWriterEmitter` | 934 | Deterministic XML output for generated and retained content. | Smaller than reader/validator but repeats scalar/content traversal ideas that are not named as plans. |
@@ -30,11 +30,15 @@ The largest reviewed implementation surfaces are:
      tests as behavior locks; no behavior changes in extraction tranches.
 
 2. Split binding naming from binding shape construction.
-   - Candidate boundary: package-private `BindingNameAllocator` and `BindingContentPlanner`.
-   - Leverage: `TASK-0075` collision work can target a named allocator instead of exercising the
-     whole binding builder for every edge.
-   - Test strategy: move existing deterministic name and package-mapping tests into allocator-level
-     tests before changing any output.
+   - `TASK-0085` extracts package-private `BindingNameAllocator` and `BindingContentPlanner`.
+   - `BindingNameAllocator` owns namespace-to-package derivation, type-name suffix allocation,
+     field-name collision helpers, and binding configuration diagnostics.
+   - `BindingContentPlanner` owns mixed/grouped content-list field planning, grouped branch
+     positions, wildcard branch metadata, and composed branch cardinality helpers.
+   - Remaining candidate boundaries: substitution branch planning, `xsi:type` dynamic branch
+     planning, type-reference binding, and validation-rule metadata.
+   - Test strategy: keep focused allocator/planner tests plus `BindingModelBuilderTest` and
+     generated-code smoke as behavior locks; no output changes are expected from this tranche.
 
 3. Introduce emitter planning objects before text emission.
    - Candidate boundary: reader, writer, and validator plans that describe fields, content

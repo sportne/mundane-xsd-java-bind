@@ -92,8 +92,11 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 79. `TASK-0079`: Harden remaining conformance SchemaFactory helpers. Completed and accepted.
 80. `TASK-0080`: Expand W3C generated-binding row mapping. Completed and accepted.
 81. `TASK-0081`: Broaden generated naming stress coverage. Completed and accepted.
-82. `TASK-0082`: Add performance phase timing and large-schema characterization. Next implementation gate.
-83. `TASK-0083`: Separate W3C intake/classification from generated-binding execution. Draft.
+82. `TASK-0082`: Add performance phase timing and large-schema characterization. Completed and accepted.
+83. `TASK-0083`: Separate W3C intake/classification from generated-binding execution. Completed and accepted.
+84. `TASK-0084`: Start IR normalization policy extraction. Completed and accepted.
+85. `TASK-0085`: Split binding naming/content planning helpers. Completed and accepted.
+86. `TASK-0086`: Introduce emitter planning objects. Next implementation gate.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -265,13 +268,13 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0082` | post-1.0.0 follow-up | accepted | Add performance phase timing and large-schema characterization. |
 | `TASK-0083` | post-1.0.0 follow-up | accepted | Separate W3C intake/classification from generated-binding execution. |
 | `TASK-0084` | generator architecture refactor | accepted | Start IR normalization policy extraction. |
-| `TASK-0085` | generator architecture refactor | next | Split binding naming/content planning helpers. |
-| `TASK-0086` | generator architecture refactor | draft | Introduce emitter planning objects. |
+| `TASK-0085` | generator architecture refactor | accepted | Split binding naming/content planning helpers. |
+| `TASK-0086` | generator architecture refactor | next | Introduce emitter planning objects. |
 
 ## Current implementation gate
 
-`TASK-0085` is the next implementation gate. It should split binding naming/content planning helpers
-from `BindingModelBuilder` without changing binding model output or generated source behavior.
+`TASK-0086` is the next implementation gate. It should introduce reader/writer/validator planning
+objects before emitter text assembly without changing generated source behavior.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -286,6 +289,12 @@ future refactor candidates.
 `SchemaIrNormalizationPolicy` now owns occurrence/cardinality parsing, QName lexical resolution,
 cardinality composition, and deterministic diagnostic creation/sorting. `SchemaIrBuilder` still owns
 schema indexing, profile gates, component graph construction, and concrete component normalization.
+`TASK-0085` accepted the binding helper split. Package-private `BindingNameAllocator` now owns
+namespace-to-package derivation, type-name suffix allocation, field-name helpers, and binding
+configuration diagnostics. Package-private `BindingContentPlanner` now owns mixed/grouped
+content-list field planning, grouped-position metadata, wildcard branch metadata, and composed
+branch cardinality helpers. `BindingModelBuilder` still owns schema indexing, declaration lookup,
+type-reference binding, substitution/dynamic branch semantics, and validation-plan text.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports
