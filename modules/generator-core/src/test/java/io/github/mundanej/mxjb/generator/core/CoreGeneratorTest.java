@@ -112,9 +112,9 @@ final class CoreGeneratorTest {
   }
 
   @Test
-  void plannedFullXsd10ProfileRejectsBeforeGeneration() throws IOException {
+  void fullXsd10ProfileGeneratesAcceptedSourcesAndCompilesThem() throws IOException {
     Path schema = writeSchema("purchase-order.xsd", purchaseOrderSchema());
-    Path output = tempDirectory.resolve("full-planned");
+    Path output = tempDirectory.resolve("full-generated");
 
     GeneratorResult result =
         new CoreGenerator()
@@ -128,11 +128,10 @@ final class CoreGeneratorTest {
                     List.of(),
                     Map.of()));
 
-    assertFalse(result.successful());
-    assertEquals(List.of(), result.generatedSources());
-    assertEquals("GENERATOR_REQUEST_INVALID", result.diagnostics().getFirst().code());
-    assertTrue(result.diagnostics().getFirst().message().contains("Unsupported generator profile"));
-    assertFalse(Files.exists(output));
+    assertTrue(result.successful(), result.diagnostics().toString());
+    assertTrue(result.generatedSources().contains(Path.of("com/acme/purchase/Order.java")));
+    assertTrue(Files.exists(output.resolve("com/acme/purchase/xml/OrderXmlReader.java")));
+    compileGeneratedSources(output, result.generatedSources());
   }
 
   @Test

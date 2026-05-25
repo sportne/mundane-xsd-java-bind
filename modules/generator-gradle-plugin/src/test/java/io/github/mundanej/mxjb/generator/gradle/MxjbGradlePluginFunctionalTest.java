@@ -82,6 +82,37 @@ final class MxjbGradlePluginFunctionalTest {
   }
 
   @Test
+  void acceptsFullXsd10ProfileToken() throws IOException {
+    writeSettings();
+    writeBuildWithRuntimeDependency(
+        """
+        plugins {
+            id 'java'
+            id 'io.github.mundanej.mxjb'
+        }
+
+        RUNTIME_DEPENDENCY_BLOCK
+
+        mxjb {
+            profile = 'XP-XSD10-FULL'
+            schema('src/main/resources/schema/purchase-order.xsd')
+            namespacePackage('urn:purchase', 'com.example.purchase')
+        }
+        """);
+    copyRepoFile(
+        "examples/purchase-order/src/main/resources/schema/purchase-order.xsd",
+        "src/main/resources/schema/purchase-order.xsd");
+
+    BuildResult result = run("compileJava");
+
+    assertEquals(TaskOutcome.SUCCESS, result.task(":generateMxjbSources").getOutcome());
+    assertTrue(
+        Files.exists(
+            projectDirectory.resolve(
+                "build/generated/sources/mxjb/java/com/example/purchase/Order.java")));
+  }
+
+  @Test
   void generatesMultiNamespaceSourcesThroughCatalogAndLocalRoot() throws IOException {
     writeSettings();
     writeBuildWithRuntimeDependency(

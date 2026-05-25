@@ -29,10 +29,11 @@ Deliver CLI and Gradle plugin generation for supported data-structure schemas wi
 Future phases must be opened through new task gates after the accepted `0.6.0` hardening closeout.
 The current product program is `XP-XSD10-FULL`: complete XML Schema 1.0 support for the binding
 generator through the task sequence that began at `TASK-0048`, starting from the feature matrix in
-`docs/verification/xsd10-full-feature-matrix.md`. `TASK-0056` closes the current sequence without
-enabling the full profile because the feature matrix and W3C suite evidence still show blockers.
-Other candidates include a new full-XSD gap-closure sequence, streaming optimization, broader
-external-suite automation, benchmark thresholds, and a real signed publication workflow.
+`docs/verification/xsd10-full-feature-matrix.md`. `TASK-0065` enables the full profile after the
+implementation and W3C generated-binding mapping gates pass. `TASK-0066` remains the final
+readiness, version metadata, and GitHub Release workflow gate. Other candidates include streaming
+optimization, broader external-suite automation, benchmark thresholds, and signed publication
+workflow exploration.
 
 The project does not currently claim full XSD 1.0 conformance, XSD 1.1 support, XML 1.1 support,
 W3C XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, hard

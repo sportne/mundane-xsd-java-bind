@@ -174,8 +174,9 @@ is `TASK-0042` through `TASK-0046`.
 
 ## `XP-XSD10-FULL` verification plan
 
-`TASK-0048` defines the full XML Schema 1.0 feature matrix and task sequence without making the
-profile executable. The planned verification sequence is:
+`TASK-0048` defines the full XML Schema 1.0 feature matrix and task sequence. `TASK-0065` makes the
+profile executable after the implementation gates through `TASK-0064` passed. The verification
+sequence is:
 
 - `TASK-0049`: accepted frontend and component-model tests for schema defaults, annotations,
   notations, direct/transitive chameleon includes with ambiguity/conflict diagnostics, remaining
@@ -204,10 +205,10 @@ profile executable. The planned verification sequence is:
 - `TASK-0055`: accepted pinned W3C XML Schema 1.0 suite classification and repeatable local
   execution through
   `./gradlew -Pmxjb.w3cXsd10SuiteDir=/path/to/xmlschema2006-11-06 w3cXsd10Conformance --console=plain`.
-- `TASK-0056`: final support-claim reconciliation for the current sequence. The accepted evidence
-  does not justify an executable `XP-XSD10-FULL` claim: the profile remains planned and
-  non-executable until a later task sequence maps remaining feature-matrix gaps and W3C rows to
-  generated-binding support.
+- `TASK-0056`: final support-claim reconciliation for the earlier sequence. The accepted evidence
+  did not justify executable `XP-XSD10-FULL` at that time.
+- `TASK-0065`: accepted profile/API/CLI/Gradle/CoreGenerator and selected conformance fixture tests
+  proving `XP-XSD10-FULL` execution.
 
 XSD 1.1 and XML 1.1 are outside this verification plan.
 
@@ -233,9 +234,9 @@ The remaining verification sequence is:
 - `TASK-0064`: accepted W3C XML Schema 1.0 generated-binding mapping for three `AttrDecl` rows,
   with one mapped execution passing generate/compile/read/validate/write/re-read checks under the
   opt-in `w3cXsd10Conformance` lane.
-- `TASK-0065`: profile/API/CLI/Gradle tests proving `XP-XSD10-FULL` is executable.
+- `TASK-0065`: accepted profile/API/CLI/Gradle tests proving `XP-XSD10-FULL` is executable.
 - `TASK-0066`: final `1.0.0` gates: clean quality gate, benchmark smoke, Native Image lanes, W3C
   generated-binding lane, `publicationDryRun -Pmxjb.version=1.0.0`, and GitHub Release workflow
   validation.
 
-The release claim remains blocked until every gate above is accepted.
+The release claim remains blocked until `TASK-0066` is accepted.

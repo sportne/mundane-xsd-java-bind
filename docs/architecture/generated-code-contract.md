@@ -144,8 +144,9 @@ The `XP-XSD10-SEMANTIC` profile continues the explicit generated-code contract.
   type when it is concrete; derived branches represent known legal concrete derived complex types.
   Generated readers dispatch namespace-aware `xsi:type` values, writers emit `xsi:type` only for
   derived branches, and validators recurse into the concrete branch value.
-- `TASK-0061` does not expose a root-element `xsi:type` API shape. Direct root `xsi:type`
-  dispatch remains a later full-profile edge before `XP-XSD10-FULL` can be enabled.
+- `TASK-0061` does not expose a root-element `xsi:type` API shape. Declared complex-base fields use
+  generated sealed `xsiType` branches; unsupported dynamic-type positions remain deterministic
+  diagnostics under `XP-XSD10-FULL`.
 - Generated source must keep existing bans on binding annotations, reflection, ServiceLoader,
   dynamic proxies, parser APIs in generated code, third-party runtime dependencies, and external
   resource access.

@@ -10,7 +10,7 @@
 | `XP-XSD10-COMPOSED` | Composed XSD 1.0 schemas | Opt-in `0.3.0` profile composing the accepted data, choice, and validation subsets; `TASK-0027` adds accepted named model group and attribute group flattening, `TASK-0028` adds accepted named list/union simple types, and `TASK-0029` adds accepted initial derivation flattening. | 3 |
 | `XP-XSD10-SEMANTIC` | XSD 1.0 semantic expansion | Opt-in `0.4.0` profile composing `XP-XSD10-COMPOSED` with accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution-group behavior, and expanded generated validation for those accepted semantic paths from `TASK-0032` through `TASK-0034`. | 4 |
 | `XP-XSD10-DOCUMENT` | Document-oriented and open content | Opt-in `0.5.0` profile composing `XP-XSD10-SEMANTIC`; `TASK-0037` adds accepted direct `xs:any` wildcard retention, `TASK-0038` adds accepted mixed-content ordering, and `TASK-0039` verifies stable project serialization policy. | 5 |
-| `XP-XSD10-FULL` | Full XSD 1.0 | Planned full XML Schema 1.0 support for this binding generator, tracked by `docs/verification/xsd10-full-feature-matrix.md`; the public token exists but generation is intentionally rejected until implementation gates accept it. | Planned |
+| `XP-XSD10-FULL` | Full XSD 1.0 | Executable full XML Schema 1.0 generated-binding profile for this binding generator, tracked by `docs/verification/xsd10-full-feature-matrix.md`; release readiness and artifact publication remain separate `TASK-0066` work. | 1.0.0 |
 | `XP-INTEROP` | Interoperability | Round-trip and validation comparison with existing XML tooling. | Ongoing |
 
 ## Java/runtime profiles
@@ -51,8 +51,7 @@ branches whose resolved types are already supported by `XP-DATA-10`.
 The `XP-VALIDATION-10-BASIC` implementation scope is limited to named `xs:simpleType` restrictions
 over `xs:string`, `xs:boolean`, `xs:int`, `xs:integer`, `xs:long`, and `xs:decimal`, with accepted
 enumeration, string length, numeric inclusive range, and string pattern facets. Full model groups,
-list/union simple type composition, derivation chains, and `XP-XSD10-FULL` execution remain
-future work.
+list/union simple type composition and derivation chains remain future work for this older baseline.
 
 ## `0.3.0` Readiness Baseline
 
@@ -91,11 +90,11 @@ list-valued XML fields, nested list/union composition, identity-constraint edge 
 accepted model shapes, and full XSD 1.0 conformance remain out of scope with explicit diagnostics
 or future-study classification.
 
-`TASK-0050` broadens the datatype engine used by existing executable profiles without making
-`XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
-1.0 primitive and derived built-ins to exact Java/runtime values where needed, including temporal
-values, duration, binary values, anyURI, QName/NOTATION, float/double special values, bounded
-numeric families, and list-valued built-ins such as `NMTOKENS`, `IDREFS`, and `ENTITIES`.
+`TASK-0050` broadens the datatype engine used by executable profiles. Accepted scalar element and
+attribute positions now map all XML Schema 1.0 primitive and derived built-ins to exact Java/runtime
+values where needed, including temporal values, duration, binary values, anyURI, QName/NOTATION,
+float/double special values, bounded numeric families, and list-valued built-ins such as `NMTOKENS`,
+`IDREFS`, and `ENTITIES`.
 Generated readers, writers, and validators use the same dependency-free runtime datatype engine.
 `TASK-0052` adds local/global attribute namespace qualification, prohibited attributes, retained
 `xs:anyAttribute` values as `List<XmlAttribute>`, wildcard namespace-token handling, and
@@ -139,8 +138,8 @@ complex/list/union defaults, ambiguous nil/default/fixed combinations, blocking/
 `xsi:type` polymorphism, abstract complex types outside substitution-head dispatch, wildcards,
 mixed content, identity constraints, full derivation semantics, artifact publication, and full
 XSD 1.0 conformance remained out of scope with explicit diagnostics. Later full-XSD gates add
-selected support for several of those areas, including `TASK-0061` known `xsi:type` branches,
-without making `XP-XSD10-FULL` executable yet.
+selected support for several of those areas, including `TASK-0061` known `xsi:type` branches, before
+`XP-XSD10-FULL` was enabled.
 
 ## `0.5.0` Document-Oriented Baseline
 
@@ -194,31 +193,31 @@ metadata, signing, remote publication, release tags, full XSD 1.0 conformance, X
 XML 1.1 support, XML Canonicalization, XML Signature canonical forms, lexical prefix preservation,
 or hard performance guarantees.
 
-## `XP-XSD10-FULL` Planning Baseline
+## `XP-XSD10-FULL` Baseline
 
-`TASK-0048` opens the full XML Schema 1.0 program without making the profile executable. The public
-`GeneratorProfile.XP_XSD10_FULL` token exists so API, CLI, docs, and future task cards can refer to
-one stable target; `CoreGenerator` still rejects that profile until implementation tasks accept
-support. The planned sequence is:
+`TASK-0048` opened the full XML Schema 1.0 program. `TASK-0065` enables the public
+`GeneratorProfile.XP_XSD10_FULL` token after the implementation and W3C generated-binding mapping
+gates accepted enough evidence for profile execution. The accepted sequence is:
 
 - accepted in `TASK-0049`: complete XSD 1.0 frontend and component-model awareness for schema
   defaults, annotations, notations, direct and transitive chameleon include namespace adoption with
   conflict diagnostics, remaining symbol spaces, and deterministic pre-binding diagnostics for
   known-but-later XSD 1.0 constructs.
-- accepted in `TASK-0050`: complete XSD 1.0 datatype and facet engine for accepted schema shapes,
-  while keeping `XP-XSD10-FULL` non-executable.
+- accepted in `TASK-0050`: complete XSD 1.0 datatype and facet engine for accepted schema shapes.
 - accepted in `TASK-0051`: full content-model compiler expansion for accepted shapes.
 - accepted in `TASK-0052`: full attributes and wildcards expansion for accepted shapes.
 - accepted in `TASK-0053`: derivation, substitution, and dynamic typing expansion for accepted shapes.
 - accepted in `TASK-0054`: identity constraints and document-level validation for accepted shapes.
 - accepted in `TASK-0055`: opt-in full-suite W3C XML Schema 1.0 intake and classification
   harness, with no generated-binding support claim for unmapped W3C rows.
-- accepted in `TASK-0056`: final readiness reconciliation for the current sequence. The evidence
-  keeps `XP-XSD10-FULL` planned and non-executable because the feature matrix still has full-XSD
-  blockers and broad W3C generated-binding coverage remains unmapped.
+- accepted in `TASK-0056`: final readiness reconciliation for the earlier sequence. At that point,
+  the evidence kept `XP-XSD10-FULL` planned and non-executable because full-XSD blockers and broad
+  W3C generated-binding coverage remained unmapped.
 - accepted in `TASK-0064`: explicit W3C generated-binding mapping for three `AttrDecl` rows, with
   one mapped generated-binding execution passing generate/compile/read/validate/write/re-read
   checks. Unmapped W3C rows remain classified evidence, not full-suite support claims.
+- accepted in `TASK-0065`: executable `XP-XSD10-FULL` API, CLI, Gradle plugin, CoreGenerator, and
+  selected conformance fixture evidence.
 
 XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. A real publication
 workflow remains separate release-engineering work.
@@ -227,8 +226,8 @@ workflow remains separate release-engineering work.
 
 `TASK-0058` rejects a stable-subset interpretation for `1.0.0`. The `1.0.0` compatibility posture
 requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
-The public token remains non-executable until `TASK-0065`.
+`TASK-0065` has enabled the public token.
 
-The remaining blocker sequence is `TASK-0065` through `TASK-0066`: full-profile enablement and
-final release workflow/readiness. Until those gates are accepted, public docs must keep full XSD
-1.0 and `1.0.0` release claims out of scope.
+The remaining blocker is `TASK-0066`: final release workflow/readiness. Until that gate is accepted,
+public docs must keep `1.0.0` release claims and broad W3C full-suite generated-binding claims out
+of scope.

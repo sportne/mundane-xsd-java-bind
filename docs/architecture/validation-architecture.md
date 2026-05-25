@@ -76,9 +76,10 @@ accepted simpleContent text validation, basic complex restriction member checks 
 and generated validation recursion through repeated/nested/abstract substitution branch values.
 `TASK-0061` adds accepted final/block derivation diagnostics plus generated validation recursion
 through known declared-base `xsi:type` branch values. `TASK-0062` adds strict/lax schema-known
-validation for accepted retained element and attribute wildcards. Identity-constraint edge cases
-beyond accepted generated model shapes and `XP-XSD10-FULL` execution remain future gates.
-`TASK-0063` adds anonymous simple restriction members for accepted list/union declarations.
+validation for accepted retained element and attribute wildcards. `TASK-0063` adds anonymous simple
+restriction members for accepted list/union declarations and nil-aware identity-node validation.
+`TASK-0065` enables `XP-XSD10-FULL`; unsupported validation positions remain deterministic
+diagnostics rather than partial interpretation.
 
 ## `TASK-0032` semantic validation
 

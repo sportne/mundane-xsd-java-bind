@@ -29,7 +29,7 @@ final class MxjbCliTest {
   }
 
   @Test
-  void fullXsd10ProfileTokenIsPlannedButNotYetExecutable() throws IOException {
+  void fullXsd10ProfileTokenGeneratesAcceptedSources() throws IOException {
     Path schema = writeSchema("purchase-order.xsd", purchaseOrderSchema());
     Path output = tempDirectory.resolve("full-generated");
 
@@ -45,13 +45,14 @@ final class MxjbCliTest {
             "--namespace-package",
             "urn:purchase=com.example.purchase");
 
-    assertEquals(1, result.exitCode());
-    assertTrue(result.err().contains("Unsupported generator profile XP_XSD10_FULL"));
-    assertFalse(Files.exists(output));
+    assertEquals(0, result.exitCode(), result.err());
+    assertTrue(result.out().contains("com/example/purchase/Order.java"));
+    assertTrue(Files.exists(output.resolve("com/example/purchase/xml/OrderXmlReader.java")));
+    assertEquals("", result.err());
   }
 
   @Test
-  void fullXsd10InlineProfileTokenIsAlsoRejectedBeforeGeneration() throws IOException {
+  void fullXsd10InlineProfileTokenAlsoGeneratesAcceptedSources() throws IOException {
     Path schema = writeSchema("purchase-order-inline.xsd", purchaseOrderSchema());
     Path output = tempDirectory.resolve("full-inline-generated");
 
@@ -63,9 +64,10 @@ final class MxjbCliTest {
             "--profile=XP-XSD10-FULL",
             "--namespace-package=urn:purchase=com.example.purchase");
 
-    assertEquals(1, result.exitCode());
-    assertTrue(result.err().contains("Unsupported generator profile XP_XSD10_FULL"));
-    assertFalse(Files.exists(output));
+    assertEquals(0, result.exitCode(), result.err());
+    assertTrue(result.out().contains("com/example/purchase/Order.java"));
+    assertTrue(Files.exists(output.resolve("com/example/purchase/Order.java")));
+    assertEquals("", result.err());
   }
 
   @Test

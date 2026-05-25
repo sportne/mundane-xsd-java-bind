@@ -13,9 +13,8 @@ Public generator configuration and extension API.
 - `GeneratorResult` reports generated relative source paths and public diagnostics.
 - `GeneratorDiagnostic` uses stable `code`, `resource`, and `message` fields.
 - `GeneratorProfile` exposes executable profile tokens: `XP-DATA-10`, `XP-DATA-10-CHOICE`,
-  `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`, `XP-XSD10-SEMANTIC`, and
-  `XP-XSD10-DOCUMENT`; it also exposes planned token `XP-XSD10-FULL`, which generator-core
-  rejects until the full XSD 1.0 implementation gates accept support.
+  `XP-VALIDATION-10-BASIC`, `XP-XSD10-COMPOSED`, `XP-XSD10-SEMANTIC`,
+  `XP-XSD10-DOCUMENT`, and `XP-XSD10-FULL`.
 
 The API does not expose parser, IR, binding, or emitter implementation types.
 

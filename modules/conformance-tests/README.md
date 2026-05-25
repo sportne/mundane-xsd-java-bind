@@ -40,7 +40,7 @@ checked in.
 `TASK-0056` reconciles the suite intake with the feature matrix. `TASK-0064` maps the first three
 W3C `AttrDecl` rows to generated-binding support and records one passing generated-binding
 execution. This module still does not prove full XML Schema 1.0 conformance or make
-`XP-XSD10-FULL` executable because unmapped W3C rows remain classified evidence.
+full W3C suite generated-binding coverage because unmapped W3C rows remain classified evidence.
 
 Covered behavior:
 
@@ -55,10 +55,10 @@ Covered behavior:
 - Selected unsupported-diagnostic schemas for constructs that still sit outside the accepted
   generated-binding shapes.
 
-Unsupported or future-profile constructs such as remaining derivation/restriction/block/final and
-`xsi:type` edges, W3C generated-binding row mapping, identity-constraint edge cases beyond accepted
-generated model shapes, and full XSD 1.0 are outside this harness until
-their task cards are accepted.
+Unsupported constructs such as remaining derivation/restriction/block/final and `xsi:type` edges
+outside accepted generated-binding shapes, identity-constraint edge cases beyond accepted generated
+model shapes, and broad W3C full-suite generated-binding coverage stay explicit non-claims until
+future task cards add evidence.
 
 ## Contributor notes
 

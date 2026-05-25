@@ -78,6 +78,7 @@ final class SelectedConformanceFixtureManifestTest {
     assertTrue(supportedProfiles.contains("XP-XSD10-COMPOSED"));
     assertTrue(supportedProfiles.contains("XP-XSD10-SEMANTIC"));
     assertTrue(supportedProfiles.contains("XP-XSD10-DOCUMENT"));
+    assertTrue(supportedProfiles.contains("XP-XSD10-FULL"));
   }
 
   @Test

@@ -46,6 +46,7 @@ import org.xml.sax.SAXException;
 
 final class XpData10ChoiceConformanceTest {
   // Selected fixture manifest ID: T-CONF-XP-DATA-10-CHOICE-DOMESTIC.
+  // Selected fixture manifest ID: T-CONF-XP-XSD10-FULL-CHOICE.
 
   @TempDir private Path tempDirectory;
 
@@ -65,7 +66,8 @@ final class XpData10ChoiceConformanceTest {
         SAXException.class,
         () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidXml))));
 
-    try (CompiledGeneratedChoiceBindings bindings = generateAndCompileChoiceBindings()) {
+    try (CompiledGeneratedChoiceBindings bindings =
+        generateAndCompileChoiceBindings(GeneratorProfile.XP_DATA_10_CHOICE)) {
       Class<?> orderClass = bindings.load("com.example.choice.Order");
       Class<?> readerClass = bindings.load("com.example.choice.xml.OrderXmlReader");
       Class<?> writerClass = bindings.load("com.example.choice.xml.OrderXmlWriter");
@@ -91,14 +93,40 @@ final class XpData10ChoiceConformanceTest {
     }
   }
 
-  private CompiledGeneratedChoiceBindings generateAndCompileChoiceBindings() throws IOException {
+  @Test
+  void fullXsd10ProfileChoiceFixtureExecutesGeneratedBindings()
+      throws IOException, ReflectiveOperationException, XMLStreamException, XmlWriteException {
+    String validXml = resource("/xp-data-10-choice/choice-domestic-valid.xml");
+
+    try (CompiledGeneratedChoiceBindings bindings =
+        generateAndCompileChoiceBindings(GeneratorProfile.XP_XSD10_FULL)) {
+      Class<?> orderClass = bindings.load("com.example.choice.Order");
+      Class<?> readerClass = bindings.load("com.example.choice.xml.OrderXmlReader");
+      Class<?> writerClass = bindings.load("com.example.choice.xml.OrderXmlWriter");
+      Class<?> validatorClass = bindings.load("com.example.choice.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      ValidationResult validation =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      String written = writeXml(writerClass, orderClass, order);
+      Object roundTripped =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(written));
+
+      assertTrue(validation.isValid(), validation.errors().toString());
+      assertEquals(order, roundTripped);
+    }
+  }
+
+  private CompiledGeneratedChoiceBindings generateAndCompileChoiceBindings(GeneratorProfile profile)
+      throws IOException {
     Path output = tempDirectory.resolve("generated");
     Path schema = resourcePath("/xp-data-10-choice/order.xsd");
     GeneratorRequest request =
         new GeneratorRequest(
             List.of(schema),
             output,
-            GeneratorProfile.XP_DATA_10_CHOICE,
+            profile,
             "com.example.generated",
             Map.of("urn:choice", "com.example.choice"),
             List.of(),

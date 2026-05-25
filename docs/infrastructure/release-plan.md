@@ -82,12 +82,10 @@ conformance/interop, advisory benchmark, Native Image conformance, and publicati
 agree with public documentation. It does not convert `0.6.0-alpha.0` into a released artifact,
 authorize signing or remote staging, create a release tag, or broaden supported schema claims.
 
-`TASK-0056` closes the current `XP-XSD10-FULL` readiness sequence with a negative full-support
-decision. Full XML Schema 1.0 conformance is still not a release claim because remaining feature
-matrix blockers prevent advertising the planned full profile as executable. `TASK-0064` maps the
-first three W3C rows to generated-binding execution, but the broader suite remains classified
-evidence until `TASK-0065` and `TASK-0066` complete the executable profile and release-readiness
-gates.
+`TASK-0056` closed the earlier `XP-XSD10-FULL` readiness sequence with a negative full-support
+decision. `TASK-0064` maps the first three W3C rows to generated-binding execution, and
+`TASK-0065` enables the full profile. A real release claim still waits for `TASK-0066` final
+readiness, release notes, version metadata, and GitHub Release workflow evidence.
 
 ## `1.0.0` full-XSD release sequence
 

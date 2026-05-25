@@ -28,6 +28,8 @@ The current executable profiles are:
   mixed choice content, retained `XmlFragment` and `XmlAttribute` values, strict/lax
   schema-known wildcard validation for accepted retained declarations, and stable project
   serialization policy.
+- `XP-XSD10-FULL`: full XML Schema 1.0 profile token enabled after the full-XSD implementation
+  gates. It runs the same generated-binding pipeline and retains the explicit non-goals below.
 
 Across the executable profiles, accepted scalar element and attribute positions use the shared XSD
 1.0 datatype engine: string, numeric, float/double, temporal, duration, binary, anyURI,
@@ -40,15 +42,14 @@ multi-particle groups, nested singleton sequences, single-particle repeated/opti
 mixed choices, wildcard choices, and shared grouped-position reader/validator checks in the
 currently executable profiles.
 
-The planned full XML Schema 1.0 target is `XP-XSD10-FULL`. The public profile token exists for
-planning, but generation intentionally rejects it until the follow-on implementation tasks complete.
-The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
+The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`. A `1.0.0` release
+claim remains separate from profile execution until the final readiness and release workflow gate.
 
 ## Not supported
 
 - Full XML Schema 1.0 conformance is not claimed yet.
-- Broad W3C suite generated-binding coverage, executable `XP-XSD10-FULL`, and final release
-  workflow readiness are still planned work.
+- Broad W3C suite generated-binding coverage and final release workflow readiness are still planned
+  work.
 - W3C XML Schema 1.0 suite classification exists as opt-in evidence; three `AttrDecl` rows are
   mapped to generated-binding support, but full-suite support is not claimed.
 - XSD 1.1 and XML 1.1 are not project targets.
