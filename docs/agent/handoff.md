@@ -263,12 +263,12 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0080` | post-1.0.0 follow-up | accepted | Expand W3C generated-binding row mapping. |
 | `TASK-0081` | post-1.0.0 follow-up | accepted | Broaden generated naming stress coverage. |
 | `TASK-0082` | post-1.0.0 follow-up | accepted | Add performance phase timing and large-schema characterization. |
-| `TASK-0083` | post-1.0.0 follow-up | next | Separate W3C intake/classification from generated-binding execution. |
+| `TASK-0083` | post-1.0.0 follow-up | accepted | Separate W3C intake/classification from generated-binding execution. |
 
 ## Current implementation gate
 
-`TASK-0083` is the next implementation gate. It should separate W3C suite intake/classification
-from generated-binding execution inside the conformance module without changing mapped-row behavior.
+All `TASK-0078` through `TASK-0083` follow-up implementation gates are complete. The remaining
+handoff action is the planned single push and post-push `ci`/`docs` workflow review.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -298,6 +298,11 @@ request-validation, schema-resolution, XSD syntax parse, IR build, binding plann
 emission, and source write, plus a deterministic `large-schema` source-growth sample with 96
 optional elements and 32 optional attributes. The timing hook remains internal to `generator-core`;
 the public generator API and `qualityGate` are unchanged.
+`TASK-0083` accepted the first architecture refactor tranche by extracting mapped W3C generated
+binding execution into `W3cXsd10BindingExecutor`. `W3cXsd10SuiteIntake` keeps suite-root validation,
+metadata parsing, classification, expected-diagnostic execution, and report writing. The refactor
+preserves W3C command-line output, report filenames, summary counts, mapped-row execution semantics,
+and the nine-row/three-execution W3C evidence baseline.
 `TASK-0071` accepted advisory performance characterization by extending `benchmarkSmoke` with
 generator pipeline, javac, source-size, class-count, and heap observations. The current evidence
 does not justify hard thresholds; future optimization should start with large-schema source/class

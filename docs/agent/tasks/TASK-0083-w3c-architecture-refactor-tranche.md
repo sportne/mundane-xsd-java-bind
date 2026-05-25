@@ -1,6 +1,6 @@
 # TASK-0083: w3c-architecture-refactor-tranche
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0083`
 Priority: P2
@@ -32,3 +32,18 @@ separated without behavior or report drift; future refactor candidates remain do
 implemented in this task.
 Rollback notes: revert W3C refactor and related docs/tests.
 
+Completion notes:
+- Extracted explicitly mapped generated-binding execution into package-private
+  `W3cXsd10BindingExecutor`.
+- Kept suite-root validation, metadata parsing, classification, expected diagnostic execution, and
+  report writing in `W3cXsd10SuiteIntake`.
+- Preserved mapped-row validation, generation, compilation, read/validate/write/re-read semantics,
+  command-line summary output, report filenames, and W3C evidence counts.
+- Updated architecture, conformance, security, traceability, and handoff docs while leaving larger
+  IR, emitter, datatype, and binding-planner refactors as future candidates.
+
+Evidence:
+- `./gradlew :modules:conformance-tests:check --console=plain`
+- `./gradlew -Pmxjb.w3cXsd10SuiteDir=/mnt/d/projects/mundane-xsd-java-bind/build/w3c/xmlschema2006-11-06 w3cXsd10Conformance --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

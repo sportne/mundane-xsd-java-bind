@@ -73,6 +73,9 @@ w3c-xsd10-binding-execution passed=3
 
 The `binding-supported` count is limited to explicitly mapped rows. Unmapped rows remain
 repeatable classification and diagnostic evidence, not a full XSD 1.0 support claim.
+`TASK-0083` refactors the lane so suite intake/classification remains in `W3cXsd10SuiteIntake` and
+mapped generated-binding execution lives in `W3cXsd10BindingExecutor`, preserving the command-line
+summary, report files, counts, and execution semantics.
 
 `TASK-0056` accepted this as the final readiness reconciliation for the earlier sequence.
 `TASK-0065` enables `XP-XSD10-FULL`, and `TASK-0066` accepts the `1.0.0` GitHub Release workflow and

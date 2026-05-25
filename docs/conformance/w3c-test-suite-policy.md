@@ -46,3 +46,7 @@ Schema validation as the oracle. The lane strips only `xsi:schemaLocation` and
 claim a W3C full-suite generated-binding pass beyond explicitly mapped rows; unmapped rows remain
 classified as validation-only, tolerated metadata, expected diagnostics, product-scope-incompatible,
 or blocked.
+
+`TASK-0083` keeps that report and execution behavior unchanged while separating the generated
+binding execution mechanics into `W3cXsd10BindingExecutor`. `W3cXsd10SuiteIntake` remains
+responsible for suite-root validation, metadata parsing, classification, and report writing.

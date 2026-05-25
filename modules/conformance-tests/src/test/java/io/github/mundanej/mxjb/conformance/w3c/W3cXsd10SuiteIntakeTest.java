@@ -219,7 +219,7 @@ final class W3cXsd10SuiteIntakeTest {
     SAXException exception =
         assertThrows(
             SAXException.class,
-            () -> W3cXsd10SuiteIntake.secureSchemaFactory().newSchema(schema.toFile()));
+            () -> W3cXsd10BindingExecutor.secureSchemaFactory().newSchema(schema.toFile()));
 
     assertTrue(exception.getMessage().contains("accessExternalSchema"));
   }

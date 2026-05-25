@@ -16,7 +16,7 @@ The largest reviewed implementation surfaces are:
 | `GeneratedValidatorEmitter` | 2,652 | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | Validation traversal planning and emitted Java snippets are difficult to inspect independently. |
 | `GeneratedWriterEmitter` | 934 | Deterministic XML output for generated and retained content. | Smaller than reader/validator but repeats scalar/content traversal ideas that are not named as plans. |
 | `XmlDatatypes` | 842 | Dependency-free XML Schema lexical parsing/formatting in runtime-core. | Many datatype families share whitespace, bounds, and lexical-special-case mechanics inside one utility. |
-| `W3cXsd10SuiteIntake` | 953 | Dependency-free W3C metadata classification and mapped-row execution. | Classification policy, report writing, generated binding execution, JDK validation, and summary formatting live together. |
+| `W3cXsd10SuiteIntake` + `W3cXsd10BindingExecutor` | 953 before `TASK-0083` | Dependency-free W3C metadata classification and mapped-row execution. | `TASK-0083` separates generated-binding execution from suite intake; report writing remains a smaller follow-on extraction candidate. |
 
 ## Prioritized simplification plan
 
@@ -52,11 +52,12 @@ The largest reviewed implementation surfaces are:
      conformance fixtures as behavior locks.
 
 5. Separate W3C suite intake classification from generated-binding execution.
-   - Candidate boundary: `W3cSuiteClassifier`, `W3cBindingMappingExecutor`, and report writer.
-   - Leverage: `TASK-0070` can add mapped rows without coupling classification policy changes to
-     execution mechanics.
-   - Test strategy: keep `W3cXsd10SuiteIntakeTest` and `W3cXsd10SuiteIntakeDeltaTest`; add mapping
-     executor characterization tests before broad row expansion.
+   - `TASK-0083` extracts generated-binding execution into `W3cXsd10BindingExecutor` while
+     preserving intake classification, report shape, and mapped-row behavior.
+   - Remaining candidate boundary: report writer extraction after more mapped rows make report
+     evolution frequent.
+   - Test strategy: keep `W3cXsd10SuiteIntakeTest` and `W3cXsd10SuiteIntakeDeltaTest` as behavior
+     locks for parse/classification/report rows and mapped binding execution.
 
 ## ADR and risk notes
 
