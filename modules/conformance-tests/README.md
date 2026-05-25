@@ -38,9 +38,11 @@ under `build/reports/w3c-xsd10-conformance`. The W3C suite archive and extracted
 checked in.
 
 `TASK-0056` reconciles the suite intake with the feature matrix. `TASK-0064` maps the first three
-W3C `AttrDecl` rows to generated-binding support and records one passing generated-binding
-execution. This module still does not prove full XML Schema 1.0 conformance or make
-full W3C suite generated-binding coverage because unmapped W3C rows remain classified evidence.
+W3C `AttrDecl` rows to generated-binding support, and `TASK-0070` adds the first W3C wildcard
+mapping. The current local suite evidence records six binding-supported rows and two passing
+generated-binding executions. This module still does not prove full XML Schema 1.0 conformance or
+make full W3C suite generated-binding coverage because unmapped W3C rows remain classified
+evidence.
 
 Covered behavior:
 

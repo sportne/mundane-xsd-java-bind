@@ -216,6 +216,9 @@ gates accepted enough evidence for profile execution. The accepted sequence is:
 - accepted in `TASK-0064`: explicit W3C generated-binding mapping for three `AttrDecl` rows, with
   one mapped generated-binding execution passing generate/compile/read/validate/write/re-read
   checks. Unmapped W3C rows remain classified evidence, not full-suite support claims.
+- accepted in `TASK-0070`: expanded W3C generated-binding mapping to six rows by adding one
+  wildcard schema with positive and negative instances, with two mapped generated-binding
+  executions passing. Unmapped W3C rows remain classified evidence, not full-suite support claims.
 - accepted in `TASK-0065`: executable `XP-XSD10-FULL` API, CLI, Gradle plugin, CoreGenerator, and
   selected conformance fixture evidence.
 

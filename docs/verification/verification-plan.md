@@ -235,6 +235,9 @@ release. The verification sequence is:
 - `TASK-0064`: accepted W3C XML Schema 1.0 generated-binding mapping for three `AttrDecl` rows,
   with one mapped execution passing generate/compile/read/validate/write/re-read checks under the
   opt-in `w3cXsd10Conformance` lane.
+- `TASK-0070`: accepted W3C XML Schema 1.0 generated-binding mapping expansion to six rows by
+  adding one wildcard schema with positive and negative instances; two mapped executions pass under
+  the opt-in `w3cXsd10Conformance` lane.
 - `TASK-0065`: accepted profile/API/CLI/Gradle tests proving `XP-XSD10-FULL` is executable.
 - `TASK-0066`: accepted final `1.0.0` gates: clean quality gate, benchmark smoke, Native Image
   lanes, W3C generated-binding lane, `publicationDryRun -Pmxjb.version=1.0.0`, and GitHub Release

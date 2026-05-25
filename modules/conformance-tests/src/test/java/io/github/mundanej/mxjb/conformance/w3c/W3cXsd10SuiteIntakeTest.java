@@ -18,12 +18,13 @@ final class W3cXsd10SuiteIntakeTest {
   void classifiesPinnedSuiteMetadataAndWritesReports() throws IOException {
     Path suiteRoot = writeSuite();
     writeMappedAttrDeclFixture(suiteRoot);
+    writeMappedWildcardFixture(suiteRoot);
     W3cXsd10SuiteIntake.Report report =
         new W3cXsd10SuiteIntake().run(suiteRoot, tempDirectory.resolve("reports"));
 
-    assertEquals(30, report.total());
-    assertEquals(3, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
-    assertEquals(20, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.VALIDATION_ONLY));
+    assertEquals(31, report.total());
+    assertEquals(6, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
+    assertEquals(18, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.VALIDATION_ONLY));
     assertEquals(2, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.TOLERATED_METADATA));
     assertEquals(1, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.EXPECTED_DIAGNOSTIC));
     assertEquals(
@@ -38,11 +39,12 @@ final class W3cXsd10SuiteIntakeTest {
   void commandLineMainWritesReportForSuiteDirectory() throws IOException {
     Path suiteRoot = writeSuite();
     writeMappedAttrDeclFixture(suiteRoot);
+    writeMappedWildcardFixture(suiteRoot);
     Path reportDirectory = tempDirectory.resolve("main-reports");
 
     W3cXsd10ConformanceMain.main(new String[] {suiteRoot.toString(), reportDirectory.toString()});
 
-    assertTrue(Files.readString(reportDirectory.resolve("summary.txt")).contains("total=30"));
+    assertTrue(Files.readString(reportDirectory.resolve("summary.txt")).contains("total=31"));
   }
 
   @Test
@@ -58,20 +60,43 @@ final class W3cXsd10SuiteIntakeTest {
   }
 
   @Test
+  void rejectsMissingExpandedWildcardMappedRows() throws IOException {
+    Path suiteRoot = writeSuite();
+    writeMappedAttrDeclFixture(suiteRoot);
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                new W3cXsd10SuiteIntake()
+                    .run(suiteRoot, tempDirectory.resolve("missing-wildcard-map")));
+
+    assertTrue(exception.getMessage().contains("Expected 3 mapped W3C rows"));
+    assertTrue(
+        exception
+            .getMessage()
+            .contains("sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd"));
+  }
+
+  @Test
   void mappedBindingRowsExecuteGeneratedRoundTrip() throws IOException {
     Path suiteRoot = writeSuite();
     writeMappedAttrDeclFixture(suiteRoot);
+    writeMappedWildcardFixture(suiteRoot);
     Path reportDirectory = tempDirectory.resolve("mapped-reports");
 
     W3cXsd10SuiteIntake.Report report = new W3cXsd10SuiteIntake().run(suiteRoot, reportDirectory);
 
-    assertEquals(30, report.total());
-    assertEquals(3, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
+    assertEquals(31, report.total());
+    assertEquals(6, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
     String summary = Files.readString(reportDirectory.resolve("summary.txt"));
-    assertTrue(summary.contains("binding-supported=3"));
-    assertTrue(summary.contains("bindingExecution.passed=1"));
+    assertTrue(summary.contains("binding-supported=6"));
+    assertTrue(summary.contains("bindingExecution.passed=2"));
     String executions = Files.readString(reportDirectory.resolve("binding-executions.tsv"));
     assertTrue(executions.contains("sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1.xsd"));
+    assertTrue(
+        executions.contains(
+            "sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd"));
   }
 
   @Test
@@ -240,6 +265,41 @@ final class W3cXsd10SuiteIntakeTest {
         mappedAttrDeclInstance("price"));
   }
 
+  private void writeMappedWildcardFixture(Path root) throws IOException {
+    Path metadata = root.resolve("sunMeta/Wildcard.testSet");
+    write(
+        metadata,
+        testSet(
+            "Wildcard",
+            "SUN",
+            "nsConstraint00101m1",
+            "TASK-0070 mapped generated-binding wildcard row",
+            schemaTest(
+                "nsConstraint00101m1",
+                "../sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd",
+                "valid",
+                "accepted"),
+            instanceTest(
+                "Positive",
+                "../sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_p.xml",
+                "valid",
+                "accepted"),
+            instanceTest(
+                "Negative",
+                "../sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_n.xml",
+                "invalid",
+                "accepted")));
+    write(
+        root.resolve("sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd"),
+        mappedWildcardSchema());
+    write(
+        root.resolve("sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_p.xml"),
+        mappedWildcardInstance(false));
+    write(
+        root.resolve("sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_n.xml"),
+        mappedWildcardInstance(true));
+  }
+
   private static String testSet(
       String name, String contributor, String groupName, String description, String... tests) {
     return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -330,6 +390,28 @@ final class W3cXsd10SuiteIntakeTest {
         + priceAttributeName
         + "=\"12.33\"/>\n"
         + "</td:root>\n";
+  }
+
+  private static String mappedWildcardSchema() {
+    return """
+        <xsd:schema
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns="nsConstraint"
+            targetNamespace="nsConstraint">
+          <xsd:element name="a">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:any namespace="##any" processContents="skip"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        """;
+  }
+
+  private static String mappedWildcardInstance(boolean missingWildcard) {
+    String content = missingWildcard ? "" : "<date>2002-04-29</date>\n";
+    return "<test:a xmlns:test=\"nsConstraint\">\n" + content + "</test:a>\n";
   }
 
   private static String redefineSchema() {

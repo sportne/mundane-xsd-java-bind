@@ -71,7 +71,14 @@ public final class W3cXsd10SuiteIntake {
               List.of("sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1_n.xml"),
               "AttrDecl/name",
               "com.example.w3c.attrdecl",
-              "Root"));
+              "Root"),
+          new BindingMapping(
+              "sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd",
+              List.of("sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_p.xml"),
+              List.of("sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1_n.xml"),
+              "nsConstraint",
+              "com.example.w3c.wildcard",
+              "A"));
   private static final Set<String> KNOWN_VALIDITY = Set.of("valid", "invalid");
   private static final Set<String> KNOWN_STATUS = Set.of("accepted", "queried");
 
@@ -251,8 +258,7 @@ public final class W3cXsd10SuiteIntake {
     }
     if (bindingMappingFor(document) != null) {
       return new Classification(
-          Category.BINDING_SUPPORTED,
-          "Mapped by TASK-0064 to generated-binding execution evidence.");
+          Category.BINDING_SUPPORTED, "Mapped to generated-binding execution evidence.");
     }
     if (featureArea.equals("notation")
         || text.contains("notation")

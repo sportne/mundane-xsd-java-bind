@@ -80,8 +80,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 67. `TASK-0067`: Reconcile post-1.0.0 support claims against evidence. Completed and accepted.
 68. `TASK-0068`: Mine external XML binding/codegen issues into regression tasks and fixtures. Completed and accepted.
 69. `TASK-0069`: Review current design and implementation complexity for simplicity. Completed and accepted.
-70. `TASK-0070`: Expand W3C generated-binding coverage. Next implementation gate.
-71. `TASK-0071`: Review generation and generated-code performance. Draft.
+70. `TASK-0070`: Expand W3C generated-binding coverage. Completed and accepted.
+71. `TASK-0071`: Review generation and generated-code performance. Next implementation gate.
 72. `TASK-0072`: Validate release artifact consumption from a clean downstream project. Draft.
 73. `TASK-0073`: Review XML security posture across every parser and generated-validation path. Draft.
 74. `TASK-0074`: Review diagnostics and user ergonomics. Draft.
@@ -157,7 +157,9 @@ the last broad hardening cycle. `TASK-0058` accepted the `1.0.0` full-XSD blocke
 evidence, not a stable-subset release. `TASK-0064` has accepted the first explicit W3C
 generated-binding mapping: three W3C `AttrDecl` rows are classified as binding-supported and one
 mapped generated-binding execution passes generate/compile/read/validate/write/re-read checks.
-`TASK-0065` has accepted executable `XP-XSD10-FULL` profile support through API, CLI, Gradle plugin,
+`TASK-0070` has accepted the first W3C wildcard mapping expansion: six W3C rows are now
+binding-supported and two mapped generated-binding executions pass, while remaining W3C rows remain
+classification evidence only. `TASK-0065` has accepted executable `XP-XSD10-FULL` profile support through API, CLI, Gradle plugin,
 CoreGenerator, selected conformance fixture, W3C lane, generated-code smoke, and quality-gate
 evidence.
 `TASK-0066` has accepted final `1.0.0` readiness: `gradle.properties` now carries version `1.0.0`,
@@ -242,8 +244,8 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0067` | post-1.0.0 reflection | accepted | Reconcile support claims against actual evidence. |
 | `TASK-0068` | post-1.0.0 reflection | accepted | Mine external XML binding/codegen issues into regression tasks and fixtures. |
 | `TASK-0069` | post-1.0.0 reflection | accepted | Review current design and implementation complexity for simplicity. |
-| `TASK-0070` | post-1.0.0 reflection | next | Expand W3C generated-binding coverage. |
-| `TASK-0071` | post-1.0.0 reflection | draft | Review generation and generated-code performance. |
+| `TASK-0070` | post-1.0.0 reflection | accepted | Expand W3C generated-binding coverage. |
+| `TASK-0071` | post-1.0.0 reflection | next | Review generation and generated-code performance. |
 | `TASK-0072` | post-1.0.0 reflection | draft | Validate release artifact consumption from a clean downstream project. |
 | `TASK-0073` | post-1.0.0 reflection | draft | Review XML security posture across every parser and generated-validation path. |
 | `TASK-0074` | post-1.0.0 reflection | draft | Review diagnostics and user ergonomics. |
@@ -253,10 +255,10 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 
 ## Current implementation gate
 
-`TASK-0070` is the next implementation gate. It may expand W3C generated-binding mapping and
-execution evidence for already accepted product-scope rows, using an untracked local suite under
-`build/w3c/`. It must not vendor broad W3C suites, expand product schema behavior without a separate
-task, add dependencies, add release metadata, or weaken quality gates.
+`TASK-0071` is the next implementation gate. It should characterize generation and generated-code
+performance using existing/advisory benchmark lanes, keeping thresholds opt-in and non-claiming.
+It must not add hard performance guarantees, release claims, dependencies, or quality-gate
+weakening.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -267,6 +269,10 @@ or follow-on review tasks without broad suite vendoring or product behavior expa
 `TASK-0069` accepted a complexity review that prioritizes IR normalization, binding naming/content
 planning, emitter planning objects, datatype helper grouping, and W3C intake/execution separation as
 future refactor candidates.
+`TASK-0070` accepted W3C generated-binding expansion by adding the
+`sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
+negative instances to the mapped set. The pinned local W3C lane now reports
+`binding-supported=6`, `validation-only=24433`, and `bindingExecution.passed=2`.
 
 The draft post-1.0.0 reflection sequence is ordered by priority: P0 claim/evidence reconciliation
 and external issue mining first; P1 complexity review, W3C binding expansion, performance review,
