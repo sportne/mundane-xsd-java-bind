@@ -53,6 +53,8 @@ configurations {
 dependencies {
     // The opt-in W3C suite intake uses the public generator pipeline for diagnostic execution.
     implementation project(':modules:generator-core')
+    // TASK-0064 mapped W3C rows execute generated read/write/validate paths through JDK XML.
+    implementation project(':modules:runtime-jdkxml')
 
     // Representative example bindings are the conformance fixtures for TASK-0017.
     testImplementation project(':examples:multi-namespace')

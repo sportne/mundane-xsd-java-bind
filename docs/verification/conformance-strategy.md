@@ -56,19 +56,20 @@ and future-study rows are classification evidence only; they do not create runna
 
 The accepted full-suite intake classifies every discovered W3C schema or instance document into one
 category: `binding-supported`, `validation-only`, `tolerated-metadata`, `expected-diagnostic`,
-`product-scope-incompatible`, or `blocked`. The current pinned-suite evidence is:
+`product-scope-incompatible`, or `blocked`. `TASK-0064` adds the first explicit generated-binding
+mapping for the selected `AttrDecl` row subset. The current pinned-suite evidence is:
 
 ```text
-w3c-xsd10-summary total=24796 binding-supported=0 validation-only=24439 tolerated-metadata=98 expected-diagnostic=2 product-scope-incompatible=167 blocked=90
+w3c-xsd10-summary total=24796 binding-supported=3 validation-only=24436 tolerated-metadata=98 expected-diagnostic=2 product-scope-incompatible=167 blocked=90
+w3c-xsd10-binding-execution passed=1
 ```
 
-The zero `binding-supported` count is intentional until individual W3C fixtures are mapped to
-generated-binding shapes. This is repeatable classification and diagnostic evidence, not a full
-XSD 1.0 support claim.
+The `binding-supported` count is limited to explicitly mapped rows. Unmapped rows remain
+repeatable classification and diagnostic evidence, not a full XSD 1.0 support claim.
 
 `TASK-0056` accepts this as the final readiness reconciliation for the current sequence. The
-readiness decision is that `XP-XSD10-FULL` remains planned and non-executable because the feature
-matrix still records full-XSD gaps and no W3C fixture rows are mapped to generated-binding support.
+readiness decision remains that `XP-XSD10-FULL` is planned and non-executable until profile
+enablement and final release gates are accepted.
 
 ## Unsupported feature behavior
 

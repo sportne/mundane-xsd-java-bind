@@ -215,7 +215,10 @@ support. The planned sequence is:
   harness, with no generated-binding support claim for unmapped W3C rows.
 - accepted in `TASK-0056`: final readiness reconciliation for the current sequence. The evidence
   keeps `XP-XSD10-FULL` planned and non-executable because the feature matrix still has full-XSD
-  blockers and the W3C suite intake has zero generated-binding-supported rows.
+  blockers and broad W3C generated-binding coverage remains unmapped.
+- accepted in `TASK-0064`: explicit W3C generated-binding mapping for three `AttrDecl` rows, with
+  one mapped generated-binding execution passing generate/compile/read/validate/write/re-read
+  checks. Unmapped W3C rows remain classified evidence, not full-suite support claims.
 
 XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. A real publication
 workflow remains separate release-engineering work.
@@ -226,7 +229,6 @@ workflow remains separate release-engineering work.
 requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
 The public token remains non-executable until `TASK-0065`.
 
-The remaining blocker sequence is `TASK-0064` through `TASK-0066`: W3C generated-binding row
-mapping, full-profile enablement, and final release
-workflow/readiness. Until those gates are accepted, public docs must keep full XSD 1.0 and
-`1.0.0` release claims out of scope.
+The remaining blocker sequence is `TASK-0065` through `TASK-0066`: full-profile enablement and
+final release workflow/readiness. Until those gates are accepted, public docs must keep full XSD
+1.0 and `1.0.0` release claims out of scope.

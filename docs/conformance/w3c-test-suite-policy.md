@@ -36,7 +36,11 @@ The lane classifies W3C `.testSet` metadata as binding-supported, validation-onl
 tolerated-metadata, expected-diagnostic, product-scope-incompatible, or blocked. It writes local
 reports under `build/` and remains outside `qualityGate`.
 
-`TASK-0056` reconciles that intake as evidence only. The current suite summary has zero
-binding-supported rows, so the project does not claim a W3C full-suite generated-binding pass or
-full XML Schema 1.0 conformance. Mapping W3C rows to generated-binding execution requires a later
-accepted task sequence.
+`TASK-0056` reconciles that intake as evidence only. `TASK-0064` adds the first explicit
+generated-binding mapping: three W3C `AttrDecl` rows are classified as `binding-supported`, and one
+mapped execution generates, compiles, reads, validates, writes, re-reads, and re-validates the
+binding while preserving JDK XML Schema validation as the oracle. The lane strips only
+`xsi:schemaLocation` and `xsi:noNamespaceSchemaLocation` validator hints before generated reader
+input. The project still does not claim a W3C full-suite generated-binding pass or full XML Schema
+1.0 conformance until the remaining rows are either mapped or documented as product-scope
+incompatible and `XP-XSD10-FULL` is enabled.

@@ -17,11 +17,13 @@ final class W3cXsd10SuiteIntakeTest {
   @Test
   void classifiesPinnedSuiteMetadataAndWritesReports() throws IOException {
     Path suiteRoot = writeSuite();
+    writeMappedAttrDeclFixture(suiteRoot);
     W3cXsd10SuiteIntake.Report report =
         new W3cXsd10SuiteIntake().run(suiteRoot, tempDirectory.resolve("reports"));
 
-    assertEquals(29, report.total());
-    assertEquals(22, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.VALIDATION_ONLY));
+    assertEquals(30, report.total());
+    assertEquals(3, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
+    assertEquals(20, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.VALIDATION_ONLY));
     assertEquals(2, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.TOLERATED_METADATA));
     assertEquals(1, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.EXPECTED_DIAGNOSTIC));
     assertEquals(
@@ -35,11 +37,41 @@ final class W3cXsd10SuiteIntakeTest {
   @Test
   void commandLineMainWritesReportForSuiteDirectory() throws IOException {
     Path suiteRoot = writeSuite();
+    writeMappedAttrDeclFixture(suiteRoot);
     Path reportDirectory = tempDirectory.resolve("main-reports");
 
     W3cXsd10ConformanceMain.main(new String[] {suiteRoot.toString(), reportDirectory.toString()});
 
-    assertTrue(Files.readString(reportDirectory.resolve("summary.txt")).contains("total=29"));
+    assertTrue(Files.readString(reportDirectory.resolve("summary.txt")).contains("total=30"));
+  }
+
+  @Test
+  void rejectsMissingRequiredMappedRows() throws IOException {
+    Path suiteRoot = writeSuite();
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> new W3cXsd10SuiteIntake().run(suiteRoot, tempDirectory.resolve("missing-map")));
+
+    assertTrue(exception.getMessage().contains("Expected 3 mapped W3C rows"));
+  }
+
+  @Test
+  void mappedBindingRowsExecuteGeneratedRoundTrip() throws IOException {
+    Path suiteRoot = writeSuite();
+    writeMappedAttrDeclFixture(suiteRoot);
+    Path reportDirectory = tempDirectory.resolve("mapped-reports");
+
+    W3cXsd10SuiteIntake.Report report = new W3cXsd10SuiteIntake().run(suiteRoot, reportDirectory);
+
+    assertEquals(30, report.total());
+    assertEquals(3, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
+    String summary = Files.readString(reportDirectory.resolve("summary.txt"));
+    assertTrue(summary.contains("binding-supported=3"));
+    assertTrue(summary.contains("bindingExecution.passed=1"));
+    String executions = Files.readString(reportDirectory.resolve("binding-executions.tsv"));
+    assertTrue(executions.contains("sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1.xsd"));
   }
 
   @Test
@@ -173,6 +205,41 @@ final class W3cXsd10SuiteIntakeTest {
     write(metadataParent.resolve("../sunData/suntest/base.xsd").normalize(), minimalSchema("base"));
   }
 
+  private void writeMappedAttrDeclFixture(Path root) throws IOException {
+    Path metadata = root.resolve("sunMeta/AttrDecl.testSet");
+    write(
+        metadata,
+        testSet(
+            "AttrDecl",
+            "SUN",
+            "ad_name00101m1",
+            "TASK-0064 mapped generated-binding row",
+            schemaTest(
+                "AD_name00101m1",
+                "../sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1.xsd",
+                "valid",
+                "accepted"),
+            instanceTest(
+                "Positive",
+                "../sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1_p.xml",
+                "valid",
+                "accepted"),
+            instanceTest(
+                "Negative",
+                "../sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1_n.xml",
+                "invalid",
+                "accepted")));
+    write(
+        root.resolve("sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1.xsd"),
+        mappedAttrDeclSchema());
+    write(
+        root.resolve("sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1_p.xml"),
+        mappedAttrDeclInstance("td:price"));
+    write(
+        root.resolve("sunData/AttrDecl/AD_name/AD_name00101m/AD_name00101m1_n.xml"),
+        mappedAttrDeclInstance("price"));
+  }
+
   private static String testSet(
       String name, String contributor, String groupName, String description, String... tests) {
     return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -232,6 +299,37 @@ final class W3cXsd10SuiteIntakeTest {
         + name
         + "</xs:documentation></xs:annotation>\n"
         + "</xs:schema>\n";
+  }
+
+  private static String mappedAttrDeclSchema() {
+    return """
+        <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="AttrDecl/name"
+            xmlns:tn="AttrDecl/name"
+            attributeFormDefault="unqualified">
+          <xsd:element name="root">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="tn:elementWithAttr"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="elementWithAttr">
+            <xsd:complexType>
+              <xsd:attribute name="number" type="xsd:integer"/>
+              <xsd:attribute name="price" type="xsd:decimal" form="qualified"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        """;
+  }
+
+  private static String mappedAttrDeclInstance(String priceAttributeName) {
+    return "<td:root xmlns:td=\"AttrDecl/name\">\n"
+        + "  <td:elementWithAttr "
+        + priceAttributeName
+        + "=\"12.33\"/>\n"
+        + "</td:root>\n";
   }
 
   private static String redefineSchema() {

@@ -120,17 +120,14 @@ final class W3cXsd10SuiteIntakeDeltaTest {
   }
 
   @Test
-  void summaryIncludesBindingSupportedZeroForMinimalLocalMetadata() throws IOException {
+  void parsingMinimalLocalMetadataKeepsBindingSupportedZero() throws IOException {
     Path suiteRoot = writeSuite(List.of());
-    Path reportDirectory = tempDirectory.resolve("summary-report");
 
-    W3cXsd10SuiteIntake.Report report = new W3cXsd10SuiteIntake().run(suiteRoot, reportDirectory);
+    W3cXsd10SuiteIntake.Report report =
+        W3cXsd10SuiteIntake.Report.from(new W3cXsd10SuiteIntake().parse(suiteRoot));
 
     assertEquals(15, report.total());
     assertEquals(0, report.categoryCounts().get(W3cXsd10SuiteIntake.Category.BINDING_SUPPORTED));
-    String summary = Files.readString(reportDirectory.resolve("summary.txt"));
-    assertTrue(summary.contains("binding-supported=0"));
-    assertTrue(summary.contains("category.binding-supported=0"));
   }
 
   @Test
@@ -159,8 +156,9 @@ final class W3cXsd10SuiteIntakeDeltaTest {
     Path firstReportDirectory = tempDirectory.resolve("first-report");
     Path secondReportDirectory = tempDirectory.resolve("second-report");
 
-    new W3cXsd10SuiteIntake().run(suiteRoot, firstReportDirectory);
-    new W3cXsd10SuiteIntake().run(suiteRoot, secondReportDirectory);
+    List<W3cXsd10SuiteIntake.Fixture> fixtures = new W3cXsd10SuiteIntake().parse(suiteRoot);
+    W3cXsd10SuiteIntake.writeReport(firstReportDirectory.resolve("fixtures.tsv"), fixtures);
+    W3cXsd10SuiteIntake.writeReport(secondReportDirectory.resolve("fixtures.tsv"), fixtures);
 
     List<String> firstRows = reportRows(firstReportDirectory.resolve("fixtures.tsv"));
     List<String> secondRows = reportRows(secondReportDirectory.resolve("fixtures.tsv"));

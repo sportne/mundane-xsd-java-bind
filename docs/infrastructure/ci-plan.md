@@ -76,8 +76,8 @@ new accepted task and must not be inferred from the `0.6.0` readiness closeout.
 with W3C generated-binding evidence. The CI/release sequence remains planned until `TASK-0066`:
 
 - `qualityGate` remains the JVM correctness gate throughout `TASK-0059` through `TASK-0065`.
-- `w3cXsd10Conformance` becomes release-blocking only after `TASK-0064` maps in-scope W3C rows to
-  generated-binding execution.
+- `TASK-0064` maps the first W3C generated-binding rows. `w3cXsd10Conformance` becomes a final
+  release-blocking evidence lane in `TASK-0066`, after `XP-XSD10-FULL` is executable.
 - `XP-XSD10-FULL` becomes executable only in `TASK-0065`.
 - The GitHub Release workflow is added only in `TASK-0066`, after full-XSD evidence passes.
 

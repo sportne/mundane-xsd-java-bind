@@ -47,10 +47,10 @@ The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 ## Not supported
 
 - Full XML Schema 1.0 conformance is not claimed yet.
-- W3C suite rows mapped to generated-binding support, executable `XP-XSD10-FULL`, and final release
+- Broad W3C suite generated-binding coverage, executable `XP-XSD10-FULL`, and final release
   workflow readiness are still planned work.
-- W3C XML Schema 1.0 suite classification exists as opt-in evidence, but no W3C rows are claimed as
-  generated-binding-supported yet.
+- W3C XML Schema 1.0 suite classification exists as opt-in evidence; three `AttrDecl` rows are
+  mapped to generated-binding support, but full-suite support is not claimed.
 - XSD 1.1 and XML 1.1 are not project targets.
 - XML Canonicalization, XML Signature canonical forms, lexical prefix preservation, comments/PI
   retention, DTD/entity identity preservation, and DOM-backed binding are not supported.

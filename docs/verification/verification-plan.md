@@ -230,7 +230,9 @@ The remaining verification sequence is:
 - `TASK-0063`: accepted anonymous list/union restriction-member tests, nil-aware
   identity-constraint generated-validator tests, and selected JDK XML Schema comparison fixture
   `T-CONF-XP-XSD10-COMPOSED-ANONYMOUS-LIST-UNION`.
-- `TASK-0064`: W3C XML Schema 1.0 generated-binding mapping and executable row evidence.
+- `TASK-0064`: accepted W3C XML Schema 1.0 generated-binding mapping for three `AttrDecl` rows,
+  with one mapped execution passing generate/compile/read/validate/write/re-read checks under the
+  opt-in `w3cXsd10Conformance` lane.
 - `TASK-0065`: profile/API/CLI/Gradle tests proving `XP-XSD10-FULL` is executable.
 - `TASK-0066`: final `1.0.0` gates: clean quality gate, benchmark smoke, Native Image lanes, W3C
   generated-binding lane, `publicationDryRun -Pmxjb.version=1.0.0`, and GitHub Release workflow

@@ -32,13 +32,15 @@ archive and is run explicitly:
 ```
 
 The lane parses `.testSet` metadata, validates referenced files, rejects XSD 1.1/XML 1.1 intake,
-executes expected generator diagnostics where classified, and writes `fixtures.tsv` plus
-`summary.txt` under `build/reports/w3c-xsd10-conformance`. It is classification evidence only; the
-W3C suite archive and extracted files are not checked in.
+executes expected generator diagnostics where classified, executes explicitly mapped
+generated-binding rows, and writes `fixtures.tsv`, `binding-executions.tsv`, and `summary.txt`
+under `build/reports/w3c-xsd10-conformance`. The W3C suite archive and extracted files are not
+checked in.
 
-`TASK-0056` reconciles the suite intake with the feature matrix. The current W3C summary has zero
-generated-binding-supported rows, so this module still does not prove full XML Schema 1.0
-conformance or make `XP-XSD10-FULL` executable.
+`TASK-0056` reconciles the suite intake with the feature matrix. `TASK-0064` maps the first three
+W3C `AttrDecl` rows to generated-binding support and records one passing generated-binding
+execution. This module still does not prove full XML Schema 1.0 conformance or make
+`XP-XSD10-FULL` executable because unmapped W3C rows remain classified evidence.
 
 Covered behavior:
 

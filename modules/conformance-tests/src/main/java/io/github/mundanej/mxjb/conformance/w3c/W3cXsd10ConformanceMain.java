@@ -15,6 +15,7 @@ public final class W3cXsd10ConformanceMain {
     W3cXsd10SuiteIntake.Report report =
         new W3cXsd10SuiteIntake().run(Path.of(args[0]), Path.of(args[1]));
     System.out.println(report.toSummaryLine());
+    System.out.println("w3c-xsd10-binding-execution passed=" + report.bindingExecutionCount());
     report.categoryCounts().entrySet().stream()
         .map(
             entry ->

@@ -74,8 +74,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 61. `TASK-0061`: Complete accepted derivation and dynamic typing for executable shapes. Completed and accepted.
 62. `TASK-0062`: Complete strict/lax wildcard deep validation and wildcard composition. Completed and accepted.
 63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Completed and accepted.
-64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Next implementation gate.
-65. `TASK-0065`: Enable executable `XP-XSD10-FULL`. Draft.
+64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Completed and accepted.
+65. `TASK-0065`: Enable executable `XP-XSD10-FULL`. Next implementation gate.
 66. `TASK-0066`: Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. Draft.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
@@ -146,7 +146,9 @@ remains non-executable, W3C suite intake remains classification evidence, and fu
 closure requires a new accepted task sequence. `TASK-0057` accepted delta-only test hardening after
 the last broad hardening cycle. `TASK-0058` accepted the `1.0.0` full-XSD blocker closure sequence:
 `1.0.0` requires executable `XP-XSD10-FULL` generated-binding support and W3C generated-binding
-evidence, not a stable-subset release.
+evidence, not a stable-subset release. `TASK-0064` has accepted the first explicit W3C
+generated-binding mapping: three W3C `AttrDecl` rows are classified as binding-supported and one
+mapped generated-binding execution passes generate/compile/read/validate/write/re-read checks.
 
 ## Draft completion backlog
 
@@ -219,16 +221,16 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0061` | 1.0.0 | accepted | Complete accepted derivation and dynamic typing for executable shapes. |
 | `TASK-0062` | 1.0.0 | accepted | Complete strict/lax wildcard deep validation and wildcard composition. |
 | `TASK-0063` | 1.0.0 | accepted | Close remaining datatype, nil, and identity-validation edges. |
-| `TASK-0064` | 1.0.0 | next | Map W3C XML Schema 1.0 rows to generated-binding execution. |
-| `TASK-0065` | 1.0.0 | draft | Enable executable `XP-XSD10-FULL`. |
+| `TASK-0064` | 1.0.0 | accepted | Map W3C XML Schema 1.0 rows to generated-binding execution. |
+| `TASK-0065` | 1.0.0 | next | Enable executable `XP-XSD10-FULL`. |
 | `TASK-0066` | 1.0.0 | draft | Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. |
 
 ## Current implementation gate
 
-`TASK-0064` is the next implementation gate. It may map W3C XML Schema 1.0 rows to generated
-binding execution for the full-XSD blocker sequence. It must not enable
-`XP-XSD10-FULL`, add release workflow behavior, bump versions, create tags, publish artifacts, add
-dependencies, weaken `qualityGate`, or claim full XSD 1.0 support.
+`TASK-0065` is the next implementation gate. It may enable executable `XP-XSD10-FULL` only after
+the accepted blocker and W3C generated-binding evidence remains green. It must not add release
+workflow behavior, bump versions, create tags, publish artifacts, weaken `qualityGate`, or claim
+`1.0.0` release readiness.
 
 Any future work must preserve:
 
