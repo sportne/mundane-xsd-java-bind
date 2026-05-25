@@ -2158,21 +2158,27 @@ public final class SchemaIrBuilder {
 
   private SchemaIrSimpleList normalizeSimpleList(
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
-    if (!node.children().isEmpty()) {
+    String itemTypeText = node.attributes().get("itemType");
+    if (itemTypeText != null && !itemTypeText.isBlank() && !node.children().isEmpty()) {
       diagnostic(
           state,
           DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
           document.resourceId(),
-          "xs:list supports only itemType references in profile XP-XSD10-COMPOSED.");
+          "xs:list cannot specify both itemType and an anonymous simpleType.");
       return null;
     }
-    String itemTypeText = node.attributes().get("itemType");
     if (itemTypeText == null || itemTypeText.isBlank()) {
+      if (node.children().size() == 1
+          && node.children().getFirst().kind() == XsdSyntaxKind.SIMPLE_TYPE) {
+        SchemaIrSimpleRestriction restriction =
+            normalizeAnonymousSimpleRestriction(document, node.children().getFirst(), state);
+        return restriction == null ? null : new SchemaIrSimpleList(null, restriction);
+      }
       diagnostic(
           state,
           DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
           document.resourceId(),
-          "xs:list is missing itemType.");
+          "xs:list is missing itemType or an anonymous simpleType.");
       return null;
     }
     SchemaQName itemType = resolveQName(document, itemTypeText, state);
@@ -2192,44 +2198,72 @@ public final class SchemaIrBuilder {
 
   private SchemaIrSimpleUnion normalizeSimpleUnion(
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
-    if (!node.children().isEmpty()) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:union supports only memberTypes references in profile XP-XSD10-COMPOSED.");
-      return null;
-    }
-    String memberTypesText = node.attributes().get("memberTypes");
-    if (memberTypesText == null || memberTypesText.isBlank()) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:union is missing memberTypes.");
-      return null;
-    }
-    List<SchemaQName> memberTypes = new ArrayList<>();
-    for (String memberTypeText :
-        Pattern.compile("\\s+").splitAsStream(memberTypesText.trim()).toList()) {
-      SchemaQName memberType = resolveQName(document, memberTypeText, state);
-      if (memberType == null) {
-        continue;
-      }
-      if (!isAcceptedSimpleCompositionMember(memberType, state)) {
+    List<SchemaIrSimpleRestriction> anonymousMemberRestrictions = new ArrayList<>();
+    for (XsdSyntaxNode child : node.children()) {
+      if (child.kind() != XsdSyntaxKind.SIMPLE_TYPE) {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
             document.resourceId(),
-            "Unsupported xs:union memberType " + memberType.toText() + ".");
+            "xs:union supports only anonymous simpleType children.");
         continue;
       }
-      memberTypes.add(memberType);
+      SchemaIrSimpleRestriction restriction =
+          normalizeAnonymousSimpleRestriction(document, child, state);
+      if (restriction != null) {
+        anonymousMemberRestrictions.add(restriction);
+      }
     }
-    if (memberTypes.isEmpty()) {
+    String memberTypesText = node.attributes().get("memberTypes");
+    if ((memberTypesText == null || memberTypesText.isBlank())
+        && anonymousMemberRestrictions.isEmpty()) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "xs:union is missing memberTypes or anonymous simpleType members.");
       return null;
     }
-    return new SchemaIrSimpleUnion(memberTypes);
+    List<SchemaQName> memberTypes = new ArrayList<>();
+    if (memberTypesText != null && !memberTypesText.isBlank()) {
+      for (String memberTypeText :
+          Pattern.compile("\\s+").splitAsStream(memberTypesText.trim()).toList()) {
+        SchemaQName memberType = resolveQName(document, memberTypeText, state);
+        if (memberType == null) {
+          continue;
+        }
+        if (!isAcceptedSimpleCompositionMember(memberType, state)) {
+          diagnostic(
+              state,
+              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+              document.resourceId(),
+              "Unsupported xs:union memberType " + memberType.toText() + ".");
+          continue;
+        }
+        memberTypes.add(memberType);
+      }
+    }
+    if (memberTypes.isEmpty() && anonymousMemberRestrictions.isEmpty()) {
+      return null;
+    }
+    return new SchemaIrSimpleUnion(memberTypes, anonymousMemberRestrictions);
+  }
+
+  private SchemaIrSimpleRestriction normalizeAnonymousSimpleRestriction(
+      XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
+    List<XsdSyntaxNode> restrictionChildren =
+        node.children().stream()
+            .filter(child -> child.kind() == XsdSyntaxKind.RESTRICTION)
+            .toList();
+    if (restrictionChildren.size() != 1 || node.children().size() != 1) {
+      diagnostic(
+          state,
+          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
+          document.resourceId(),
+          "Anonymous simpleType members support exactly one xs:restriction child.");
+      return null;
+    }
+    return normalizeSimpleRestriction(document, restrictionChildren.getFirst(), state);
   }
 
   private boolean isAcceptedSimpleCompositionMember(SchemaQName type, BuildState state) {

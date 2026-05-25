@@ -638,6 +638,53 @@ final class BindingModelBuilderTest {
   }
 
   @Test
+  void bindsAnonymousListAndUnionRestrictionMembersForComposedProfile() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="QuantityList">
+                  <xs:list>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:int">
+                        <xs:minInclusive value="1"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:list>
+                </xs:simpleType>
+                <xs:simpleType name="QuantityOrCode">
+                  <xs:union memberTypes="xs:string">
+                    <xs:simpleType>
+                      <xs:restriction base="xs:int">
+                        <xs:maxInclusive value="9"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:union>
+                </xs:simpleType>
+                <xs:element name="order" type="tns:Order"/>
+                <xs:complexType name="Order">
+                  <xs:sequence>
+                    <xs:element name="quantities" type="tns:QuantityList"/>
+                    <xs:element name="status" type="tns:QuantityOrCode"/>
+                  </xs:sequence>
+                </xs:complexType>
+                """));
+
+    BindingResult result = bind("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertFalse(result.hasErrors(), result.diagnostics().toString());
+    String bindingText = result.model().toText();
+    assertTrue(
+        bindingText.contains(
+            "element quantities xml={urn:orders}quantities type=list:scalar:int facets[minInclusive=1]"),
+        bindingText);
+    assertTrue(
+        bindingText.contains("type=union:scalar:string|scalar:int facets[maxInclusive=9]"),
+        bindingText);
+  }
+
+  @Test
   void rejectsOptionalListValuedElementsForComposedProfile() throws IOException {
     write(
         "main.xsd",

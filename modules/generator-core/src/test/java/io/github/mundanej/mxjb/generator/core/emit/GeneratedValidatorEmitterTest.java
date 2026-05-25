@@ -319,6 +319,63 @@ final class GeneratedValidatorEmitterTest {
   }
 
   @Test
+  void generatedValidatorTreatsNilledIdentityFieldAsMissing()
+      throws IOException,
+          ClassNotFoundException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException,
+          InvocationTargetException {
+    SchemaIrIdentityConstraint key =
+        new SchemaIrIdentityConstraint(
+            "key",
+            schemaName("lineCodeKey"),
+            null,
+            List.of(identityPath(elementStep("line"))),
+            List.of(identityField(identityPath(elementStep("code")))));
+    BindingModel model =
+        new BindingModel(
+            List.of(root("order", model("com.example.orders.Order"), List.of(key))),
+            List.of(
+                type(
+                    "com.example.orders",
+                    "Order",
+                    List.of(field("element", "line", model("com.example.orders.Line"), list(), 1))),
+                type(
+                    "com.example.orders",
+                    "Line",
+                    List.of(
+                        field(
+                            "element",
+                            "code",
+                            scalar("string"),
+                            required(),
+                            1,
+                            new BindingValueSemantics(true, null, null))))));
+    List<GeneratedJavaSource> sources = generatedModelReaderValidatorSources(model);
+
+    try (GeneratedSourceVerifier.CompiledSources compiledSources =
+        new GeneratedSourceVerifier(tempDirectory).compile(sources)) {
+      Class<?> orderClass = compiledSources.load("com.example.orders.Order");
+      Class<?> lineClass = compiledSources.load("com.example.orders.Line");
+      Class<?> validatorClass = compiledSources.load("com.example.orders.xml.OrderXmlValidator");
+      Object validLine = lineClass.getConstructor(Optional.class).newInstance(Optional.of("A"));
+      Object nilLine = lineClass.getConstructor(Optional.class).newInstance(Optional.empty());
+      Object valid = orderClass.getConstructor(List.class).newInstance(List.of(validLine));
+      Object missingKey = orderClass.getConstructor(List.class).newInstance(List.of(nilLine));
+
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, valid);
+      ValidationResult missingKeyResult =
+          (ValidationResult)
+              validatorClass.getMethod("validate", orderClass).invoke(null, missingKey);
+
+      assertTrue(validResult.isValid());
+      assertEquals(List.of("MXJB-GV-010"), codes(missingKeyResult));
+    }
+  }
+
+  @Test
   void generatedValidatorTreatsFieldUnionAlternativesAsOneTupleColumn()
       throws IOException,
           ClassNotFoundException,

@@ -47,6 +47,7 @@ final class XpXsd10ComposedConformanceTest {
   // - T-CONF-XP-XSD10-COMPOSED-GROUPS
   // - T-CONF-XP-XSD10-COMPOSED-CONTENT-MODEL
   // - T-CONF-XP-XSD10-COMPOSED-SIMPLE-CONTENT
+  // - T-CONF-XP-XSD10-COMPOSED-ANONYMOUS-LIST-UNION
 
   @TempDir private Path tempDirectory;
 
@@ -77,7 +78,7 @@ final class XpXsd10ComposedConformanceTest {
                   .getMethod("validate", XmlEventReader.class)
                   .invoke(null, readerFor(invalidXml));
 
-      assertTrue(validResult.isValid());
+      assertTrue(validResult.isValid(), validResult.errors().toString());
       assertFalse(invalidResult.isValid());
       assertFalse(invalidResult.errors().isEmpty());
     }
@@ -201,9 +202,55 @@ final class XpXsd10ComposedConformanceTest {
       String writtenXml = writeGenerated(writerClass, noteClass, note);
 
       schema.newValidator().validate(new StreamSource(new StringReader(writtenXml)));
-      assertTrue(validResult.isValid());
+      assertTrue(validResult.isValid(), validResult.errors().toString());
       assertFalse(invalidResult.isValid());
       assertFalse(invalidResult.errors().isEmpty());
+    }
+  }
+
+  @Test
+  void anonymousListUnionFixturesMatchJdkSchemaValidationAndGeneratedBindings()
+      throws IOException, SAXException, ReflectiveOperationException, XMLStreamException {
+    Schema schema = jdkSchema("/xp-xsd10-composed/anonymous-list-union.xsd");
+    String validXml = resource("/xp-xsd10-composed/anonymous-list-union-valid.xml");
+    String invalidListXml = resource("/xp-xsd10-composed/anonymous-list-union-invalid.xml");
+    String invalidUnionXml = resource("/xp-xsd10-composed/anonymous-list-union-invalid-union.xml");
+
+    schema.newValidator().validate(new StreamSource(new StringReader(validXml)));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidListXml))));
+    assertThrows(
+        SAXException.class,
+        () -> schema.newValidator().validate(new StreamSource(new StringReader(invalidUnionXml))));
+
+    try (CompiledGeneratedComposedBindings bindings =
+        generateAndCompileComposedBindings(
+            "/xp-xsd10-composed/anonymous-list-union.xsd", "anonymous")) {
+      Class<?> orderClass = bindings.load("com.example.anonymous.Order");
+      Class<?> readerClass = bindings.load("com.example.anonymous.xml.OrderXmlReader");
+      Class<?> validatorClass = bindings.load("com.example.anonymous.xml.OrderXmlValidator");
+
+      Object order =
+          readerClass.getMethod("read", XmlEventReader.class).invoke(null, readerFor(validXml));
+      ValidationResult validResult =
+          (ValidationResult) validatorClass.getMethod("validate", orderClass).invoke(null, order);
+      ValidationResult invalidResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(invalidListXml));
+      ValidationResult invalidUnionResult =
+          (ValidationResult)
+              validatorClass
+                  .getMethod("validate", XmlEventReader.class)
+                  .invoke(null, readerFor(invalidUnionXml));
+
+      assertTrue(validResult.isValid(), validResult.errors().toString());
+      assertFalse(invalidResult.isValid());
+      assertFalse(invalidResult.errors().isEmpty());
+      assertFalse(invalidUnionResult.isValid());
+      assertFalse(invalidUnionResult.errors().isEmpty());
     }
   }
 
@@ -227,7 +274,9 @@ final class XpXsd10ComposedConformanceTest {
                 "urn:content-model",
                 "com.example.content",
                 "urn:simple-content",
-                "com.example.simplecontent"),
+                "com.example.simplecontent",
+                "urn:anonymous-composition",
+                "com.example.anonymous"),
             List.of(),
             Map.of());
     GeneratorResult result = new CoreGenerator().generate(request);

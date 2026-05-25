@@ -78,6 +78,7 @@ and generated validation recursion through repeated/nested/abstract substitution
 through known declared-base `xsi:type` branch values. `TASK-0062` adds strict/lax schema-known
 validation for accepted retained element and attribute wildcards. Identity-constraint edge cases
 beyond accepted generated model shapes and `XP-XSD10-FULL` execution remain future gates.
+`TASK-0063` adds anonymous simple restriction members for accepted list/union declarations.
 
 ## `TASK-0032` semantic validation
 
@@ -94,6 +95,9 @@ The `XP-XSD10-SEMANTIC` validation behavior remains generated and explicit.
   branch values; generated validators recurse through each concrete branch value in list order.
 - `TASK-0061` validates known `xsi:type` dynamic branches by reusing generated sealed branch
   validation and reports unsupported XML `xsi:type` values as deterministic reader diagnostics.
+- `TASK-0063` treats nilled scalar element values in identity-constraint trees as present elements
+  with missing typed field values, so `unique`, `key`, and `keyref` follow the accepted missing
+  value behavior for generated model shapes.
 - `TASK-0034` verifies deterministic semantic object diagnostics, location-aware XML diagnostics
   for nil-content and fixed-value reader failures, substitution branch value recursion, and
   explicit schema diagnostics for unsupported validation categories.

@@ -321,6 +321,48 @@ final class SchemaIrBuilderTest {
   }
 
   @Test
+  void buildsIrForAnonymousListAndUnionRestrictionMembers() throws IOException {
+    write(
+        "main.xsd",
+        schema(
+            "urn:orders",
+            """
+                <xs:simpleType name="QuantityList">
+                  <xs:list>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:int">
+                        <xs:minInclusive value="1"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:list>
+                </xs:simpleType>
+                <xs:simpleType name="QuantityOrCode">
+                  <xs:union memberTypes="xs:string">
+                    <xs:simpleType>
+                      <xs:restriction base="xs:int">
+                        <xs:maxInclusive value="9"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:union>
+                </xs:simpleType>
+                """));
+
+    SchemaIrResult result = build("main.xsd", GeneratorProfile.XP_XSD10_COMPOSED);
+
+    assertTrue(result.diagnostics().isEmpty(), result.diagnostics().toString());
+    String irText = result.model().toText();
+    assertTrue(
+        irText.contains(
+            "simpleType {urn:orders}QuantityList list itemType=anonymous[base=xs:int minInclusive=1]"),
+        irText);
+    assertTrue(
+        irText.contains(
+            "simpleType {urn:orders}QuantityOrCode union memberTypes=xs:string "
+                + "anonymousMembers=base=xs:int maxInclusive=9"),
+        irText);
+  }
+
+  @Test
   void reportsUnsupportedListAndUnionMemberShapes() throws IOException {
     write(
         "main.xsd",

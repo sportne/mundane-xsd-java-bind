@@ -29,6 +29,8 @@ writer, and validator architecture.
   containing complex types during normalization.
 - `TASK-0028` list/union simple types are resolved as named simple-type aliases that carry
   item/member metadata into binding and validation planning.
+- `TASK-0063` allows anonymous simple restriction members inside accepted `xs:list` and `xs:union`
+  declarations and carries those restriction facets into binding.
 - `TASK-0029` complex extension and simple restriction derivation chains are flattened or merged
   before emission; generated Java inheritance is not part of the accepted model shape.
 - `TASK-0053` adds simpleContent value metadata for accepted text-with-attributes models and

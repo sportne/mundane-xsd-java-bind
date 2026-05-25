@@ -70,7 +70,9 @@ The first generated-validator emitter supports basic validation for supported da
   declares `xs:unique`, `xs:key`, or `xs:keyref`. The generated public model API is unchanged:
   validators build a private tree from generated records, evaluate the accepted XSD 1.0
   selector/field XPath subset, enforce unique/key/keyref tuple rules, and report stable generated
-  diagnostics without reflection or a runtime XPath dependency.
+  diagnostics without reflection or a runtime XPath dependency. `TASK-0063` treats nilled scalar
+  identity fields as present elements with missing typed values, matching the generated
+  `Optional.empty()` nil representation.
 - Generated validator source uses fully qualified names for generated model types and `runtime-core` validation/XML types to avoid import collisions.
 - Generated validator source contains no annotations, reflection, ServiceLoader, classpath scanning, XML parser APIs, XML writer behavior, dependency injection, or external resource access.
 

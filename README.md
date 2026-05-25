@@ -18,10 +18,11 @@ The current executable profiles are:
 - `XP-VALIDATION-10-BASIC`: accepted named simple restrictions for enumeration, string length,
   numeric inclusive ranges, and string pattern facets.
 - `XP-XSD10-COMPOSED`: accepted named model groups, attribute groups, named list/union simple
-  types, and initial derivation flattening.
+  types including anonymous simple restriction list/union members, and initial derivation
+  flattening.
 - `XP-XSD10-SEMANTIC`: accepted `nillable`, scalar `default`, scalar `fixed`, direct substitution
-  groups, `xs:unique`/`xs:key`/`xs:keyref` identity constraints for accepted generated model
-  shapes, and expanded generated validation for those paths.
+  groups, `xs:unique`/`xs:key`/`xs:keyref` identity constraints including nilled-field handling
+  for accepted generated model shapes, and expanded generated validation for those paths.
 - `XP-XSD10-DOCUMENT`: accepted `xs:any` wildcard/open-content retention, accepted
   `xs:anyAttribute` retention, accepted wildcard choices, accepted `mixed="true"` sequence and
   mixed choice content, retained `XmlFragment` and `XmlAttribute` values, strict/lax
@@ -46,9 +47,8 @@ The full feature matrix is in `docs/verification/xsd10-full-feature-matrix.md`.
 ## Not supported
 
 - Full XML Schema 1.0 conformance is not claimed yet.
-- Remaining datatype/list/union, NOTATION, `xsi:nil`, identity-constraint edge cases, W3C suite
-  rows mapped to generated-binding support, executable `XP-XSD10-FULL`, and final release workflow
-  readiness are still planned work.
+- W3C suite rows mapped to generated-binding support, executable `XP-XSD10-FULL`, and final release
+  workflow readiness are still planned work.
 - W3C XML Schema 1.0 suite classification exists as opt-in evidence, but no W3C rows are claimed as
   generated-binding-supported yet.
 - XSD 1.1 and XML 1.1 are not project targets.

@@ -85,10 +85,11 @@ cardinality. `TASK-0059` adds generated content-list shapes for optional all-gro
 children, repeated/optional multi-particle groups whose child particles are singleton particles,
 wildcard choice branches, and mixed choice content. `TASK-0060` adds shared grouped-content position
 metadata for generated reader/validator agreement, accepts nested choice positions inside grouped
-sequences, and broadens deterministic UPA diagnostics for wildcard overlap. Anonymous list/union
-member types, optional or repeated list-valued XML fields, nested list/union composition,
-identity-constraint edge cases, and full XSD 1.0 conformance remain out of scope with explicit
-diagnostics or future-study classification.
+sequences, and broadens deterministic UPA diagnostics for wildcard overlap. `TASK-0063` accepts
+anonymous simple restriction members for list and union simple types. Optional or repeated
+list-valued XML fields, nested list/union composition, identity-constraint edge cases outside
+accepted model shapes, and full XSD 1.0 conformance remain out of scope with explicit diagnostics
+or future-study classification.
 
 `TASK-0050` broadens the datatype engine used by existing executable profiles without making
 `XP-XSD10-FULL` executable. Accepted scalar element and attribute positions now map all XML Schema
@@ -102,9 +103,9 @@ Generated readers, writers, and validators use the same dependency-free runtime 
 basic complexContent restriction member checks, and selected derivation/substitution diagnostics.
 `TASK-0061` adds accepted known `xsi:type` dynamic dispatch for declared complex-base fields and
 final/block checks for accepted derivation/substitution paths. Direct root-element `xsi:type`
-dispatch and identity-constraint edge-case coverage remain future tasks. `TASK-0062` adds
-strict/lax schema-known validation for retained element and attribute wildcards plus accepted
-anyAttribute restriction-composition diagnostics.
+dispatch remains a future task. `TASK-0062` adds strict/lax schema-known validation for retained
+element and attribute wildcards plus accepted anyAttribute restriction-composition diagnostics.
+`TASK-0063` adds nil-aware identity validation for accepted generated model shapes.
 
 ## `0.4.0` Semantic Baseline
 
@@ -225,7 +226,7 @@ workflow remains separate release-engineering work.
 requires executable `XP-XSD10-FULL` generated-binding support plus W3C generated-binding evidence.
 The public token remains non-executable until `TASK-0065`.
 
-The remaining blocker sequence is `TASK-0063` through `TASK-0066`: remaining datatype/nil/identity
-edges, W3C generated-binding row mapping, full-profile enablement, and final release
+The remaining blocker sequence is `TASK-0064` through `TASK-0066`: W3C generated-binding row
+mapping, full-profile enablement, and final release
 workflow/readiness. Until those gates are accepted, public docs must keep full XSD 1.0 and
 `1.0.0` release claims out of scope.

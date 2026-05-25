@@ -1060,7 +1060,10 @@ public final class BindingModelBuilder {
         return bindRestrictedScalar(simpleType.restriction());
       }
       if (simpleType != null && simpleType.list() != null) {
-        BindingTypeReference itemType = bindSimpleCompositionMember(simpleType.list().itemType());
+        BindingTypeReference itemType =
+            simpleType.list().itemRestriction() == null
+                ? bindSimpleCompositionMember(simpleType.list().itemType())
+                : bindRestrictedScalar(simpleType.list().itemRestriction());
         if (itemType == null) {
           return BindingTypeReference.scalar("unsupported");
         }
@@ -1073,6 +1076,10 @@ public final class BindingModelBuilder {
           if (member != null) {
             members.add(member);
           }
+        }
+        for (SchemaIrSimpleRestriction restriction :
+            simpleType.union().anonymousMemberRestrictions()) {
+          members.add(bindRestrictedScalar(restriction));
         }
         if (members.isEmpty()) {
           return BindingTypeReference.scalar("unsupported");

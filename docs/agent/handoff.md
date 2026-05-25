@@ -73,8 +73,8 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 60. `TASK-0060`: Add accepted grouped-position automata and wildcard-conflict evidence. Completed and accepted.
 61. `TASK-0061`: Complete accepted derivation and dynamic typing for executable shapes. Completed and accepted.
 62. `TASK-0062`: Complete strict/lax wildcard deep validation and wildcard composition. Completed and accepted.
-63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Next implementation gate.
-64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Draft.
+63. `TASK-0063`: Close remaining datatype, nil, and identity-validation edges. Completed and accepted.
+64. `TASK-0064`: Map W3C XML Schema 1.0 rows to generated-binding execution. Next implementation gate.
 65. `TASK-0065`: Enable executable `XP-XSD10-FULL`. Draft.
 66. `TASK-0066`: Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. Draft.
 
@@ -133,7 +133,8 @@ substitution cycle diagnostics, and basic complex restriction member checks. `TA
 accepted known `xsi:type` dynamic branches and final/block checks for accepted paths. `TASK-0062`
 has accepted strict/lax schema-known validation for retained element and attribute wildcards, plus
 accepted wildcard restriction-composition diagnostics for supported `xs:anyAttribute` namespace
-narrowing.
+narrowing. `TASK-0063` has accepted anonymous simple restriction members for `xs:list` and
+`xs:union`, plus nil-aware identity-node validation for accepted generated model shapes.
 `TASK-0054` has accepted generated identity-constraint validation for `xs:unique`, `xs:key`, and
 `xs:keyref` over accepted generated model shapes using private document-scope validation state and
 the accepted selector/field XPath subset. `TASK-0055` has accepted the opt-in W3C XML Schema 1.0
@@ -217,15 +218,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0060` | 1.0.0 | accepted | Add accepted grouped-position automata and wildcard-conflict evidence. |
 | `TASK-0061` | 1.0.0 | accepted | Complete accepted derivation and dynamic typing for executable shapes. |
 | `TASK-0062` | 1.0.0 | accepted | Complete strict/lax wildcard deep validation and wildcard composition. |
-| `TASK-0063` | 1.0.0 | next | Close remaining datatype, nil, and identity-validation edges. |
-| `TASK-0064` | 1.0.0 | draft | Map W3C XML Schema 1.0 rows to generated-binding execution. |
+| `TASK-0063` | 1.0.0 | accepted | Close remaining datatype, nil, and identity-validation edges. |
+| `TASK-0064` | 1.0.0 | next | Map W3C XML Schema 1.0 rows to generated-binding execution. |
 | `TASK-0065` | 1.0.0 | draft | Enable executable `XP-XSD10-FULL`. |
 | `TASK-0066` | 1.0.0 | draft | Complete 1.0.0 readiness, version metadata, and GitHub Release workflow. |
 
 ## Current implementation gate
 
-`TASK-0063` is the next implementation gate. It may close remaining datatype, nil, and
-identity-validation edges for the full-XSD blocker sequence. It must not enable
+`TASK-0064` is the next implementation gate. It may map W3C XML Schema 1.0 rows to generated
+binding execution for the full-XSD blocker sequence. It must not enable
 `XP-XSD10-FULL`, add release workflow behavior, bump versions, create tags, publish artifacts, add
 dependencies, weaken `qualityGate`, or claim full XSD 1.0 support.
 
@@ -266,8 +267,9 @@ Any future work must preserve:
 - `TASK-0028` accepted named `xs:list` simple types with supported scalar or restricted scalar alias
   `itemType`, required singleton list-valued elements/attributes bound as immutable `List<T>`, named
   `xs:union` simple types with supported scalar or restricted scalar alias `memberTypes`, and
-  lexical `String` union fields with generated member validation. Optional/repeated list-valued
-  fields, anonymous list/union members, and nested list/union composition remain out of scope.
+  lexical `String` union fields with generated member validation. `TASK-0063` later accepted
+  anonymous simple restriction list/union members. Optional/repeated list-valued fields and nested
+  list/union composition remain out of scope.
 - `TASK-0029` accepted named complex-type `xs:complexContent/xs:extension` flattened before binding
   with base fields before derived fields and no generated Java inheritance, plus named simple
   restriction derivation chains over accepted scalar restrictions with merged facet metadata.

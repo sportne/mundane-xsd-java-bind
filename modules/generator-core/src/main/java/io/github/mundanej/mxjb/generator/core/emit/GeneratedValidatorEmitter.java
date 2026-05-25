@@ -1232,11 +1232,27 @@ public final class GeneratedValidatorEmitter {
             .append(".isPresent()) {\n");
         appendIdentityElementItem(source, nestedType, name, item, "      ");
         source.append("    }\n");
+      } else if (field.semantics().nillable()) {
+        source.append("    if (").append(accessor).append(" != null) {\n");
+        source.append("      if (").append(accessor).append(".isPresent()) {\n");
+        appendIdentityElementItem(source, nestedType, name, accessor + ".get()", "        ");
+        source.append("      } else {\n");
+        appendIdentityNilElement(source, name, "        ");
+        source.append("      }\n");
+        source.append("    }\n");
       } else {
         source.append("    if (").append(accessor).append(" != null) {\n");
         appendIdentityElementItem(source, nestedType, name, item, "      ");
         source.append("    }\n");
       }
+    }
+
+    private void appendIdentityNilElement(StringBuilder source, String name, String indent) {
+      source
+          .append(indent)
+          .append("children.add(new IdentityNode(\"")
+          .append(name)
+          .append("\", null, java.util.Map.of(), java.util.List.of()));\n");
     }
 
     private void appendIdentityElementItem(
@@ -1436,7 +1452,15 @@ public final class GeneratedValidatorEmitter {
       if (!hasFacetRules(reference)) {
         return lexicalMatch;
       }
-      return "(" + lexicalMatch + " && " + facetMatchExpression(reference, accessor) + ")";
+      String parsedValue =
+          "parseUnionValueOrNull(\"" + escape(reference.name()) + "\", " + accessor + ")";
+      return "("
+          + lexicalMatch
+          + " && "
+          + parsedValue
+          + " != null && "
+          + facetMatchExpression(reference, parsedValue)
+          + ")";
     }
 
     private String lexicalMatchExpression(String scalar, String accessor) {
@@ -2023,6 +2047,16 @@ public final class GeneratedValidatorEmitter {
           .append("    try {\n")
           .append("      return new java.math.BigDecimal(value.trim());\n")
           .append("    } catch (NumberFormatException exception) {\n")
+          .append("      return null;\n")
+          .append("    }\n")
+          .append("  }\n\n")
+          .append("  private static Object parseUnionValueOrNull(String type, String value) {\n")
+          .append("    try {\n")
+          .append("      return io.github.mundanej.mxjb.runtime.XmlDatatypes.parse(\n")
+          .append(
+              "          type, value, null, io.github.mundanej.mxjb.runtime.XmlLocation.UNKNOWN);\n")
+          .append(
+              "    } catch (io.github.mundanej.mxjb.runtime.XmlReadException | IllegalArgumentException exception) {\n")
           .append("      return null;\n")
           .append("    }\n")
           .append("  }\n");

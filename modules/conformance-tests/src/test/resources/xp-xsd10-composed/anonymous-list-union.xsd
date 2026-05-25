@@ -1,0 +1,37 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="urn:anonymous-composition"
+    targetNamespace="urn:anonymous-composition"
+    elementFormDefault="qualified">
+  <xs:simpleType name="QuantityList">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:int">
+          <xs:minInclusive value="1"/>
+          <xs:maxInclusive value="9"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
+  <xs:simpleType name="ShortCode">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z]{2}"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="CodeOrQuantity">
+    <xs:union memberTypes="tns:ShortCode">
+      <xs:simpleType>
+        <xs:restriction base="xs:int">
+          <xs:minInclusive value="1"/>
+          <xs:maxInclusive value="9"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+  <xs:element name="order" type="tns:Order"/>
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <xs:element name="quantities" type="tns:QuantityList"/>
+      <xs:element name="code" type="tns:CodeOrQuantity"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

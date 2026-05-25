@@ -24,7 +24,7 @@ traceability artifact, not a support claim. Status values:
 | `xs:simpleType` | partially supported | `TASK-0050`, `TASK-0053` | Needs full datatype, facet, list, union, and derivation semantics. |
 | `xs:group` | partially supported | `TASK-0051`, `TASK-0059`, `TASK-0060` | Singleton refs and single-particle repeated/optional refs are flattened with composed cardinality; repeated/optional multi-particle groups bind as generated content-list shapes with shared reader/validator position metadata for nested choice positions. |
 | `xs:attributeGroup` | partially supported | `TASK-0052` | Nested refs and anyAttribute composition are accepted for non-recursive groups; full restriction/derivation composition remains future. |
-| `xs:notation` | tolerated/ignored | `TASK-0049`, `TASK-0050` | Parsed and indexed as a symbol-space component; NOTATION datatype semantics remain future. |
+| `xs:notation` | tolerated metadata | `TASK-0049`, `TASK-0050`, `TASK-0063` | Parsed and indexed as a symbol-space component. NOTATION values use QName-compatible runtime lexical semantics for accepted scalar positions; declaration-table enforcement is not exposed as a generated public API. |
 | Identity constraints | partially supported | `TASK-0049`, `TASK-0054` | `xs:unique`, `xs:key`, and `xs:keyref` are parsed, normalized, and enforced by generated document-scope validators for accepted generated model shapes. The accepted XPath subset covers namespace-aware QName steps, `*`, `.`, `.//`, `/`, union alternatives, and terminal attribute fields. Unsupported XPath axes, predicates, functions, parent traversal, variables, and arbitrary expressions remain deterministic diagnostics. |
 
 ## Particles and content models
@@ -64,8 +64,8 @@ traceability artifact, not a support claim. Status values:
 | Derived string types | supported for accepted schema shapes | `TASK-0050` | normalizedString, token, language, Name, NCName, ID, IDREF, ENTITY, NMTOKEN families plus list-valued built-ins. |
 | Derived numeric types | supported for accepted schema shapes | `TASK-0050` | long/int/short/byte, unsigned types, positive/negative variants map to exact Java numeric types where safe. |
 | Restriction facets | supported for accepted schema shapes | `TASK-0050` | length, min/max length, pattern, enumeration, whiteSpace metadata, inclusive/exclusive bounds, totalDigits, and fractionDigits. |
-| `xs:list` | partially supported | `TASK-0050`, `TASK-0053` | Named list item datatypes use the full datatype engine; optional/repeated fields, anonymous item types, and nested composition rules remain future. |
-| `xs:union` | partially supported | `TASK-0050`, `TASK-0053` | Named union members use the full datatype engine; anonymous members, nested unions, and richer generated value shapes remain future. |
+| `xs:list` | partially supported | `TASK-0050`, `TASK-0053`, `TASK-0063` | Named list item datatypes and anonymous simple restriction item members use the full datatype engine; optional/repeated list-valued fields and nested list composition stay outside accepted generated shapes. |
+| `xs:union` | partially supported | `TASK-0050`, `TASK-0053`, `TASK-0063` | Named union members and anonymous simple restriction members use the full datatype engine; nested unions and richer generated value shapes stay outside accepted generated shapes. |
 
 ## Derivation and dynamic typing
 
@@ -75,11 +75,11 @@ traceability artifact, not a support claim. Status values:
 | `complexContent/restriction` | partially supported | `TASK-0053`, `TASK-0062` | Basic restricted member checks and supported anyAttribute wildcard namespace narrowing diagnostics are implemented; complete particle, default/fixed, and broader attribute restriction algebra remains future. |
 | `simpleContent/extension` | supported for accepted shapes | `TASK-0053` | Binds text value plus declared attributes for accepted simple bases. |
 | `simpleContent/restriction` | partially supported | `TASK-0053` | Normalizes restrictions over accepted simple bases; full restriction against complex simple-content bases remains future. |
-| Simple restriction derivation chains | partially supported | `TASK-0050`, `TASK-0053` | Accepted scalar/list/union datatype chains use the datatype engine; anonymous and deeper composition rules remain future. |
+| Simple restriction derivation chains | partially supported | `TASK-0050`, `TASK-0053`, `TASK-0063` | Accepted scalar/list/union datatype chains and anonymous list/union restriction members use the datatype engine; deeper nested composition remains outside accepted generated shapes. |
 | Abstract elements/types | partially supported | `TASK-0053`, `TASK-0061` | Abstract substitution heads and abstract complex types are represented in IR; generated binding omits abstract default dynamic branches and requires legal concrete substitution or `xsi:type` branches. |
 | Substitution groups | partially supported | `TASK-0053`, `TASK-0061` | Direct, nested, repeated, and abstract-head substitution groups are supported for accepted branch shapes with deterministic cycle diagnostics; `block="substitution"` is enforced for accepted substitution heads. |
 | `xsi:type` | partially supported | `TASK-0061` | Declared complex-base element fields bind to generated sealed branch interfaces when known concrete derived types exist; generated readers dispatch known `xsi:type`, writers emit `xsi:type` for derived branch values, validators recurse into concrete branch values, and unknown values produce deterministic diagnostics. Direct root-element `xsi:type` dispatch remains a later full-profile edge. |
-| `xsi:nil` | partially supported | `TASK-0053` | Needs optional/repeated and derivation interactions. |
+| `xsi:nil` | partially supported | `TASK-0053`, `TASK-0063` | Required singleton nil model values are supported; nilled identity fields are treated as missing values for accepted identity constraints. Optional/repeated nil representation and broader derivation interactions remain outside accepted generated shapes. |
 
 ## Validation and conformance
 
@@ -87,9 +87,9 @@ traceability artifact, not a support claim. Status values:
 |---|---|---|---|
 | Structural generated validation | partially supported | `TASK-0051` | Reader, writer, and object validation now cover legal `xs:all`, repeated choices, and composed single-particle group cardinality for accepted shapes. |
 | Datatype validation | supported for accepted schema shapes | `TASK-0050` | Full built-in lexical/value/facet coverage is verified for the currently executable schema shapes. |
-| Identity constraints | partially supported | `TASK-0054` | Generated validators build private document-scope identity tables for accepted model shapes, enforcing `unique`, `key`, and `keyref`; full-suite coverage and edge-case conformance classification remain `TASK-0055`. |
+| Identity constraints | partially supported | `TASK-0054`, `TASK-0063` | Generated validators build private document-scope identity tables for accepted model shapes, enforcing `unique`, `key`, and `keyref`; `TASK-0063` adds nilled-field handling. W3C generated-binding row mapping remains `TASK-0064`. |
 | W3C XML Schema 1.0 suite intake | supported as classification evidence | `TASK-0055` | The pinned W3C 2007-06-20 suite archive is classified by the opt-in `w3cXsd10Conformance` lane. Current evidence covers 24,796 schema/instance documents with zero generated-binding support claims until rows are explicitly mapped. |
-| Full XSD 1.0 readiness claim | blocked by evidence | `TASK-0056`, `TASK-0058`, `TASK-0062` | `TASK-0056` reconciles the evidence and concludes that `XP-XSD10-FULL` must remain non-executable. `TASK-0058` defines the 1.0.0 blocker sequence. `TASK-0059` through `TASK-0062` have accepted grouped content-list, automata/UPA, dynamic typing, and wildcard deep-validation gates; datatype/nil/identity edges (`TASK-0063`), W3C generated-binding mapping (`TASK-0064`), profile enablement (`TASK-0065`), and final release workflow/readiness (`TASK-0066`) remain before a full claim. |
+| Full XSD 1.0 readiness claim | blocked by evidence | `TASK-0056`, `TASK-0058`, `TASK-0063` | `TASK-0056` reconciles the evidence and concludes that `XP-XSD10-FULL` must remain non-executable. `TASK-0058` defines the 1.0.0 blocker sequence. `TASK-0059` through `TASK-0063` have accepted grouped content-list, automata/UPA, dynamic typing, wildcard deep-validation, and datatype/nil/identity-edge gates; W3C generated-binding mapping (`TASK-0064`), profile enablement (`TASK-0065`), and final release workflow/readiness (`TASK-0066`) remain before a full claim. |
 
 ## Explicit non-goals
 

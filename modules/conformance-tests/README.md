@@ -46,9 +46,10 @@ Covered behavior:
 - Namespace-aware element matching across imported-schema fixture boundaries.
 - Required-content, out-of-order sequence, namespace mismatch, and scalar lexical diagnostics.
 - Opt-in `xs:choice`, `XP-VALIDATION-10-BASIC` facet, `XP-XSD10-COMPOSED` composed-schema and
-  datatype/facet, `XP-XSD10-SEMANTIC` semantic and identity-constraint, and accepted
-  `XP-XSD10-DOCUMENT` wildcard, mixed-content, strict/lax schema-known wildcard validation, and
-  serialization-policy fixtures compared with JDK XML Schema validation where practical.
+  datatype/facet including anonymous list/union restriction members, `XP-XSD10-SEMANTIC` semantic
+  and identity-constraint, and accepted `XP-XSD10-DOCUMENT` wildcard, mixed-content, strict/lax
+  schema-known wildcard validation, and serialization-policy fixtures compared with JDK XML Schema
+  validation where practical.
 - Selected unsupported-diagnostic schemas for constructs that still sit outside the accepted
   generated-binding shapes.
 
