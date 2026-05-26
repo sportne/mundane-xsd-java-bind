@@ -15,7 +15,7 @@ The largest reviewed implementation surfaces are:
 | `GeneratedReaderEmitter` + emitter plans | 2,430 before `TASK-0086` | Generated source must be explicit, deterministic, reflection-free, and location-aware. | `TASK-0086` introduces root source/helper/field traversal plans; `TASK-0087` extracts reader helper-state and scalar-conversion planning; diagnostic text, element traversal, and Java formatting still live in source assembly. |
 | `GeneratedValidatorEmitter` + emitter plans | 2,652 before `TASK-0086` | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | `TASK-0086` introduces root source/helper/field traversal plans; `TASK-0089` extracts validator traversal and identity-constraint activation plans; datatype/facet snippets and identity helper algorithms remain inside source assembly. |
 | `GeneratedWriterEmitter` + emitter plans | 934 before `TASK-0086` | Deterministic XML output for generated and retained content. | `TASK-0086` names shared root source/helper/field traversal planning; `TASK-0088` extracts writer field/content branch traversal plans; scalar text formatting and Java formatting remain inside source assembly. |
-| `XmlDatatypes` | 842 | Dependency-free XML Schema lexical parsing/formatting in runtime-core. | Many datatype families share whitespace, bounds, and lexical-special-case mechanics inside one utility. |
+| `XmlDatatypes` + datatype helpers | 842 before `TASK-0093` | Dependency-free XML Schema lexical parsing/formatting in runtime-core. | `TASK-0093` extracts lexical whitespace/patterns, numeric/range helpers, date-time lexical validation, QName/NOTATION helpers, binary helpers, and list-token helpers while preserving the public facade. |
 | `W3cXsd10SuiteIntake` + `W3cXsd10BindingExecutor` | 953 before `TASK-0083` | Dependency-free W3C metadata classification and mapped-row execution. | `TASK-0083` separates generated-binding execution from suite intake; report writing remains a smaller follow-on extraction candidate. |
 
 ## Prioritized simplification plan
@@ -65,10 +65,13 @@ The largest reviewed implementation surfaces are:
      as end-to-end guards; no generated source output change is expected from this tranche.
 
 4. Group runtime datatype families behind small helpers.
-   - Candidate boundary: lexical whitespace helpers, numeric range helpers, date/time helpers,
-     QName/NOTATION helpers, and list-token helpers.
+   - `TASK-0093` extracts package-private lexical whitespace/pattern helpers, numeric/range
+     helpers, date/time lexical helpers, QName/NOTATION helpers, binary helpers, and list-token
+     helpers.
    - Leverage: reduces risk when adding datatype edge cases without changing the runtime-core
      public API or dependency policy.
+   - Remaining candidate boundary: focused facet-rule objects if future datatype changes make the
+     generated-validator interaction more frequent.
    - Test strategy: keep `RuntimePrimitivesTest`, `XmlDatatypesDeltaTest`, and generated datatype
      conformance fixtures as behavior locks.
 

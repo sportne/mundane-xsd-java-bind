@@ -1,6 +1,6 @@
 # TASK-0093: xml-datatype-helper-families
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0093`
 Priority: P2
@@ -28,3 +28,22 @@ Commands to run: `./gradlew :modules:runtime-core:check --console=plain`, plus
 Acceptance criteria: datatype helper families are package-private; `XmlDatatypes` public behavior
 is unchanged; no dependency or generated source behavior changes are introduced.
 Rollback notes: revert helper extraction, tests, and docs.
+
+Completion notes:
+- Added package-private `XmlDatatypeLexical`, `XmlDatatypeNumeric`, `XmlDatatypeDateTime`,
+  `XmlDatatypeQNames`, `XmlDatatypeBinary`, and `XmlDatatypeLists` helper families.
+- Kept `XmlDatatypes` as the public generated-code-facing facade and retained package-private
+  bridge methods used by existing datatype value classes.
+- No dependency, public runtime API, generated source, or supported-datatype expansion was
+  introduced.
+- Subagent review identified a pre-existing `base64Binary` lexical hole in the moved code; the
+  task now strips XML whitespace before strict Base64 decoding and rejects non-base64 alphabet
+  characters.
+
+Evidence:
+- `./gradlew :modules:runtime-core:compileJava --console=plain`
+- `./gradlew :modules:runtime-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
+- Subagent review: one no-findings review and one base64 lexical-validation finding; finding fixed
+  before commit.

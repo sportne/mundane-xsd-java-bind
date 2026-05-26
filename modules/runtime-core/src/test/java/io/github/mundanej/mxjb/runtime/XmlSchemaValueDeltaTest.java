@@ -45,6 +45,7 @@ final class XmlSchemaValueDeltaTest {
     assertArrayEquals(new byte[] {0, 10, -1}, binary.bytes());
     assertEquals(binary, XmlDatatypes.parse("hexBinary", "000AFF", null, XmlLocation.UNKNOWN));
     assertEquals(binary, XmlDatatypes.parse("base64Binary", " AAr/ ", null, XmlLocation.UNKNOWN));
+    assertEquals(binary, XmlDatatypes.parse("base64Binary", "AA r/", null, XmlLocation.UNKNOWN));
     assertEquals("000aff", XmlDatatypes.format("hexBinary", binary, output()));
     assertEquals("AAr/", XmlDatatypes.format("base64Binary", binary, output()));
     assertEquals("AAr/", binary.toString());

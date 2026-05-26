@@ -403,6 +403,7 @@ final class RuntimePrimitivesTest {
     assertFalse(XmlDatatypes.isLexicallyValid("hexBinary", "ABC"));
     assertFalse(XmlDatatypes.isLexicallyValid("hexBinary", "GG"));
     assertFalse(XmlDatatypes.isLexicallyValid("base64Binary", "A"));
+    assertFalse(XmlDatatypes.isLexicallyValid("base64Binary", "AQ$ID"));
     assertFalse(XmlDatatypes.isLexicallyValid("unknown", "value"));
     assertFalse(XmlDatatypes.isLexicallyValid("unsignedInt", "-1"));
     assertFalse(XmlDatatypes.isLexicallyValid("unsignedShort", "70000"));

@@ -100,10 +100,10 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 87. `TASK-0087`: Plan reader state and scalar emission. Completed and accepted.
 88. `TASK-0088`: Plan writer content traversal. Completed and accepted.
 89. `TASK-0089`: Plan validator traversal helpers. Completed and accepted.
-90. `TASK-0090`: Extract IR particle and wildcard normalization. Draft.
-91. `TASK-0091`: Extract IR derivation and identity normalization. Draft.
-92. `TASK-0092`: Split binding branch planners. Draft.
-93. `TASK-0093`: Group XML datatype helper families. Draft.
+90. `TASK-0090`: Extract IR particle and wildcard normalization. Completed and accepted.
+91. `TASK-0091`: Extract IR derivation and identity normalization. Completed and accepted.
+92. `TASK-0092`: Split binding branch planners. Completed and accepted.
+93. `TASK-0093`: Group XML datatype helper families. Completed and accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -283,14 +283,12 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0090` | deeper generator architecture refactor | accepted | Extract IR particle and wildcard normalization. |
 | `TASK-0091` | deeper generator architecture refactor | accepted | Extract IR derivation and identity normalization. |
 | `TASK-0092` | deeper generator architecture refactor | accepted | Split binding branch planners. |
-| `TASK-0093` | deeper runtime architecture refactor | draft | Group XML datatype helper families. |
+| `TASK-0093` | deeper runtime architecture refactor | accepted | Group XML datatype helper families. |
 
 ## Current implementation gate
 
-`TASK-0093` is the next implementation gate. It should group `XmlDatatypes` internals behind
-smaller package-private lexical, numeric/range, date-time, QName, binary, and list helpers without
-changing the `runtime-core` public API, lexical/facet behavior, generated source behavior, or
-dependency policy.
+`TASK-0087` through `TASK-0093` are complete. The next gate is the one-time push to `origin/main`
+and review of the push-triggered `ci` and `docs` workflow results.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -346,6 +344,12 @@ owns direct substitution-group choice branch planning and branch diagnostics. Pa
 block-control filtering, default branch planning, and dynamic-branch diagnostics while
 `BindingModelBuilder` retains schema indexing, type-reference binding, field assembly coordination,
 and sorted diagnostic ownership.
+`TASK-0093` accepted runtime datatype helper-family extraction. Package-private
+`XmlDatatypeLexical`, `XmlDatatypeNumeric`, `XmlDatatypeDateTime`, `XmlDatatypeQNames`,
+`XmlDatatypeBinary`, and `XmlDatatypeLists` now own the internal datatype family mechanics while
+`XmlDatatypes` remains the public generated-code-facing facade and keeps package-private bridge
+methods used by datatype value classes. The task also fixed a pre-existing `base64Binary` lexical
+validation hole by stripping XML whitespace before strict Base64 decoding.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports

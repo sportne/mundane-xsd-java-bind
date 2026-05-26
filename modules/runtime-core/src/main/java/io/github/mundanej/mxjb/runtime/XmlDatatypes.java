@@ -3,8 +3,6 @@ package io.github.mundanej.mxjb.runtime;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -12,30 +10,6 @@ import java.util.regex.Pattern;
 
 /** XML Schema 1.0 datatype lexical conversion and generated-validation helpers. */
 public final class XmlDatatypes {
-  private static final Pattern NAME = Pattern.compile("[:A-Z_a-z][-.:A-Z_a-z0-9]*");
-  private static final Pattern NC_NAME = Pattern.compile("[A-Z_a-z][-A-Z_a-z0-9.]*");
-  private static final Pattern NMTOKEN = Pattern.compile("[-.:A-Z_a-z0-9]+");
-  private static final Pattern LANGUAGE = Pattern.compile("[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*");
-  private static final Pattern FLOATING_POINT =
-      Pattern.compile("[+-]?((([0-9]+)(\\.[0-9]*)?)|(\\.[0-9]+))([eE][+-]?[0-9]+)?");
-  private static final Pattern DURATION =
-      Pattern.compile(
-          "-?P(?=.+)([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T([0-9]+H)?([0-9]+M)?([0-9]+(\\.[0-9]+)?S)?)?");
-  private static final Pattern DATE_TIME =
-      Pattern.compile(
-          "-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?");
-  private static final Pattern DATE =
-      Pattern.compile("-?[0-9]{4,}-[0-9]{2}-[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})?");
-  private static final Pattern TIME =
-      Pattern.compile("[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?");
-  private static final Pattern G_YEAR = Pattern.compile("-?[0-9]{4,}(Z|[+-][0-9]{2}:[0-9]{2})?");
-  private static final Pattern G_YEAR_MONTH =
-      Pattern.compile("-?[0-9]{4,}-[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})?");
-  private static final Pattern G_MONTH =
-      Pattern.compile("--[0-9]{2}(--)?(Z|[+-][0-9]{2}:[0-9]{2})?");
-  private static final Pattern G_MONTH_DAY =
-      Pattern.compile("--[0-9]{2}-[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})?");
-  private static final Pattern G_DAY = Pattern.compile("---[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})?");
   private static final Set<String> STRING_VALUED =
       Set.of(
           "string",
@@ -90,22 +64,8 @@ public final class XmlDatatypes {
   private static List<?> parseListValues(
       String itemType, String value, XmlEventReader input, XmlLocation location)
       throws XmlReadException {
-    String collapsed = collapseXmlWhitespace(value);
-    if (collapsed.isEmpty()) {
-      return List.of();
-    }
-    ArrayList<Object> values = new ArrayList<>();
-    int start = 0;
-    while (start <= collapsed.length()) {
-      int end = collapsed.indexOf(' ', start);
-      String token = end < 0 ? collapsed.substring(start) : collapsed.substring(start, end);
-      values.add(parse(itemType, token, input, location));
-      if (end < 0) {
-        break;
-      }
-      start = end + 1;
-    }
-    return List.copyOf(values);
+    return XmlDatatypeLists.parseValues(
+        itemType, value, (type, token) -> parse(type, token, input, location));
   }
 
   public static boolean isLexicallyValid(String type, String value) {
@@ -136,8 +96,8 @@ public final class XmlDatatypes {
       case "NMTOKENS", "IDREFS", "ENTITIES" -> formatList("string", (List<?>) value, output);
       case "boolean" -> Boolean.TRUE.equals(value) ? "true" : "false";
       case "decimal" -> ((BigDecimal) value).toPlainString();
-      case "float" -> formatFloat((Float) value);
-      case "double" -> formatDouble((Double) value);
+      case "float" -> XmlDatatypeNumeric.formatFloat((Float) value);
+      case "double" -> XmlDatatypeNumeric.formatDouble((Double) value);
       case "integer",
           "nonPositiveInteger",
           "negativeInteger",
@@ -232,56 +192,78 @@ public final class XmlDatatypes {
     try {
       return switch (type) {
         case "string" -> value;
-        case "normalizedString" -> replaceXmlWhitespace(value);
-        case "token" -> collapseXmlWhitespace(value);
-        case "language" -> requirePattern(type, collapseXmlWhitespace(value), LANGUAGE);
-        case "Name" -> requirePattern(type, collapseXmlWhitespace(value), NAME);
+        case "normalizedString" -> XmlDatatypeLexical.replaceWhitespace(value);
+        case "token" -> XmlDatatypeLexical.collapseWhitespace(value);
+        case "language" ->
+            XmlDatatypeLexical.requirePattern(
+                type, XmlDatatypeLexical.collapseWhitespace(value), XmlDatatypeLexical.LANGUAGE);
+        case "Name" ->
+            XmlDatatypeLexical.requirePattern(
+                type, XmlDatatypeLexical.collapseWhitespace(value), XmlDatatypeLexical.NAME);
         case "NCName", "ID", "IDREF", "ENTITY" ->
-            requirePattern(type, collapseXmlWhitespace(value), NC_NAME);
-        case "NMTOKEN" -> requirePattern(type, collapseXmlWhitespace(value), NMTOKEN);
+            XmlDatatypeLexical.requirePattern(
+                type, XmlDatatypeLexical.collapseWhitespace(value), XmlDatatypeLexical.NC_NAME);
+        case "NMTOKEN" ->
+            XmlDatatypeLexical.requirePattern(
+                type, XmlDatatypeLexical.collapseWhitespace(value), XmlDatatypeLexical.NMTOKEN);
         case "NMTOKENS" -> tokenList(value, "NMTOKEN");
         case "IDREFS" -> tokenList(value, "IDREF");
         case "ENTITIES" -> tokenList(value, "ENTITY");
-        case "boolean" -> parseBoolean(value);
-        case "decimal" -> new BigDecimal(collapseXmlWhitespace(value));
-        case "float" -> parseFloat(value);
-        case "double" -> parseDouble(value);
-        case "integer" -> new BigInteger(collapseXmlWhitespace(value));
+        case "boolean" -> XmlDatatypeNumeric.parseBoolean(value);
+        case "decimal" -> new BigDecimal(XmlDatatypeLexical.collapseWhitespace(value));
+        case "float" -> XmlDatatypeNumeric.parseFloat(value);
+        case "double" -> XmlDatatypeNumeric.parseDouble(value);
+        case "integer" -> new BigInteger(XmlDatatypeLexical.collapseWhitespace(value));
         case "nonPositiveInteger" ->
-            requireMax(new BigInteger(collapseXmlWhitespace(value)), BigInteger.ZERO, type);
+            XmlDatatypeNumeric.requireMax(
+                new BigInteger(XmlDatatypeLexical.collapseWhitespace(value)),
+                BigInteger.ZERO,
+                type);
         case "negativeInteger" ->
-            requireMax(new BigInteger(collapseXmlWhitespace(value)), BigInteger.valueOf(-1), type);
-        case "long" -> Long.valueOf(collapseXmlWhitespace(value));
-        case "int" -> Integer.valueOf(collapseXmlWhitespace(value));
-        case "short" -> Short.valueOf(collapseXmlWhitespace(value));
-        case "byte" -> Byte.valueOf(collapseXmlWhitespace(value));
+            XmlDatatypeNumeric.requireMax(
+                new BigInteger(XmlDatatypeLexical.collapseWhitespace(value)),
+                BigInteger.valueOf(-1),
+                type);
+        case "long" -> Long.valueOf(XmlDatatypeLexical.collapseWhitespace(value));
+        case "int" -> Integer.valueOf(XmlDatatypeLexical.collapseWhitespace(value));
+        case "short" -> Short.valueOf(XmlDatatypeLexical.collapseWhitespace(value));
+        case "byte" -> Byte.valueOf(XmlDatatypeLexical.collapseWhitespace(value));
         case "nonNegativeInteger" ->
-            requireMin(new BigInteger(collapseXmlWhitespace(value)), BigInteger.ZERO, type);
+            XmlDatatypeNumeric.requireMin(
+                new BigInteger(XmlDatatypeLexical.collapseWhitespace(value)),
+                BigInteger.ZERO,
+                type);
         case "unsignedLong" ->
-            requireRange(
-                new BigInteger(collapseXmlWhitespace(value)),
+            XmlDatatypeNumeric.requireRange(
+                new BigInteger(XmlDatatypeLexical.collapseWhitespace(value)),
                 BigInteger.ZERO,
                 new BigInteger("18446744073709551615"),
                 type);
-        case "unsignedInt" -> requireRangeLong(collapseXmlWhitespace(value), 0L, 4294967295L, type);
-        case "unsignedShort" -> requireRangeInt(collapseXmlWhitespace(value), 0, 65535, type);
-        case "unsignedByte" -> requireRangeShort(collapseXmlWhitespace(value), 0, 255, type);
+        case "unsignedInt" ->
+            XmlDatatypeNumeric.requireRangeLong(
+                XmlDatatypeLexical.collapseWhitespace(value), 0L, 4294967295L, type);
+        case "unsignedShort" ->
+            XmlDatatypeNumeric.requireRangeInt(
+                XmlDatatypeLexical.collapseWhitespace(value), 0, 65535, type);
+        case "unsignedByte" ->
+            XmlDatatypeNumeric.requireRangeShort(
+                XmlDatatypeLexical.collapseWhitespace(value), 0, 255, type);
         case "positiveInteger" ->
-            requireMin(new BigInteger(collapseXmlWhitespace(value)), BigInteger.ONE, type);
-        case "duration" -> new XmlDuration(requireDurationLexical(value));
-        case "dateTime" -> new XmlDateTime(requireDateTimeLexical(value));
-        case "date" -> new XmlDate(requireDateLexical(value));
-        case "time" -> new XmlTime(requireTimeLexical(value));
-        case "gYear" -> new XmlGYear(requireGYearLexical(value));
-        case "gYearMonth" -> new XmlGYearMonth(requireGYearMonthLexical(value));
-        case "gMonth" -> new XmlGMonth(requireGMonthLexical(value));
-        case "gMonthDay" -> new XmlGMonthDay(requireGMonthDayLexical(value));
-        case "gDay" -> new XmlGDay(requireGDayLexical(value));
-        case "hexBinary" -> parseHexBinary(value);
-        case "base64Binary" ->
-            new XmlBinary(Base64.getMimeDecoder().decode(collapseXmlWhitespace(value)));
-        case "anyURI" -> new XmlAnyUri(collapseXmlWhitespace(value));
-        case "QName", "NOTATION" -> parseQName(value, input);
+            XmlDatatypeNumeric.requireMin(
+                new BigInteger(XmlDatatypeLexical.collapseWhitespace(value)), BigInteger.ONE, type);
+        case "duration" -> new XmlDuration(XmlDatatypeDateTime.requireDurationLexical(value));
+        case "dateTime" -> new XmlDateTime(XmlDatatypeDateTime.requireDateTimeLexical(value));
+        case "date" -> new XmlDate(XmlDatatypeDateTime.requireDateLexical(value));
+        case "time" -> new XmlTime(XmlDatatypeDateTime.requireTimeLexical(value));
+        case "gYear" -> new XmlGYear(XmlDatatypeDateTime.requireGYearLexical(value));
+        case "gYearMonth" -> new XmlGYearMonth(XmlDatatypeDateTime.requireGYearMonthLexical(value));
+        case "gMonth" -> new XmlGMonth(XmlDatatypeDateTime.requireGMonthLexical(value));
+        case "gMonthDay" -> new XmlGMonthDay(XmlDatatypeDateTime.requireGMonthDayLexical(value));
+        case "gDay" -> new XmlGDay(XmlDatatypeDateTime.requireGDayLexical(value));
+        case "hexBinary" -> XmlDatatypeBinary.parseHexBinary(value);
+        case "base64Binary" -> XmlDatatypeBinary.parseBase64Binary(value);
+        case "anyURI" -> new XmlAnyUri(XmlDatatypeLexical.collapseWhitespace(value));
+        case "QName", "NOTATION" -> XmlDatatypeQNames.parseQName(value, input);
         default ->
             throw new IllegalArgumentException("Unsupported XML Schema datatype " + type + ".");
       };
@@ -293,358 +275,51 @@ public final class XmlDatatypes {
     }
   }
 
-  private static XmlQName parseQName(String value, XmlEventReader input) {
-    String lexical = collapseXmlWhitespace(value);
-    int separator = lexical.indexOf(':');
-    if (separator < 0) {
-      requirePattern("QName", lexical, NC_NAME);
-      return new XmlQName("", lexical, lexical);
-    }
-    String prefix = lexical.substring(0, separator);
-    String localName = lexical.substring(separator + 1);
-    requirePattern("QName prefix", prefix, NC_NAME);
-    requirePattern("QName local name", localName, NC_NAME);
-    String namespace = input == null ? null : input.namespaceUriForPrefix(prefix);
-    if (namespace == null || namespace.isEmpty()) {
-      throw new IllegalArgumentException("Unresolved QName prefix " + prefix + ".");
-    }
-    return new XmlQName(namespace, localName, lexical);
-  }
-
   private static List<String> tokenList(String value, String itemType) throws XmlReadException {
-    String collapsed = collapseXmlWhitespace(value);
-    if (collapsed.isEmpty()) {
-      throw new IllegalArgumentException(itemType + " list must contain at least one item.");
-    }
-    ArrayList<String> values = new ArrayList<>();
-    int start = 0;
-    while (start <= collapsed.length()) {
-      int end = collapsed.indexOf(' ', start);
-      String token = end < 0 ? collapsed.substring(start) : collapsed.substring(start, end);
-      values.add((String) parseUnchecked(itemType, token, null, XmlLocation.UNKNOWN, false));
-      if (end < 0) {
-        break;
-      }
-      start = end + 1;
-    }
-    return List.copyOf(values);
-  }
-
-  private static Boolean parseBoolean(String value) {
-    return switch (collapseXmlWhitespace(value)) {
-      case "true", "1" -> Boolean.TRUE;
-      case "false", "0" -> Boolean.FALSE;
-      default -> throw new IllegalArgumentException("Invalid boolean value.");
-    };
-  }
-
-  private static Float parseFloat(String value) {
-    String collapsed = collapseXmlWhitespace(value);
-    return switch (collapsed) {
-      case "INF" -> Float.POSITIVE_INFINITY;
-      case "-INF" -> Float.NEGATIVE_INFINITY;
-      case "NaN" -> Float.NaN;
-      default -> {
-        if (!FLOATING_POINT.matcher(collapsed).matches()) {
-          throw new IllegalArgumentException("Invalid float lexical value.");
-        }
-        yield Float.valueOf(collapsed);
-      }
-    };
-  }
-
-  private static Double parseDouble(String value) {
-    String collapsed = collapseXmlWhitespace(value);
-    return switch (collapsed) {
-      case "INF" -> Double.POSITIVE_INFINITY;
-      case "-INF" -> Double.NEGATIVE_INFINITY;
-      case "NaN" -> Double.NaN;
-      default -> {
-        if (!FLOATING_POINT.matcher(collapsed).matches()) {
-          throw new IllegalArgumentException("Invalid double lexical value.");
-        }
-        yield Double.valueOf(collapsed);
-      }
-    };
-  }
-
-  static String requireDurationLexical(String value) {
-    String collapsed = requirePattern("duration", collapseXmlWhitespace(value), DURATION);
-    if (collapsed.endsWith("T")) {
-      throw new IllegalArgumentException("Invalid duration value.");
-    }
-    return collapsed;
-  }
-
-  static String requireDateTimeLexical(String value) {
-    String collapsed = requirePattern("dateTime", collapseXmlWhitespace(value), DATE_TIME);
-    int separator = collapsed.indexOf('T');
-    validateDatePart(stripTimezone(collapsed.substring(0, separator)), "dateTime");
-    validateTimePart(stripTimezone(collapsed.substring(separator + 1)), "dateTime");
-    validateTimezone(collapsed, "dateTime");
-    return collapsed;
-  }
-
-  static String requireDateLexical(String value) {
-    String collapsed = requirePattern("date", collapseXmlWhitespace(value), DATE);
-    validateDatePart(stripTimezone(collapsed), "date");
-    validateTimezone(collapsed, "date");
-    return collapsed;
-  }
-
-  static String requireTimeLexical(String value) {
-    String collapsed = requirePattern("time", collapseXmlWhitespace(value), TIME);
-    validateTimePart(stripTimezone(collapsed), "time");
-    validateTimezone(collapsed, "time");
-    return collapsed;
-  }
-
-  static String requireGYearLexical(String value) {
-    String collapsed = requirePattern("gYear", collapseXmlWhitespace(value), G_YEAR);
-    validateYearPart(stripTimezone(collapsed), "gYear");
-    validateTimezone(collapsed, "gYear");
-    return collapsed;
-  }
-
-  static String requireGYearMonthLexical(String value) {
-    String collapsed = requirePattern("gYearMonth", collapseXmlWhitespace(value), G_YEAR_MONTH);
-    String local = stripTimezone(collapsed);
-    int separator = local.lastIndexOf('-');
-    validateYearPart(local.substring(0, separator), "gYearMonth");
-    int month = parseTwoDigits(local.substring(separator + 1), "gYearMonth month");
-    requireRange(month, 1, 12, "gYearMonth month");
-    validateTimezone(collapsed, "gYearMonth");
-    return collapsed;
-  }
-
-  static String requireGMonthLexical(String value) {
-    String collapsed = requirePattern("gMonth", collapseXmlWhitespace(value), G_MONTH);
-    String local = stripTimezone(collapsed);
-    int month = parseTwoDigits(local.substring(2, 4), "gMonth month");
-    requireRange(month, 1, 12, "gMonth month");
-    validateTimezone(collapsed, "gMonth");
-    return collapsed;
-  }
-
-  static String requireGMonthDayLexical(String value) {
-    String collapsed = requirePattern("gMonthDay", collapseXmlWhitespace(value), G_MONTH_DAY);
-    String local = stripTimezone(collapsed);
-    int month = parseTwoDigits(local.substring(2, 4), "gMonthDay month");
-    int day = parseTwoDigits(local.substring(5, 7), "gMonthDay day");
-    requireRange(month, 1, 12, "gMonthDay month");
-    requireRange(day, 1, daysInMonth(2000, month), "gMonthDay day");
-    validateTimezone(collapsed, "gMonthDay");
-    return collapsed;
-  }
-
-  static String requireGDayLexical(String value) {
-    String collapsed = requirePattern("gDay", collapseXmlWhitespace(value), G_DAY);
-    String local = stripTimezone(collapsed);
-    int day = parseTwoDigits(local.substring(3, 5), "gDay day");
-    requireRange(day, 1, 31, "gDay day");
-    validateTimezone(collapsed, "gDay");
-    return collapsed;
+    return XmlDatatypeLists.tokenList(
+        value,
+        itemType,
+        (type, token) -> parseUnchecked(type, token, null, XmlLocation.UNKNOWN, false));
   }
 
   static void requireQNameValue(String namespaceUri, String localName, String lexicalName) {
-    Objects.requireNonNull(namespaceUri, "namespaceUri");
-    Objects.requireNonNull(localName, "localName");
-    Objects.requireNonNull(lexicalName, "lexicalName");
-    requirePattern("QName local name", localName, NC_NAME);
-    int separator = lexicalName.indexOf(':');
-    if (separator < 0) {
-      requirePattern("QName lexical name", lexicalName, NC_NAME);
-      return;
-    }
-    if (separator != lexicalName.lastIndexOf(':')) {
-      throw new IllegalArgumentException("Invalid QName lexical name value.");
-    }
-    requirePattern("QName prefix", lexicalName.substring(0, separator), NC_NAME);
-    requirePattern("QName local name", lexicalName.substring(separator + 1), NC_NAME);
+    XmlDatatypeQNames.requireQNameValue(namespaceUri, localName, lexicalName);
   }
 
-  private static void validateDatePart(String local, String type) {
-    int daySeparator = local.lastIndexOf('-');
-    int monthSeparator = local.lastIndexOf('-', daySeparator - 1);
-    int year = Integer.parseInt(local.substring(0, monthSeparator));
-    if (year == 0) {
-      throw new IllegalArgumentException(type + " year zero is not allowed.");
-    }
-    int month = parseTwoDigits(local.substring(monthSeparator + 1, daySeparator), type + " month");
-    int day = parseTwoDigits(local.substring(daySeparator + 1), type + " day");
-    requireRange(month, 1, 12, type + " month");
-    requireRange(day, 1, daysInMonth(year, month), type + " day");
+  static String requireDurationLexical(String value) {
+    return XmlDatatypeDateTime.requireDurationLexical(value);
   }
 
-  private static void validateYearPart(String value, String type) {
-    if (Integer.parseInt(value) == 0) {
-      throw new IllegalArgumentException(type + " year zero is not allowed.");
-    }
+  static String requireDateTimeLexical(String value) {
+    return XmlDatatypeDateTime.requireDateTimeLexical(value);
   }
 
-  private static void validateTimePart(String local, String type) {
-    String[] parts = local.split(":", -1);
-    int hour = parseTwoDigits(parts[0], type + " hour");
-    int minute = parseTwoDigits(parts[1], type + " minute");
-    int second =
-        parseTwoDigits(
-            parts[2].contains(".") ? parts[2].substring(0, 2) : parts[2], type + " second");
-    requireRange(hour, 0, 24, type + " hour");
-    requireRange(minute, 0, 59, type + " minute");
-    requireRange(second, 0, 59, type + " second");
-    if (hour == 24 && (minute != 0 || second != 0 || parts[2].contains("."))) {
-      throw new IllegalArgumentException(type + " 24th hour must be exactly 24:00:00.");
-    }
+  static String requireDateLexical(String value) {
+    return XmlDatatypeDateTime.requireDateLexical(value);
   }
 
-  private static String stripTimezone(String value) {
-    if (value.endsWith("Z")) {
-      return value.substring(0, value.length() - 1);
-    }
-    if (value.length() > 6) {
-      char marker = value.charAt(value.length() - 6);
-      if ((marker == '+' || marker == '-') && value.charAt(value.length() - 3) == ':') {
-        return value.substring(0, value.length() - 6);
-      }
-    }
-    return value;
+  static String requireTimeLexical(String value) {
+    return XmlDatatypeDateTime.requireTimeLexical(value);
   }
 
-  private static void validateTimezone(String value, String type) {
-    if (value.endsWith("Z") || value.length() <= 6) {
-      return;
-    }
-    char marker = value.charAt(value.length() - 6);
-    if ((marker == '+' || marker == '-') && value.charAt(value.length() - 3) == ':') {
-      int hour =
-          parseTwoDigits(
-              value.substring(value.length() - 5, value.length() - 3), type + " timezone hour");
-      int minute = parseTwoDigits(value.substring(value.length() - 2), type + " timezone minute");
-      requireRange(hour, 0, 14, type + " timezone hour");
-      requireRange(minute, 0, 59, type + " timezone minute");
-      if (hour == 14 && minute != 0) {
-        throw new IllegalArgumentException(type + " timezone offset exceeds 14:00.");
-      }
-    }
+  static String requireGYearLexical(String value) {
+    return XmlDatatypeDateTime.requireGYearLexical(value);
   }
 
-  private static int parseTwoDigits(String value, String label) {
-    if (value.length() != 2) {
-      throw new IllegalArgumentException(label + " must contain two digits.");
-    }
-    return Integer.parseInt(value);
+  static String requireGYearMonthLexical(String value) {
+    return XmlDatatypeDateTime.requireGYearMonthLexical(value);
   }
 
-  private static void requireRange(int value, int min, int max, String label) {
-    if (value < min || value > max) {
-      throw new IllegalArgumentException(label + " is out of range.");
-    }
+  static String requireGMonthLexical(String value) {
+    return XmlDatatypeDateTime.requireGMonthLexical(value);
   }
 
-  private static int daysInMonth(int year, int month) {
-    return switch (month) {
-      case 2 -> isLeapYear(year) ? 29 : 28;
-      case 4, 6, 9, 11 -> 30;
-      default -> 31;
-    };
+  static String requireGMonthDayLexical(String value) {
+    return XmlDatatypeDateTime.requireGMonthDayLexical(value);
   }
 
-  private static boolean isLeapYear(int year) {
-    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-  }
-
-  private static String formatFloat(Float value) {
-    if (value.isNaN()) {
-      return "NaN";
-    }
-    if (value == Float.POSITIVE_INFINITY) {
-      return "INF";
-    }
-    if (value == Float.NEGATIVE_INFINITY) {
-      return "-INF";
-    }
-    return value.toString();
-  }
-
-  private static String formatDouble(Double value) {
-    if (value.isNaN()) {
-      return "NaN";
-    }
-    if (value == Double.POSITIVE_INFINITY) {
-      return "INF";
-    }
-    if (value == Double.NEGATIVE_INFINITY) {
-      return "-INF";
-    }
-    return value.toString();
-  }
-
-  private static XmlBinary parseHexBinary(String value) {
-    String collapsed = collapseXmlWhitespace(value);
-    if (collapsed.length() % 2 != 0 || !collapsed.matches("[0-9A-Fa-f]*")) {
-      throw new IllegalArgumentException("Invalid hexBinary value.");
-    }
-    return new XmlBinary(HexFormat.of().parseHex(collapsed));
-  }
-
-  private static String requirePattern(String type, String value, Pattern pattern) {
-    if (!pattern.matcher(value).matches()) {
-      throw new IllegalArgumentException("Invalid " + type + " value.");
-    }
-    return value;
-  }
-
-  private static BigInteger requireMin(BigInteger value, BigInteger min, String type) {
-    if (value.compareTo(min) < 0) {
-      throw new IllegalArgumentException("Invalid " + type + " value.");
-    }
-    return value;
-  }
-
-  private static BigInteger requireMax(BigInteger value, BigInteger max, String type) {
-    if (value.compareTo(max) > 0) {
-      throw new IllegalArgumentException("Invalid " + type + " value.");
-    }
-    return value;
-  }
-
-  private static BigInteger requireRange(
-      BigInteger value, BigInteger min, BigInteger max, String type) {
-    requireMin(value, min, type);
-    requireMax(value, max, type);
-    return value;
-  }
-
-  private static Long requireRangeLong(String value, long min, long max, String type) {
-    long parsed = Long.parseLong(value);
-    if (parsed < min || parsed > max) {
-      throw new IllegalArgumentException("Invalid " + type + " value.");
-    }
-    return parsed;
-  }
-
-  private static Integer requireRangeInt(String value, int min, int max, String type) {
-    int parsed = Integer.parseInt(value);
-    if (parsed < min || parsed > max) {
-      throw new IllegalArgumentException("Invalid " + type + " value.");
-    }
-    return parsed;
-  }
-
-  private static Short requireRangeShort(String value, int min, int max, String type) {
-    int parsed = Integer.parseInt(value);
-    if (parsed < min || parsed > max) {
-      throw new IllegalArgumentException("Invalid " + type + " value.");
-    }
-    return (short) parsed;
-  }
-
-  private static String replaceXmlWhitespace(String value) {
-    return value.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
-  }
-
-  private static String collapseXmlWhitespace(String value) {
-    return replaceXmlWhitespace(value).trim().replaceAll(" +", " ");
+  static String requireGDayLexical(String value) {
+    return XmlDatatypeDateTime.requireGDayLexical(value);
   }
 
   private static String lexicalForValidation(String type, Object value) {
@@ -660,8 +335,8 @@ public final class XmlDatatypes {
     return switch (type) {
       case "boolean" -> Boolean.TRUE.equals(value) ? "true" : "false";
       case "decimal" -> ((BigDecimal) value).toPlainString();
-      case "float" -> formatFloat((Float) value);
-      case "double" -> formatDouble((Double) value);
+      case "float" -> XmlDatatypeNumeric.formatFloat((Float) value);
+      case "double" -> XmlDatatypeNumeric.formatDouble((Double) value);
       default -> value.toString();
     };
   }

@@ -26,6 +26,11 @@ Active public concepts:
 datatype conversion helpers, and interfaces only; it does not parse XML documents, adapt JDK XML
 APIs, generate code, or validate schema documents by itself.
 
+`XmlDatatypes` remains the generated-code-facing facade. Its internal XML Schema datatype mechanics
+are grouped behind package-private lexical, numeric/range, date-time, QName/NOTATION, binary, and
+list-token helpers; those helpers are implementation details and do not create additional public
+runtime concepts.
+
 Generated writer source emitted by `TASK-0012` targets `XmlOutput` and `XmlName` directly. Concrete XML serialization, namespace prefix assignment, and adapter behavior remain outside `runtime-core`; generated writers operate only on expanded names and scalar text values.
 
 Generated reader source emitted by `TASK-0015` targets `XmlEventReader`, `XmlName`, `XmlLocation`, `XmlDiagnostic`, and `XmlReadException` directly. Concrete XML parsing, entity/resource policy, and adapter behavior remain outside generated code; generated readers consume only the project-owned event abstraction.
