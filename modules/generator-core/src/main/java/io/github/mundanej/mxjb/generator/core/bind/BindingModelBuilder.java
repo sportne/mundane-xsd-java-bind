@@ -27,7 +27,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +68,8 @@ public final class BindingModelBuilder {
     private final List<SchemaDiagnostic> diagnostics = new ArrayList<>();
     private final BindingNameAllocator names;
     private final BindingContentPlanner contentPlanner;
+    private final BindingSubstitutionPlanner substitutionPlanner;
+    private final BindingDynamicTypePlanner dynamicTypePlanner;
 
     private BuildState(BindingConfiguration configuration) {
       this.names = new BindingNameAllocator(configuration);
@@ -79,6 +80,11 @@ public final class BindingModelBuilder {
               this::bindTypeReference,
               this::knownWildcardElements,
               this::unsupportedGroupedContent);
+      this.substitutionPlanner =
+          new BindingSubstitutionPlanner(
+              names, complexTypes, simpleTypes, this::bindTypeReference, this::diagnostic);
+      this.dynamicTypePlanner =
+          new BindingDynamicTypePlanner(names, complexTypes, complexTypeNames, this::diagnostic);
     }
 
     private void validateConfiguration() {
@@ -348,7 +354,7 @@ public final class BindingModelBuilder {
     private BindingField bindElementField(
         SchemaIrElement element, Set<String> usedFieldNames, int order) {
       if (element.reference() && substitutionGroups.containsKey(element.name())) {
-        return bindSubstitutionField(
+        return substitutionPlanner.plan(
             element, substitutionGroups.get(element.name()), usedFieldNames, order);
       }
       SchemaIrElement declaration =
@@ -357,7 +363,7 @@ public final class BindingModelBuilder {
       BindingValueSemantics semantics =
           bindingSemantics(declaration == null ? element.semantics() : declaration.semantics());
       BindingField dynamicField =
-          bindXsiTypeFieldIfNeeded(element, declaration, type, usedFieldNames, order);
+          dynamicTypePlanner.planIfNeeded(element, declaration, type, usedFieldNames, order);
       if (dynamicField != null) {
         return dynamicField;
       }
@@ -376,127 +382,6 @@ public final class BindingModelBuilder {
           order,
           required,
           semantics);
-    }
-
-    private BindingField bindXsiTypeFieldIfNeeded(
-        SchemaIrElement element,
-        SchemaIrElement declaration,
-        SchemaIrTypeReference type,
-        Set<String> usedFieldNames,
-        int order) {
-      if (type.anonymous() || type.name().isXmlSchemaBuiltIn()) {
-        return null;
-      }
-      SchemaIrComplexType declaredType = complexTypes.get(type.name());
-      if (declaredType == null) {
-        return null;
-      }
-      List<String> blockControls = dynamicBlockControls(element, declaration, declaredType);
-      List<SchemaIrComplexType> candidates =
-          dynamicTypeCandidates(type.name()).stream()
-              .filter(candidate -> !candidate.abstractType())
-              .filter(candidate -> !isBlockedDynamicType(candidate, type.name(), blockControls))
-              .toList();
-      if (candidates.isEmpty() && !declaredType.abstractType()) {
-        return null;
-      }
-      BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
-      String packageName = names.javaName(element.name()).packageName();
-      String dynamicSimpleName =
-          names.uniqueTypeName(packageName, names.typeName(element.name()) + "DynamicType");
-      BindingJavaName dynamicName = new BindingJavaName(packageName, dynamicSimpleName);
-      Set<String> branchNames = new HashSet<>();
-      List<BindingChoiceBranch> branches = new ArrayList<>();
-      if (!declaredType.abstractType()) {
-        branches.add(dynamicTypeBranch(element, declaredType, packageName, branchNames, true));
-      }
-      for (SchemaIrComplexType candidate : candidates) {
-        branches.add(dynamicTypeBranch(element, candidate, packageName, branchNames, false));
-      }
-      if (branches.isEmpty()) {
-        diagnostic(
-            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
-            "binding",
-            "Element "
-                + element.name().toText()
-                + " declares abstract type "
-                + type.name().toText()
-                + " without legal concrete xsi:type candidates.");
-      }
-      BindingChoice choice = new BindingChoice(dynamicName, branches, "xsiType");
-      String fieldName = names.unique(names.fieldName(element.name()), usedFieldNames);
-      return new BindingField(
-          "choice",
-          element.name(),
-          fieldName,
-          BindingTypeReference.choice(dynamicName),
-          cardinality,
-          order,
-          cardinality.minOccurs() > 0,
-          choice);
-    }
-
-    private BindingChoiceBranch dynamicTypeBranch(
-        SchemaIrElement element,
-        SchemaIrComplexType type,
-        String packageName,
-        Set<String> branchNames,
-        boolean defaultDynamicType) {
-      BindingJavaName modelName = complexTypeNames.get(type.name());
-      BindingTypeReference bindingType = BindingTypeReference.model(modelName);
-      String branchFieldName = names.uniqueFieldName(type.name(), branchNames);
-      String branchSimpleName =
-          names.uniqueTypeName(packageName, names.typeName(type.name()) + "DynamicTypeBranch");
-      return new BindingChoiceBranch(
-          element.name(),
-          branchFieldName,
-          bindingType,
-          new BindingJavaName(packageName, branchSimpleName),
-          type.name(),
-          defaultDynamicType);
-    }
-
-    private List<SchemaIrComplexType> dynamicTypeCandidates(SchemaQName baseName) {
-      return complexTypes.values().stream()
-          .filter(type -> !baseName.equals(type.name()))
-          .filter(type -> derivesFrom(type, baseName))
-          .sorted(Comparator.comparing(type -> type.name().toText()))
-          .toList();
-    }
-
-    private boolean derivesFrom(SchemaIrComplexType type, SchemaQName baseName) {
-      SchemaQName current = type.derivationBase();
-      while (current != null) {
-        if (baseName.equals(current)) {
-          return true;
-        }
-        SchemaIrComplexType currentType = complexTypes.get(current);
-        current = currentType == null ? null : currentType.derivationBase();
-      }
-      return false;
-    }
-
-    private List<String> dynamicBlockControls(
-        SchemaIrElement element, SchemaIrElement declaration, SchemaIrComplexType declaredType) {
-      Set<String> controls = new LinkedHashSet<>();
-      controls.addAll(declaration == null ? element.blockControls() : declaration.blockControls());
-      controls.addAll(declaredType.blockControls());
-      return List.copyOf(controls);
-    }
-
-    private boolean isBlockedDynamicType(
-        SchemaIrComplexType candidate, SchemaQName declaredBase, List<String> blockControls) {
-      SchemaIrComplexType current = candidate;
-      while (current != null && current.derivationBase() != null) {
-        if (blockControls.contains(current.derivationKind())) {
-          return true;
-        }
-        if (declaredBase.equals(current.derivationBase())) {
-          return false;
-        }
-        current = complexTypes.get(current.derivationBase());
-      }
-      return false;
     }
 
     private void unsupportedGroupedContent() {
@@ -562,74 +447,6 @@ public final class BindingModelBuilder {
         case "other" -> !namespace.namespaces().contains(name.namespace());
         default -> namespace.namespaces().contains(name.namespace());
       };
-    }
-
-    private BindingField bindSubstitutionField(
-        SchemaIrElement element,
-        SchemaIrSubstitutionGroup substitutionGroup,
-        Set<String> usedFieldNames,
-        int order) {
-      BindingCardinality cardinality = BindingCardinality.from(element.cardinality());
-      String packageName = names.javaName(element.name()).packageName();
-      String substitutionSimpleName =
-          names.uniqueTypeName(packageName, names.typeName(element.name()) + "Substitution");
-      BindingJavaName substitutionName = new BindingJavaName(packageName, substitutionSimpleName);
-      Set<String> branchNames = new HashSet<>();
-      List<BindingChoiceBranch> branches = new ArrayList<>();
-      for (SchemaIrElement branch : substitutionGroup.branches()) {
-        validateSubstitutionBranch(branch);
-        BindingTypeReference bindingType = bindTypeReference(branch.type(), branch, branch.name());
-        String branchFieldName = names.uniqueFieldName(branch.name(), branchNames);
-        String branchSimpleName =
-            names.uniqueTypeName(packageName, names.typeName(branch.name()) + "SubstitutionBranch");
-        branches.add(
-            new BindingChoiceBranch(
-                branch.name(),
-                branchFieldName,
-                bindingType,
-                new BindingJavaName(packageName, branchSimpleName)));
-      }
-      if (branches.isEmpty()) {
-        diagnostic(
-            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
-            "binding",
-            "Substitution group head " + element.name().toText() + " has no concrete branches.");
-      }
-      BindingChoice bindingChoice = new BindingChoice(substitutionName, branches, "substitution");
-      String fieldName = names.unique(names.fieldName(element.name()), usedFieldNames);
-      boolean required = cardinality.minOccurs() > 0;
-      return new BindingField(
-          "choice",
-          element.name(),
-          fieldName,
-          BindingTypeReference.choice(substitutionName),
-          cardinality,
-          order,
-          required,
-          bindingChoice);
-    }
-
-    private void validateSubstitutionBranch(SchemaIrElement branch) {
-      if (branch.semantics().hasAny()) {
-        diagnostic(
-            DiagnosticCode.SCHEMA_BINDING_INVALID_MODEL,
-            "binding",
-            "Substitution group branch "
-                + branch.name().toText()
-                + " cannot carry nillable/default/fixed semantics in TASK-0033.");
-      }
-      if (branch.type().anonymous()) {
-        return;
-      }
-      if (branch.type().name().isXmlSchemaBuiltIn()
-          || complexTypes.containsKey(branch.type().name())
-          || simpleTypes.containsKey(branch.type().name())) {
-        return;
-      }
-      diagnostic(
-          DiagnosticCode.SCHEMA_BINDING_UNSUPPORTED_TYPE,
-          "binding",
-          "Unsupported substitution group branch type " + branch.type().name().toText() + ".");
     }
 
     private BindingField bindChoiceField(
@@ -986,6 +803,10 @@ public final class BindingModelBuilder {
 
     private void diagnostic(DiagnosticCode code, String resource, String message) {
       diagnostics.add(new SchemaDiagnostic(code, resource, message));
+    }
+
+    private void diagnostic(DiagnosticCode code, String message) {
+      diagnostic(code, "binding", message);
     }
 
     private List<SchemaDiagnostic> sortedDiagnostics() {

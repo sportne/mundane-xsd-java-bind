@@ -1,6 +1,6 @@
 # TASK-0092: binding-branch-planners
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0092`
 Priority: P2
@@ -27,3 +27,21 @@ Commands to run: `./gradlew :modules:generator-core:check --console=plain`,
 Acceptance criteria: substitution and `xsi:type` branch planning have explicit package-private
 helper ownership; generated source behavior remains unchanged.
 Rollback notes: revert branch planner extraction, tests, and docs.
+
+## Completion Notes
+
+`BindingSubstitutionPlanner` now owns direct substitution-group choice branch assembly and
+substitution branch diagnostics. `BindingDynamicTypePlanner` now owns declared-base dynamic
+`xsi:type` branch discovery, block-control filtering, default-branch planning, and dynamic branch
+diagnostics. `BindingModelBuilder` retains schema indexing, type-reference binding, field assembly
+coordination, and sorted diagnostic ownership.
+
+Focused planner tests cover substitution branch order and unsupported branch-type diagnostics,
+dynamic `xsi:type` default/candidate ordering, and blocked dynamic-candidate suppression.
+
+## Verification
+
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
+- Subagent review of the TASK-0092 diff and new files reported no findings.

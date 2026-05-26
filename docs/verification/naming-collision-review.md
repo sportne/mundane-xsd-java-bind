@@ -23,3 +23,7 @@ adding new customization APIs.
 type-name collisions, package mapping, and Java field collisions. Grouped and mixed content-list
 branch naming now lives in package-private `BindingContentPlanner`, with tests that preserve branch
 order, wildcard XML names, and grouped-position metadata.
+
+`TASK-0092` moves substitution-group branch naming and declared-base dynamic `xsi:type` branch
+naming into package-private branch planners. The planners keep branch ordering, Java branch names,
+XML names, dynamic-type metadata, and existing generated-source behavior unchanged.
