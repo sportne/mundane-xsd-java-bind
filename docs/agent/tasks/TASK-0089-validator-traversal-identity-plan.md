@@ -1,6 +1,6 @@
 # TASK-0089: validator-traversal-identity-plan
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0089`
 Priority: P2
@@ -27,3 +27,19 @@ Commands to run: `./gradlew :modules:generator-core:check --console=plain`,
 Acceptance criteria: validator traversal and identity helper decisions have internal plan coverage;
 generated validator behavior and diagnostics are unchanged.
 Rollback notes: revert validator plan helpers, tests, and docs.
+
+## Completion notes
+
+`TASK-0089` accepted the validator traversal and identity planning tranche. Package-private
+`GeneratedValidatorTraversalPlan` now captures validator field order plus element, choice, content,
+and branch traversal inputs before source assembly. `GeneratedValidatorIdentityPlan` captures root
+identity constraint activation and constraint ordering inputs before identity-helper source
+assembly. Generated validator behavior, diagnostics, identity semantics, public APIs, and runtime
+dependencies remain unchanged.
+
+## Evidence
+
+- `./gradlew :modules:generator-core:test --tests 'io.github.mundanej.mxjb.generator.core.emit.GeneratedValidatorPlanTest' --console=plain`
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`

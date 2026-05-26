@@ -117,6 +117,19 @@ decisions behind package-private plans.
   entry points, helper signatures, XML output order, scalar formatting behavior, and generated
   model contracts remain unchanged.
 
+## `TASK-0089` validator traversal planning boundary
+
+`TASK-0089` keeps generated validator source contracts unchanged while moving validator traversal
+inputs behind package-private plans.
+
+- `GeneratedValidatorTraversalPlan` captures validator field order and nested element, choice, and
+  content branch traversal inputs before source text assembly.
+- `GeneratedValidatorIdentityPlan` captures root identity-constraint activation and the constraint
+  list used by generated identity-helper calls before source text assembly.
+- The plan boundary is internal to `generator-core`. Generated validator class names, public
+  `validate` entry points, object/XML validation behavior, diagnostic codes/messages, identity
+  semantics, and generated model contracts remain unchanged.
+
 ## `TASK-0023` choice model shape
 
 The `0.2.0` Practical Data Contracts implementation accepts a narrow generated model shape for

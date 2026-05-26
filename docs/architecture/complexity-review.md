@@ -13,7 +13,7 @@ The largest reviewed implementation surfaces are:
 | `SchemaIrBuilder` + `SchemaIrNormalizationPolicy` | 3,266 before `TASK-0084` | XSD symbol spaces, profile gates, normalization, deterministic diagnostics. | `TASK-0084` extracts occurrence/cardinality, QName, cardinality-composition, and diagnostic ordering policy; resource-aware lookup, profile policy, component normalization, derivation flattening, wildcard composition, and identity paths remain future tranches. |
 | `BindingModelBuilder` + binding planners | 1,571 before `TASK-0085` | Java naming, product-scope binding shapes, validation plan construction. | `TASK-0085` extracts deterministic naming/package allocation and mixed/grouped content-list planning; substitution/dynamic branch binding, schema lookup, type-reference binding, and validation metadata remain future tranche candidates. |
 | `GeneratedReaderEmitter` + emitter plans | 2,430 before `TASK-0086` | Generated source must be explicit, deterministic, reflection-free, and location-aware. | `TASK-0086` introduces root source/helper/field traversal plans; `TASK-0087` extracts reader helper-state and scalar-conversion planning; diagnostic text, element traversal, and Java formatting still live in source assembly. |
-| `GeneratedValidatorEmitter` + emitter plans | 2,652 before `TASK-0086` | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | `TASK-0086` introduces root source/helper/field traversal plans; validation traversal, identity helpers, and emitted Java snippets remain future tranche candidates. |
+| `GeneratedValidatorEmitter` + emitter plans | 2,652 before `TASK-0086` | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | `TASK-0086` introduces root source/helper/field traversal plans; `TASK-0089` extracts validator traversal and identity-constraint activation plans; datatype/facet snippets and identity helper algorithms remain inside source assembly. |
 | `GeneratedWriterEmitter` + emitter plans | 934 before `TASK-0086` | Deterministic XML output for generated and retained content. | `TASK-0086` names shared root source/helper/field traversal planning; `TASK-0088` extracts writer field/content branch traversal plans; scalar text formatting and Java formatting remain inside source assembly. |
 | `XmlDatatypes` | 842 | Dependency-free XML Schema lexical parsing/formatting in runtime-core. | Many datatype families share whitespace, bounds, and lexical-special-case mechanics inside one utility. |
 | `W3cXsd10SuiteIntake` + `W3cXsd10BindingExecutor` | 953 before `TASK-0083` | Dependency-free W3C metadata classification and mapped-row execution. | `TASK-0083` separates generated-binding execution from suite intake; report writing remains a smaller follow-on extraction candidate. |
@@ -48,8 +48,9 @@ The largest reviewed implementation surfaces are:
    - `TASK-0087` adds package-private reader state and scalar-conversion plans for helper feature
      flags, scalar parse expressions, datatype list item names, and datatype helper class literals.
    - `TASK-0088` adds package-private writer field traversal and content branch traversal plans.
-   - Remaining candidate boundaries: content-position traversal plans, validator object/XML
-     traversal plans, and identity-helper plans.
+   - `TASK-0089` adds package-private validator traversal and root identity-constraint plans.
+   - Remaining candidate boundaries: content-position traversal plans, datatype/facet emission
+     snippets, and identity helper algorithm assembly.
    - Test strategy: keep focused plan tests plus existing generated-source compile and smoke tests
      as end-to-end guards; no generated source output change is expected from this tranche.
 

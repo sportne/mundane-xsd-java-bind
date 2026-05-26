@@ -173,6 +173,7 @@ public final class GeneratedValidatorEmitter {
     private final BindingType rootType;
     private final BindingJavaName validatorName;
     private final ModelIndex index;
+    private final GeneratedValidatorIdentityPlan identityPlan;
     private final Set<String> helperNames = new LinkedHashSet<>();
     private final Set<String> identityHelperNames = new LinkedHashSet<>();
 
@@ -182,6 +183,7 @@ public final class GeneratedValidatorEmitter {
       this.rootType = plan.rootType();
       this.validatorName = plan.sourceName();
       this.index = index;
+      this.identityPlan = GeneratedValidatorIdentityPlan.from(root, rootType);
     }
 
     private String sourceText() {
@@ -204,7 +206,7 @@ public final class GeneratedValidatorEmitter {
     }
 
     private boolean hasIdentityConstraints() {
-      return !root.identityConstraints().isEmpty();
+      return identityPlan.hasConstraints();
     }
 
     private void appendPublicValidate(StringBuilder source) {
@@ -262,28 +264,27 @@ public final class GeneratedValidatorEmitter {
           .append("      io.github.mundanej.mxjb.runtime.XmlLocation location,\n")
           .append(
               "      java.util.ArrayList<io.github.mundanej.mxjb.runtime.ValidationError> errors) {\n");
-      for (BindingField field : type.fields().stream().sorted(fieldComparator()).toList()) {
+      GeneratedValidatorTraversalPlan traversalPlan = GeneratedValidatorTraversalPlan.from(type);
+      for (BindingField field : traversalPlan.fields()) {
         appendFieldValidation(source, field);
       }
       source.append("  }\n\n");
-      for (BindingField field : elements(type)) {
+      for (BindingField field : traversalPlan.elementFields()) {
         BindingType nestedType = modelType(field);
         if (nestedType != null && !helperNames.contains(nestedType.javaName().qualifiedName())) {
           appendHelper(source, nestedType);
         }
       }
-      for (BindingField field :
-          type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
-        for (BindingChoiceBranch branch : field.choice().branches()) {
+      for (BindingField field : traversalPlan.choiceFields()) {
+        for (BindingChoiceBranch branch : traversalPlan.choiceBranches(field)) {
           BindingType branchType = modelType(branch.type());
           if (branchType != null && !helperNames.contains(branchType.javaName().qualifiedName())) {
             appendHelper(source, branchType);
           }
         }
       }
-      for (BindingField field :
-          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
-        for (BindingContentBranch branch : field.content().branches()) {
+      for (BindingField field : traversalPlan.contentFields()) {
+        for (BindingContentBranch branch : traversalPlan.contentBranches(field)) {
           BindingType branchType = modelType(branch.type());
           if (branchType != null && !helperNames.contains(branchType.javaName().qualifiedName())) {
             appendHelper(source, branchType);
@@ -1068,22 +1069,22 @@ public final class GeneratedValidatorEmitter {
           .append("        new java.util.LinkedHashMap<>();\n")
           .append("    java.util.ArrayList<IdentityNode> children = new java.util.ArrayList<>();\n")
           .append("    Object text = null;\n");
-      for (BindingField field : type.fields().stream().sorted(fieldComparator()).toList()) {
+      GeneratedValidatorTraversalPlan traversalPlan = GeneratedValidatorTraversalPlan.from(type);
+      for (BindingField field : traversalPlan.fields()) {
         appendIdentityField(source, field);
       }
       source
           .append("    return new IdentityNode(name, text, attributes, children);\n")
           .append("  }\n\n");
-      for (BindingField field : elements(type)) {
+      for (BindingField field : traversalPlan.elementFields()) {
         BindingType nestedType = modelType(field);
         if (nestedType != null
             && !identityHelperNames.contains(nestedType.javaName().qualifiedName())) {
           appendIdentityHelper(source, nestedType);
         }
       }
-      for (BindingField field :
-          type.fields().stream().filter(value -> "choice".equals(value.kind())).toList()) {
-        for (BindingChoiceBranch branch : field.choice().branches()) {
+      for (BindingField field : traversalPlan.choiceFields()) {
+        for (BindingChoiceBranch branch : traversalPlan.choiceBranches(field)) {
           BindingType branchType = modelType(branch.type());
           if (branchType != null
               && !identityHelperNames.contains(branchType.javaName().qualifiedName())) {
@@ -1091,9 +1092,8 @@ public final class GeneratedValidatorEmitter {
           }
         }
       }
-      for (BindingField field :
-          type.fields().stream().filter(value -> "content".equals(value.kind())).toList()) {
-        for (BindingContentBranch branch : field.content().branches()) {
+      for (BindingField field : traversalPlan.contentFields()) {
+        for (BindingContentBranch branch : traversalPlan.contentBranches(field)) {
           BindingType branchType = modelType(branch.type());
           if (branchType != null
               && !identityHelperNames.contains(branchType.javaName().qualifiedName())) {
@@ -2370,12 +2370,12 @@ public final class GeneratedValidatorEmitter {
           .append("        new java.util.LinkedHashMap<>();\n")
           .append(
               "    java.util.ArrayList<IdentityReference> references = new java.util.ArrayList<>();\n");
-      for (SchemaIrIdentityConstraint constraint : root.identityConstraints()) {
+      for (SchemaIrIdentityConstraint constraint : identityPlan.constraints()) {
         if (!"keyref".equals(constraint.kind())) {
           appendIdentityConstraintCall(source, constraint);
         }
       }
-      for (SchemaIrIdentityConstraint constraint : root.identityConstraints()) {
+      for (SchemaIrIdentityConstraint constraint : identityPlan.constraints()) {
         if ("keyref".equals(constraint.kind())) {
           appendIdentityConstraintCall(source, constraint);
         }
@@ -2563,13 +2563,6 @@ public final class GeneratedValidatorEmitter {
           .filter(field -> "element".equals(field.kind()))
           .sorted(Comparator.comparingInt(BindingField::order))
           .toList();
-    }
-
-    private Comparator<BindingField> fieldComparator() {
-      return Comparator.comparingInt(
-              (BindingField field) -> "attribute".equals(field.kind()) ? 0 : 1)
-          .thenComparingInt(BindingField::order)
-          .thenComparing(BindingField::javaName);
     }
 
     private BindingType modelType(BindingField field) {
