@@ -104,7 +104,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 91. `TASK-0091`: Extract IR derivation and identity normalization. Completed and accepted.
 92. `TASK-0092`: Split binding branch planners. Completed and accepted.
 93. `TASK-0093`: Group XML datatype helper families. Completed and accepted.
-94. `TASK-0094`: Execute the 1.0.1 patch release. Active.
+94. `TASK-0094`: Execute the 1.0.1 patch release. Completed and accepted.
 
 `TASK-0027` has accepted named model group and attribute group support for `XP-XSD10-COMPOSED`
 without adding release tags or publication claims. `TASK-0028` has accepted named list/union simple
@@ -285,14 +285,13 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0091` | deeper generator architecture refactor | accepted | Extract IR derivation and identity normalization. |
 | `TASK-0092` | deeper generator architecture refactor | accepted | Split binding branch planners. |
 | `TASK-0093` | deeper runtime architecture refactor | accepted | Group XML datatype helper families. |
-| `TASK-0094` | 1.0.1 patch release | active | Execute the 1.0.1 patch release. |
+| `TASK-0094` | 1.0.1 patch release | accepted | Execute the 1.0.1 patch release. |
 
 ## Current implementation gate
 
-`TASK-0094` is the current release gate. It updates the candidate version to `1.0.1`, makes the
-GitHub Release workflow and release-consumer smoke lane version-aware, adds `1.0.1` release notes,
-adds strict release tag/main-head validation, and must finish by pushing the release commit,
-pushing tag `v1.0.1`, and reviewing the GitHub Release workflow result.
+`TASK-0094` completed the `1.0.1` patch release. The release commit and `v1.0.1` tag are pushed,
+and the GitHub Release, `ci`, and `docs` workflow runs for the release commit completed
+successfully.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -354,10 +353,14 @@ and sorted diagnostic ownership.
 `XmlDatatypes` remains the public generated-code-facing facade and keeps package-private bridge
 methods used by datatype value classes. The task also fixed a pre-existing `base64Binary` lexical
 validation hole by stripping XML whitespace before strict Base64 decoding.
-`TASK-0094` is executing the `1.0.1` patch-release gate. The release keeps the `1.0.0`
+`TASK-0094` accepted the `1.0.1` patch-release gate. The release keeps the `1.0.0`
 generated-binding product scope and GitHub Release asset-only distribution model while including
 post-`1.0.0` hardening, diagnostics, release-consumer smoke evidence, W3C mapping expansion,
-performance characterization, and architecture refactors.
+performance characterization, and architecture refactors. Release workflow
+`https://github.com/sportne/mundane-xsd-java-bind/actions/runs/26429158288`, release-commit `ci`
+`https://github.com/sportne/mundane-xsd-java-bind/actions/runs/26429158031`, and release-commit
+`docs` `https://github.com/sportne/mundane-xsd-java-bind/actions/runs/26429158033` all completed
+successfully.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports
