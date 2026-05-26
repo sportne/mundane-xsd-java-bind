@@ -1,6 +1,6 @@
 # TASK-0091: ir-derivation-identity-normalization
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0091`
 Priority: P2
@@ -27,3 +27,21 @@ Commands to run: `./gradlew :modules:generator-core:check --console=plain`,
 Acceptance criteria: derivation and identity normalization have explicit helper ownership;
 accepted derivation and identity behavior is unchanged.
 Rollback notes: revert schema IR helper extraction, tests, and docs.
+
+## Completion Notes
+
+`SchemaIrDerivationNormalization` now owns final-control diagnostics and complex-restriction
+member/anyAttribute checks for already-normalized content. `SchemaIrIdentityNormalization` now owns
+the accepted identity selector/field XPath subset parsing while `SchemaIrBuilder` retains schema
+traversal, QName resolution, profile gates, component lookup, and diagnostic emission.
+
+Focused helper tests cover final-control diagnostics, restriction-member and anyAttribute
+diagnostics, accepted selector/field alternatives, dot selectors, missing XPath diagnostics, and
+unsupported/non-terminal attribute paths.
+
+## Verification
+
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
+- Subagent review of the TASK-0091 diff and new files reported no findings.

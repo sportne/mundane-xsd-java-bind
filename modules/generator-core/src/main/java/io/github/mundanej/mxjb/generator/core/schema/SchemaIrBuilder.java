@@ -589,103 +589,11 @@ public final class SchemaIrBuilder {
 
   private List<SchemaIrIdentityPath> identityPaths(
       XsdSyntaxDocument document, String xpath, boolean field, BuildState state) {
-    if (xpath == null || xpath.isBlank()) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "identity constraint XPath is missing.");
-      return null;
-    }
-    List<SchemaIrIdentityPath> paths = new ArrayList<>();
-    for (String alternative : splitOn(xpath, '|')) {
-      SchemaIrIdentityPath path = identityPath(document, alternative.trim(), field, state);
-      if (path == null) {
-        return null;
-      }
-      paths.add(path);
-    }
-    return paths;
-  }
-
-  private SchemaIrIdentityPath identityPath(
-      XsdSyntaxDocument document, String xpath, boolean field, BuildState state) {
-    if (xpath.isBlank()
-        || xpath.startsWith("/")
-        || xpath.contains("[")
-        || xpath.contains("]")
-        || xpath.contains("(")
-        || xpath.contains(")")
-        || xpath.contains("::")
-        || xpath.contains("$")
-        || xpath.contains("..")) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "Unsupported identity constraint XPath " + xpath + ".");
-      return null;
-    }
-    if (".".equals(xpath)) {
-      return new SchemaIrIdentityPath(false, true, List.of());
-    }
-    boolean descendant = xpath.startsWith(".//");
-    String body = descendant ? xpath.substring(3) : xpath;
-    if (body.isBlank()) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "Unsupported identity constraint XPath " + xpath + ".");
-      return null;
-    }
-    List<String> tokens = splitOn(body, '/');
-    List<SchemaIrIdentityStep> steps = new ArrayList<>();
-    for (int index = 0; index < tokens.size(); index++) {
-      boolean terminal = index == tokens.size() - 1;
-      String token = tokens.get(index).trim();
-      boolean attribute = token.startsWith("@");
-      if (attribute && (!field || !terminal)) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "Attribute steps are supported only as terminal identity fields.");
-        return null;
-      }
-      String nameText = attribute ? token.substring(1) : token;
-      if (nameText.isBlank()) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "Unsupported identity constraint XPath " + xpath + ".");
-        return null;
-      }
-      if ("*".equals(nameText)) {
-        steps.add(new SchemaIrIdentityStep(null, true, attribute));
-      } else {
-        SchemaQName name = resolveQName(document, nameText, state);
-        if (name == null) {
-          return null;
-        }
-        steps.add(new SchemaIrIdentityStep(name, false, attribute));
-      }
-    }
-    return new SchemaIrIdentityPath(descendant, false, steps);
-  }
-
-  private List<String> splitOn(String value, char delimiter) {
-    List<String> parts = new ArrayList<>();
-    int start = 0;
-    for (int index = 0; index < value.length(); index++) {
-      if (value.charAt(index) == delimiter) {
-        parts.add(value.substring(start, index));
-        start = index + 1;
-      }
-    }
-    parts.add(value.substring(start));
-    return parts;
+    return SchemaIrIdentityNormalization.paths(
+        xpath,
+        field,
+        lexicalQName -> resolveQName(document, lexicalQName, state),
+        invalidComponentDiagnostic(document, state));
   }
 
   private SchemaIrTypeReference typeReference(
@@ -1260,60 +1168,13 @@ public final class SchemaIrBuilder {
       SchemaIrComplexType baseType,
       ComplexTypeContent restrictedContent,
       BuildState state) {
-    Set<SchemaQName> baseElements = new LinkedHashSet<>();
-    for (SchemaIrSequence sequence : baseType.sequences()) {
-      for (SchemaIrElement element : sequence.elements()) {
-        baseElements.add(element.name());
-      }
-    }
-    for (SchemaIrSequence sequence : restrictedContent.sequences()) {
-      for (SchemaIrElement element : sequence.elements()) {
-        if (!baseElements.contains(element.name())) {
-          diagnostic(
-              state,
-              DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-              document.resourceId(),
-              "Restricted element " + element.name().toText() + " is not present in base type.");
-        }
-      }
-    }
-    Set<SchemaQName> baseAttributes =
-        baseType.attributes().stream()
-            .map(SchemaIrAttribute::name)
-            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-    for (SchemaIrAttribute attribute : restrictedContent.attributes()) {
-      if (!baseAttributes.contains(attribute.name()) && !"prohibited".equals(attribute.use())) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "Restricted attribute " + attribute.name().toText() + " is not present in base type.");
-      }
-    }
-    if (restrictedContent.anyAttribute() != null) {
-      if (baseType.anyAttribute() == null) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "Restricted anyAttribute is not present in base type.");
-      } else if (!wildcardNamespaceSubset(
-          restrictedContent.anyAttribute().namespaceConstraint(),
-          baseType.anyAttribute().namespaceConstraint())) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "Restricted anyAttribute namespace is not a subset of the base wildcard.");
-      } else if (!processContentsAllowsRestriction(
-          baseType.anyAttribute().processContents(),
-          restrictedContent.anyAttribute().processContents())) {
-        diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "Restricted anyAttribute processContents cannot weaken the base wildcard.");
-      }
+    for (String message :
+        SchemaIrDerivationNormalization.restrictionDiagnostics(
+            baseType,
+            restrictedContent.attributes(),
+            restrictedContent.anyAttribute(),
+            restrictedContent.sequences())) {
+      diagnostic(state, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, document.resourceId(), message);
     }
   }
 
@@ -1322,16 +1183,10 @@ public final class SchemaIrBuilder {
       SchemaIrComplexType baseType,
       String derivationKind,
       BuildState state) {
-    if (baseType.finalControls().contains(derivationKind)) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "Derivation by "
-              + derivationKind
-              + " is final for base type "
-              + baseType.name().toText()
-              + ".");
+    String message =
+        SchemaIrDerivationNormalization.finalControlDiagnostic(baseType, derivationKind);
+    if (message != null) {
+      diagnostic(state, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, document.resourceId(), message);
     }
   }
 
@@ -1589,15 +1444,6 @@ public final class SchemaIrBuilder {
         }
       }
     }
-  }
-
-  private boolean wildcardNamespaceSubset(
-      SchemaIrWildcardNamespace restricted, SchemaIrWildcardNamespace base) {
-    return SchemaIrWildcardNormalization.namespaceSubset(restricted, base);
-  }
-
-  private boolean processContentsAllowsRestriction(String base, String restricted) {
-    return SchemaIrWildcardNormalization.processContentsAllowsRestriction(base, restricted);
   }
 
   private SchemaIrWildcard normalizeWildcard(

@@ -101,7 +101,7 @@ This file gives the next exact sequence of tasks. Agents must not skip ahead to 
 88. `TASK-0088`: Plan writer content traversal. Draft.
 89. `TASK-0089`: Plan validator traversal helpers. Draft.
 90. `TASK-0090`: Extract IR particle and wildcard normalization. Draft.
-91. `TASK-0091`: Extract IR derivation and identity normalization. Draft.
+91. `TASK-0091`: Extract IR derivation and identity normalization. Completed and accepted.
 92. `TASK-0092`: Split binding branch planners. Draft.
 93. `TASK-0093`: Group XML datatype helper families. Draft.
 
@@ -281,15 +281,15 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0088` | deeper generator architecture refactor | accepted | Plan writer content traversal. |
 | `TASK-0089` | deeper generator architecture refactor | accepted | Plan validator traversal helpers. |
 | `TASK-0090` | deeper generator architecture refactor | accepted | Extract IR particle and wildcard normalization. |
-| `TASK-0091` | deeper generator architecture refactor | draft | Extract IR derivation and identity normalization. |
+| `TASK-0091` | deeper generator architecture refactor | accepted | Extract IR derivation and identity normalization. |
 | `TASK-0092` | deeper generator architecture refactor | draft | Split binding branch planners. |
 | `TASK-0093` | deeper runtime architecture refactor | draft | Group XML datatype helper families. |
 
 ## Current implementation gate
 
-`TASK-0091` is the next implementation gate. It should extract IR derivation and identity
-normalization helpers from `SchemaIrBuilder` without changing accepted derivation behavior,
-identity selector/field semantics, diagnostics, schema indexing, or profile gates.
+`TASK-0092` is the next implementation gate. It should split substitution-group and declared-base
+dynamic `xsi:type` branch planning out of `BindingModelBuilder` without changing `BindingModel`
+shape, ordering, diagnostics, Java/XML names, or generated source behavior.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -334,6 +334,11 @@ Package-private `SchemaIrAttributeNormalization` owns attribute namespace qualif
 attribute value-semantics extraction. Package-private `SchemaIrWildcardNormalization` owns
 wildcard namespace/process policy and anyAttribute namespace union while `SchemaIrBuilder`
 continues to own traversal, lookup, profile gates, and diagnostic emission.
+`TASK-0091` accepted derivation and identity normalization extraction. Package-private
+`SchemaIrDerivationNormalization` now owns final-control and complex-restriction diagnostics for
+already-normalized content. Package-private `SchemaIrIdentityNormalization` now owns the accepted
+identity selector/field XPath subset parsing while `SchemaIrBuilder` retains traversal, QName
+resolution, profile gates, component lookup, and diagnostic emission.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports

@@ -10,7 +10,7 @@ The largest reviewed implementation surfaces are:
 
 | Surface | Approx. lines | Essential complexity | Accidental complexity |
 |---|---:|---|---|
-| `SchemaIrBuilder` + normalization helpers | 3,266 before `TASK-0084` | XSD symbol spaces, profile gates, normalization, deterministic diagnostics. | `TASK-0084` extracts occurrence/cardinality, QName, cardinality-composition, and diagnostic ordering policy; `TASK-0090` extracts particle flattening/cardinality and wildcard namespace/process policy; resource-aware lookup, profile policy, component normalization, derivation flattening, and identity paths remain future tranches. |
+| `SchemaIrBuilder` + normalization helpers | 3,266 before `TASK-0084` | XSD symbol spaces, profile gates, normalization, deterministic diagnostics. | `TASK-0084` extracts occurrence/cardinality, QName, cardinality-composition, and diagnostic ordering policy; `TASK-0090` extracts particle flattening/cardinality and wildcard namespace/process policy; `TASK-0091` extracts derivation restriction/final-control diagnostics and identity XPath subset parsing; resource-aware lookup, profile policy, component normalization, and derivation flattening remain future tranches. |
 | `BindingModelBuilder` + binding planners | 1,571 before `TASK-0085` | Java naming, product-scope binding shapes, validation plan construction. | `TASK-0085` extracts deterministic naming/package allocation and mixed/grouped content-list planning; substitution/dynamic branch binding, schema lookup, type-reference binding, and validation metadata remain future tranche candidates. |
 | `GeneratedReaderEmitter` + emitter plans | 2,430 before `TASK-0086` | Generated source must be explicit, deterministic, reflection-free, and location-aware. | `TASK-0086` introduces root source/helper/field traversal plans; `TASK-0087` extracts reader helper-state and scalar-conversion planning; diagnostic text, element traversal, and Java formatting still live in source assembly. |
 | `GeneratedValidatorEmitter` + emitter plans | 2,652 before `TASK-0086` | Object/XML validation, identity tables, datatype/facet checks, and deterministic diagnostics. | `TASK-0086` introduces root source/helper/field traversal plans; `TASK-0089` extracts validator traversal and identity-constraint activation plans; datatype/facet snippets and identity helper algorithms remain inside source assembly. |
@@ -28,8 +28,11 @@ The largest reviewed implementation surfaces are:
      sequence flattening, group-reference cardinality wrapping, attribute namespace policy,
      wildcard ambiguity inputs, wildcard namespace/process policy, and anyAttribute namespace
      union.
-   - Remaining candidate boundaries: derivation normalization and identity-constraint
-     normalization.
+   - `TASK-0091` adds package-private derivation and identity normalization helpers for
+     final-control diagnostics, complex-restriction diagnostics, and accepted identity
+     selector/field XPath subset parsing.
+   - Remaining candidate boundaries: resource-aware lookup, profile policy, component
+     normalization, and derivation flattening.
    - Test strategy: keep `SchemaIrBuilderTest`, `SchemaIrDeltaHardeningTest`, and focused policy
      tests as behavior locks; no behavior changes in extraction tranches.
 
