@@ -3,7 +3,7 @@ name: release
 on:
   push:
     tags:
-      - 'v1.0.0'
+      - 'v*.*.*'
 
 permissions:
   contents: write
@@ -21,24 +21,42 @@ jobs:
       - name: Quality gate
         run: ./gradlew clean validateDesignControlPack qualityGate --console=plain
       - name: Stage release artifacts
-        run: ./gradlew -Pmxjb.version=1.0.0 publicationDryRun --console=plain
+        run: |
+          set -euo pipefail
+          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must match v<major>.<minor>.<patch>: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          git fetch --depth=1 origin main:refs/remotes/origin/main
+          MAIN_SHA="$(git rev-parse origin/main)"
+          if [[ "$GITHUB_SHA" != "$MAIN_SHA" ]]; then
+            echo "Release tag $GITHUB_REF_NAME must point at origin/main ($MAIN_SHA), got $GITHUB_SHA" >&2
+            exit 1
+          fi
+          ./gradlew -Pmxjb.version="$RELEASE_VERSION" publicationDryRun --console=plain
       - name: Prepare GitHub Release assets
         run: |
           set -euo pipefail
+          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
+          RELEASE_NOTES="docs/infrastructure/release-notes-${RELEASE_VERSION}.md"
+          test -f "$RELEASE_NOTES"
           mkdir -p build/release-assets
-          find build/staging-repository -type f | sort > build/release-assets/artifact-manifest-1.0.0.txt
-          cp docs/infrastructure/release-notes-1.0.0.md build/release-assets/release-notes-1.0.0.md
-          (cd build && zip -qr release-assets/mxjb-staging-repository-1.0.0.zip staging-repository)
-          (cd build/release-assets && sha256sum artifact-manifest-1.0.0.txt release-notes-1.0.0.md mxjb-staging-repository-1.0.0.zip > SHA256SUMS)
+          find build/staging-repository -type f | sort > "build/release-assets/artifact-manifest-${RELEASE_VERSION}.txt"
+          cp "$RELEASE_NOTES" "build/release-assets/release-notes-${RELEASE_VERSION}.md"
+          (cd build/staging-repository && zip -qr "../release-assets/mxjb-staging-repository-${RELEASE_VERSION}.zip" .)
+          (cd build/release-assets && sha256sum "artifact-manifest-${RELEASE_VERSION}.txt" "release-notes-${RELEASE_VERSION}.md" "mxjb-staging-repository-${RELEASE_VERSION}.zip" > SHA256SUMS)
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" \
-            build/release-assets/mxjb-staging-repository-1.0.0.zip \
-            build/release-assets/artifact-manifest-1.0.0.txt \
-            build/release-assets/release-notes-1.0.0.md \
+            "build/release-assets/mxjb-staging-repository-${RELEASE_VERSION}.zip" \
+            "build/release-assets/artifact-manifest-${RELEASE_VERSION}.txt" \
+            "build/release-assets/release-notes-${RELEASE_VERSION}.md" \
             build/release-assets/SHA256SUMS \
             --title "mundane XSD Java Binding $GITHUB_REF_NAME" \
-            --notes-file docs/infrastructure/release-notes-1.0.0.md \
+            --notes-file "docs/infrastructure/release-notes-${RELEASE_VERSION}.md" \
             --verify-tag

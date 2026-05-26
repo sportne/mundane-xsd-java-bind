@@ -23,7 +23,7 @@ For a released consumer build, first configure plugin resolution from
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.mundanej.mxjb' version '1.0.0'
+    id 'io.github.mundanej.mxjb' version '1.0.1'
 }
 
 mxjb {

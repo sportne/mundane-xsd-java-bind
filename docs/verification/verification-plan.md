@@ -254,3 +254,12 @@ release. The verification sequence is:
 `TASK-0066` accepts the `1.0.0` release claim for executable `XP-XSD10-FULL` generated-binding
 support within the accepted product scope. Broad W3C full-suite generated-binding coverage remains
 limited to explicitly mapped rows.
+
+## `1.0.1` patch verification plan
+
+`TASK-0094` validates a patch release from the post-`1.0.0` hardening and refactor sequence. The
+release keeps the same generated-binding product scope and distribution non-claims as `1.0.0`.
+Release-blocking evidence is the full JVM quality gate, `publicationDryRun -Pmxjb.version=1.0.1`,
+`releaseConsumerSmoke`, `git diff --check`, subagent release-diff review, and the GitHub Release
+workflow result for the pushed `v1.0.1` tag. SDKMAN GraalVM `nativeSmoke nativeConformance` is
+recorded when available as native confidence evidence.

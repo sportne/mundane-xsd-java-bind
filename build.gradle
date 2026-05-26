@@ -100,7 +100,7 @@ tasks.register('w3cXsd10Conformance') {
 
 def publicationStagingDirectory = layout.buildDirectory.dir('staging-repository')
 def publicationCandidateVersion = version.toString()
-def releaseDryRunNotes = layout.projectDirectory.file('docs/infrastructure/release-notes-1.0.0.md')
+def releaseDryRunNotes = layout.projectDirectory.file("docs/infrastructure/release-notes-${publicationCandidateVersion}.md")
 def releaseWorkflow = layout.projectDirectory.file('.github/workflows/release.yml')
 def repositoryRootPath = rootDir.absolutePath
 
@@ -243,7 +243,10 @@ tasks.register('validatePublicationStaging') {
         def workflowText = workflow.getText('UTF-8')
         [
             'tags:',
-            "'v1.0.0'",
+            "'v*.*.*'",
+            'RELEASE_VERSION="${GITHUB_REF_NAME#v}"',
+            'Release tag must match v<major>.<minor>.<patch>',
+            'must point at origin/main',
             'gh release create',
             'publicationDryRun',
             'contents: write',
@@ -321,11 +324,11 @@ tasks.register('releaseConsumerSmoke') {
         }
 
         def consumerProject = new File(smokeDirectory, 'consumer-project')
-        ReleaseConsumerProjectWriter.write(consumerProject)
+        ReleaseConsumerProjectWriter.write(consumerProject, publicationCandidateVersion)
 
         def runConsumerGradle = { File repository, List<String> arguments ->
             def command = ([gradleExecutablePath] + arguments +
-                    ["-Pmxjb.consumer.repo=${repository.absolutePath}", '--offline', '--console=plain'])
+                    ["-Pmxjb.consumer.repo=${repository.absolutePath}", '--offline', '--no-daemon', '--console=plain'])
                     .collect { it.toString() }
             def processBuilder = new ProcessBuilder(command)
                     .directory(consumerProject)
@@ -353,7 +356,7 @@ tasks.register('releaseConsumerSmoke') {
 }
 
 class ReleaseConsumerProjectWriter {
-static void write(File projectDirectory) {
+static void write(File projectDirectory, String releaseVersion) {
     def schemaDirectory = new File(projectDirectory, 'src/main/resources/schema')
     def sourceDirectory = new File(projectDirectory, 'src/main/java/com/example/consumer')
     schemaDirectory.mkdirs()
@@ -388,10 +391,10 @@ static void write(File projectDirectory) {
         }
         rootProject.name = 'mxjb-release-consumer-smoke'
         '''.stripIndent()
-    new File(projectDirectory, 'build.gradle').text = '''
+    new File(projectDirectory, 'build.gradle').text = """
         plugins {
             id 'java'
-            id 'io.github.mundanej.mxjb' version '1.0.0'
+            id 'io.github.mundanej.mxjb' version '${releaseVersion}'
         }
 
         java {
@@ -401,7 +404,7 @@ static void write(File projectDirectory) {
         }
 
         dependencies {
-            implementation platform('io.github.mundanej:mxjb-bom:1.0.0')
+            implementation platform('io.github.mundanej:mxjb-bom:${releaseVersion}')
             implementation 'io.github.mundanej:mxjb-runtime-core'
             implementation 'io.github.mundanej:mxjb-runtime-jdkxml'
         }
@@ -416,7 +419,7 @@ static void write(File projectDirectory) {
             classpath = sourceSets.main.runtimeClasspath
             mainClass = 'com.example.consumer.ConsumerSmoke'
         }
-        '''.stripIndent()
+        """.stripIndent()
     new File(schemaDirectory, 'purchase-order.xsd').text = '''
         <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
             targetNamespace="urn:purchase"

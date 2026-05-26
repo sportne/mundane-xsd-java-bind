@@ -123,6 +123,24 @@ a zipped Maven-layout `build/staging-repository`, checksums, release notes, and 
 manifest. It must not publish to Maven Central or package registries, require signing, or introduce
 release secrets.
 
+## `1.0.1` patch release
+
+`TASK-0094` authorizes a `1.0.1` patch release from the accepted post-`1.0.0` hardening and
+architecture work. The release keeps the `1.0.0` public product scope and GitHub Release
+asset-only distribution model.
+
+Before the `v1.0.1` tag, the release task must:
+
+- update version metadata and `docs/infrastructure/release-notes-1.0.1.md`;
+- keep release notes and public docs within the existing `XP-XSD10-FULL` generated-binding product
+  scope and explicit non-claims;
+- validate the local Maven-layout asset with `publicationDryRun -Pmxjb.version=1.0.1`;
+- validate clean downstream asset consumption with `releaseConsumerSmoke`;
+- run the full quality gate and optional SDKMAN GraalVM Native Image evidence lane where available;
+- make the release workflow version-aware for `v*.*.*` tags while preserving GitHub Release assets
+  only;
+- reject non-strict release-version tags and release tags that do not point at `origin/main`.
+
 ## Release gate
 
 No release may claim support for a schema feature unless the requirement, profile, conformance matrix, tests, and docs are complete.

@@ -47,7 +47,7 @@ Optional evidence lanes:
 ```bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 ./gradlew nativeSmoke nativeConformance --console=plain
-./gradlew -Pmxjb.version=1.0.0 publicationDryRun --console=plain
+./gradlew -Pmxjb.version=1.0.1 publicationDryRun --console=plain
 ./gradlew releaseConsumerSmoke --console=plain
 ```
 

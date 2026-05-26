@@ -230,8 +230,9 @@ gates accepted enough evidence for profile execution. The accepted sequence is:
 - accepted in `TASK-0065`: executable `XP-XSD10-FULL` API, CLI, Gradle plugin, CoreGenerator, and
   selected conformance fixture evidence.
 
-XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. `TASK-0066` adds the
-GitHub Release workflow for `v1.0.0` tags.
+XSD 1.1 and XML 1.1 are not compatibility profiles or future project targets. `TASK-0066` added the
+GitHub Release workflow for `v1.0.0` tags; `TASK-0094` makes that workflow version-aware for
+patch release tags without broadening support claims.
 
 ## `1.0.0` Full-XSD Release Bar
 

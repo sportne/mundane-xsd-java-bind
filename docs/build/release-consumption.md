@@ -1,6 +1,6 @@
 # Release asset consumption
 
-`1.0.0` release artifacts are GitHub Release assets, not Maven Central publications. The release
+`1.0.1` release artifacts are GitHub Release assets, not Maven Central publications. The release
 workflow uploads a zipped Maven-layout repository plus checksums, release notes, and an artifact
 manifest. Consumers must unpack the Maven-layout repository and point Gradle at that local path.
 
@@ -42,7 +42,7 @@ Then apply the plugin with the release version:
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.mundanej.mxjb' version '1.0.0'
+    id 'io.github.mundanej.mxjb' version '1.0.1'
 }
 
 mxjb {

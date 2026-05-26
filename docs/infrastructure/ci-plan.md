@@ -81,7 +81,7 @@ The GitHub workflow uses `graalvm/setup-graalvm`; it does not depend on SDKMAN.
 Future CI changes for real publication, broader external suites, or benchmark thresholds require a
 new accepted task and must not be inferred from the `0.6.0` readiness closeout.
 
-## `1.0.0` release workflow plan
+## `1.0.x` release workflow plan
 
 `TASK-0058` defines the `1.0.0` release bar as executable `XP-XSD10-FULL` generated-binding support
 with W3C generated-binding evidence. `TASK-0066` adds the release workflow:
@@ -90,10 +90,12 @@ with W3C generated-binding evidence. `TASK-0066` adds the release workflow:
 - `TASK-0064` maps the first W3C generated-binding rows. `w3cXsd10Conformance` becomes a final
   release-blocking evidence lane in `TASK-0066`.
 - `TASK-0065` enables executable `XP-XSD10-FULL`.
-- The GitHub Release workflow is tag-triggered for `v1.0.0` and uploads only GitHub Release assets.
+- The GitHub Release workflow is tag-triggered for `v*.*.*` release tags and uploads only GitHub
+  Release assets.
 
-The release workflow triggers on `v1.0.0` tags, runs final validation, executes
-`publicationDryRun` with `-Pmxjb.version=1.0.0`, zip `build/staging-repository`, create checksums
-and an artifact manifest, and upload those files to GitHub Release assets. It does not publish to
+The release workflow derives the candidate version from a strict `v<major>.<minor>.<patch>` tag,
+requires the tag to point at `origin/main`, runs final validation, executes `publicationDryRun` with
+`-Pmxjb.version=<tag without v>`, zips the contents of `build/staging-repository`, creates checksums
+and an artifact manifest, and uploads those files to GitHub Release assets. It does not publish to
 Maven Central or package registries, add signing, or require release secrets beyond the default
 GitHub token.

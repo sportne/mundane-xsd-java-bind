@@ -35,7 +35,7 @@ def requiredTextByFile = [
     ],
     'docs/build/release-consumption.md': [
         './gradlew releaseConsumerSmoke --console=plain',
-        "id 'io.github.mundanej.mxjb' version '1.0.0'",
+        "id 'io.github.mundanej.mxjb' version '1.0.1'",
         "profile = 'XP-XSD10-FULL'",
         'Maven Central publication, package-registry publication, signing, and remote staging remain',
     ],
