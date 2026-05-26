@@ -280,16 +280,16 @@ Each post-0.1.0 slice must include interop evidence where practical. Interop is 
 | `TASK-0087` | deeper generator architecture refactor | accepted | Plan reader state and scalar emission. |
 | `TASK-0088` | deeper generator architecture refactor | accepted | Plan writer content traversal. |
 | `TASK-0089` | deeper generator architecture refactor | accepted | Plan validator traversal helpers. |
-| `TASK-0090` | deeper generator architecture refactor | draft | Extract IR particle and wildcard normalization. |
+| `TASK-0090` | deeper generator architecture refactor | accepted | Extract IR particle and wildcard normalization. |
 | `TASK-0091` | deeper generator architecture refactor | draft | Extract IR derivation and identity normalization. |
 | `TASK-0092` | deeper generator architecture refactor | draft | Split binding branch planners. |
 | `TASK-0093` | deeper runtime architecture refactor | draft | Group XML datatype helper families. |
 
 ## Current implementation gate
 
-`TASK-0090` is the next implementation gate. It should extract IR content-particle and
-attribute/wildcard normalization helpers from `SchemaIrBuilder` without changing IR output,
-diagnostics, schema indexing, or profile gates.
+`TASK-0091` is the next implementation gate. It should extract IR derivation and identity
+normalization helpers from `SchemaIrBuilder` without changing accepted derivation behavior,
+identity selector/field semantics, diagnostics, schema indexing, or profile gates.
 
 `TASK-0067` accepted post-1.0.0 support-claim reconciliation. Public wording now describes
 `XP-XSD10-FULL` as executable for the project's accepted generated-binding product scope and keeps
@@ -327,6 +327,13 @@ while preserving generated writer source behavior.
 `GeneratedValidatorTraversalPlan` captures validator field and branch traversal inputs, and
 `GeneratedValidatorIdentityPlan` captures root identity-constraint activation before source text
 assembly while preserving generated validator behavior and identity semantics.
+`TASK-0090` accepted content-particle and wildcard normalization extraction. Package-private
+`SchemaIrParticleNormalization` now owns nested sequence flattening, particle cardinality
+composition, group-reference cardinality wrapping, and wildcard ambiguity input collection.
+Package-private `SchemaIrAttributeNormalization` owns attribute namespace qualification and
+attribute value-semantics extraction. Package-private `SchemaIrWildcardNormalization` owns
+wildcard namespace/process policy and anyAttribute namespace union while `SchemaIrBuilder`
+continues to own traversal, lookup, profile gates, and diagnostic emission.
 `TASK-0070` accepted W3C generated-binding expansion by adding the
 `sunData/Wildcard/nsConstraint/nsConstraint00101m/nsConstraint00101m1.xsd` schema plus positive and
 negative instances to the mapped set. The pinned local W3C lane now reports

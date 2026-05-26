@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -395,7 +396,7 @@ public final class SchemaIrBuilder {
     }
     String ref = node.attributes().get("ref");
     if (ref != null) {
-      if (semanticAttributes(node).hasAny()) {
+      if (SchemaIrAttributeNormalization.semantics(node.attributes()).hasAny()) {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
@@ -460,7 +461,7 @@ public final class SchemaIrBuilder {
     if (type == null) {
       return null;
     }
-    SchemaIrValueSemantics semantics = semanticAttributes(node);
+    SchemaIrValueSemantics semantics = SchemaIrAttributeNormalization.semantics(node.attributes());
     boolean abstractElement = "true".equals(node.attributes().get("abstract"));
     if (abstractElement && !global) {
       diagnostic(
@@ -1082,7 +1083,8 @@ public final class SchemaIrBuilder {
                 document, anyAttribute, normalizeAnyAttribute(document, child, state), state);
       } else if (child.kind() == XsdSyntaxKind.SEQUENCE) {
         contentParticleCount++;
-        sequenceGroupSeen = sequenceGroupSeen || containsGroupReference(child);
+        sequenceGroupSeen =
+            sequenceGroupSeen || SchemaIrParticleNormalization.containsGroupReference(child);
         addIfPresent(sequences, normalizeSequence(document, child, state));
       } else if (child.kind() == XsdSyntaxKind.ALL) {
         contentParticleCount++;
@@ -1446,10 +1448,6 @@ public final class SchemaIrBuilder {
     return normalizeNamedComplexType(document, component.syntaxNode(), state);
   }
 
-  private boolean containsGroupReference(XsdSyntaxNode node) {
-    return node.children().stream().anyMatch(child -> child.kind() == XsdSyntaxKind.GROUP);
-  }
-
   private SchemaIrSequence normalizeSequence(
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
     return normalizeSequence(document, node, state, true);
@@ -1473,7 +1471,7 @@ public final class SchemaIrBuilder {
       } else if (child.kind() == XsdSyntaxKind.SEQUENCE) {
         SchemaIrSequence nested = normalizeSequence(document, child, state, allowGroupReferences);
         if (nested != null) {
-          addFlattenedNestedSequence(particles, nested);
+          SchemaIrParticleNormalization.addFlattenedNestedSequence(particles, nested);
         }
       } else if (child.kind() == XsdSyntaxKind.ANY) {
         addIfPresent(particles, normalizeWildcard(document, child, state));
@@ -1561,68 +1559,13 @@ public final class SchemaIrBuilder {
     }
   }
 
-  private void addFlattenedNestedSequence(
-      List<SchemaIrParticle> particles, SchemaIrSequence nested) {
-    if (nested.cardinality().minOccurs() == 1 && "1".equals(nested.cardinality().maxOccurs())) {
-      particles.addAll(nested.particles());
-      return;
-    }
-    if (nested.particles().size() == 1) {
-      particles.add(withCardinality(nested.particles().getFirst(), nested.cardinality()));
-      return;
-    }
-    particles.add(new SchemaIrGroup("sequence", nested.cardinality(), nested.particles()));
-  }
-
-  private SchemaIrParticle withCardinality(
-      SchemaIrParticle particle, SchemaCardinality cardinality) {
-    if (particle instanceof SchemaIrElement element) {
-      return new SchemaIrElement(
-          element.name(),
-          element.type(),
-          composeCardinality(cardinality, element.cardinality()),
-          element.inlineComplexType(),
-          element.semantics(),
-          element.substitutionGroup(),
-          element.abstractElement(),
-          element.blockControls(),
-          element.identityConstraints(),
-          element.reference());
-    }
-    if (particle instanceof SchemaIrChoice choice) {
-      return new SchemaIrChoice(
-          composeCardinality(cardinality, choice.cardinality()), choice.branches());
-    }
-    if (particle instanceof SchemaIrWildcard wildcard) {
-      return new SchemaIrWildcard(
-          composeCardinality(cardinality, wildcard.cardinality()),
-          wildcard.namespaceConstraint(),
-          wildcard.processContents());
-    }
-    if (particle instanceof SchemaIrAll all) {
-      return new SchemaIrAll(composeCardinality(cardinality, all.cardinality()), all.elements());
-    }
-    if (particle instanceof SchemaIrGroup group) {
-      return new SchemaIrGroup(
-          group.modelKind(),
-          composeCardinality(cardinality, group.cardinality()),
-          group.particles());
-    }
-    return particle;
-  }
-
-  private SchemaCardinality composeCardinality(SchemaCardinality outer, SchemaCardinality inner) {
-    return SchemaIrNormalizationPolicy.composeCardinality(outer, inner);
-  }
-
   private void validateWildcardElementAmbiguity(
       XsdSyntaxDocument document, List<SchemaIrParticle> particles, BuildState state) {
-    List<SchemaQName> elementNames = new ArrayList<>();
-    List<SchemaIrWildcard> wildcards = new ArrayList<>();
-    collectWildcardAmbiguityInputs(particles, elementNames, wildcards);
-    for (SchemaIrWildcard wildcard : wildcards) {
-      for (SchemaQName elementName : elementNames) {
-        if (wildcardMatches(elementName, wildcard.namespaceConstraint())) {
+    SchemaIrParticleNormalization.WildcardAmbiguityInputs inputs =
+        SchemaIrParticleNormalization.wildcardAmbiguityInputs(particles);
+    for (SchemaIrWildcard wildcard : inputs.wildcards()) {
+      for (SchemaQName elementName : inputs.elementNames()) {
+        if (SchemaIrWildcardNormalization.matches(elementName, wildcard.namespaceConstraint())) {
           diagnostic(
               state,
               DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
@@ -1633,11 +1576,11 @@ public final class SchemaIrBuilder {
         }
       }
     }
-    for (int left = 0; left < wildcards.size(); left++) {
-      for (int right = left + 1; right < wildcards.size(); right++) {
-        if (wildcardsOverlap(
-            wildcards.get(left).namespaceConstraint(),
-            wildcards.get(right).namespaceConstraint())) {
+    for (int left = 0; left < inputs.wildcards().size(); left++) {
+      for (int right = left + 1; right < inputs.wildcards().size(); right++) {
+        if (SchemaIrWildcardNormalization.overlap(
+            inputs.wildcards().get(left).namespaceConstraint(),
+            inputs.wildcards().get(right).namespaceConstraint())) {
           diagnostic(
               state,
               DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
@@ -1648,85 +1591,13 @@ public final class SchemaIrBuilder {
     }
   }
 
-  private void collectWildcardAmbiguityInputs(
-      List<SchemaIrParticle> particles,
-      List<SchemaQName> elementNames,
-      List<SchemaIrWildcard> wildcards) {
-    for (SchemaIrParticle particle : particles) {
-      if (particle instanceof SchemaIrElement element) {
-        elementNames.add(element.name());
-      } else if (particle instanceof SchemaIrAll all) {
-        for (SchemaIrElement element : all.elements()) {
-          elementNames.add(element.name());
-        }
-      } else if (particle instanceof SchemaIrChoice choice) {
-        for (SchemaIrElement branch : choice.elementBranches()) {
-          elementNames.add(branch.name());
-        }
-        wildcards.addAll(choice.wildcardBranches());
-      } else if (particle instanceof SchemaIrGroup group) {
-        collectWildcardAmbiguityInputs(group.particles(), elementNames, wildcards);
-      } else if (particle instanceof SchemaIrWildcard wildcard) {
-        wildcards.add(wildcard);
-      }
-    }
-  }
-
-  private boolean wildcardMatches(SchemaQName elementName, SchemaIrWildcardNamespace namespace) {
-    return switch (namespace.kind()) {
-      case "any" -> true;
-      case "other" -> !namespace.namespaces().contains(elementName.namespace());
-      default -> namespace.namespaces().contains(elementName.namespace());
-    };
-  }
-
-  private boolean wildcardsOverlap(
-      SchemaIrWildcardNamespace left, SchemaIrWildcardNamespace right) {
-    if ("any".equals(left.kind()) || "any".equals(right.kind())) {
-      return true;
-    }
-    if ("other".equals(left.kind()) && "other".equals(right.kind())) {
-      return true;
-    }
-    if ("other".equals(left.kind())) {
-      return right.namespaces().stream()
-          .anyMatch(namespace -> !left.namespaces().contains(namespace));
-    }
-    if ("other".equals(right.kind())) {
-      return left.namespaces().stream()
-          .anyMatch(namespace -> !right.namespaces().contains(namespace));
-    }
-    return left.namespaces().stream().anyMatch(right.namespaces()::contains);
-  }
-
   private boolean wildcardNamespaceSubset(
       SchemaIrWildcardNamespace restricted, SchemaIrWildcardNamespace base) {
-    if ("any".equals(base.kind())) {
-      return true;
-    }
-    if ("any".equals(restricted.kind())) {
-      return "any".equals(base.kind());
-    }
-    if ("explicit".equals(restricted.kind())) {
-      return restricted.namespaces().stream()
-          .allMatch(namespace -> wildcardMatches(new SchemaQName(namespace, "member"), base));
-    }
-    if ("other".equals(restricted.kind())) {
-      return "other".equals(base.kind()) && restricted.namespaces().equals(base.namespaces());
-    }
-    return false;
+    return SchemaIrWildcardNormalization.namespaceSubset(restricted, base);
   }
 
   private boolean processContentsAllowsRestriction(String base, String restricted) {
-    return processContentsRank(restricted) >= processContentsRank(base);
-  }
-
-  private int processContentsRank(String value) {
-    return switch (value) {
-      case "strict" -> 2;
-      case "lax" -> 1;
-      default -> 0;
-    };
+    return SchemaIrWildcardNormalization.processContentsAllowsRestriction(base, restricted);
   }
 
   private SchemaIrWildcard normalizeWildcard(
@@ -1763,15 +1634,8 @@ public final class SchemaIrBuilder {
 
   private String processContents(XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state) {
     String value = node.attributes().getOrDefault("processContents", "strict");
-    if ("skip".equals(value) || "lax".equals(value) || "strict".equals(value)) {
-      return value;
-    }
-    diagnostic(
-        state,
-        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-        document.resourceId(),
-        "xs:" + node.kind().manifestName() + " has invalid processContents " + value + ".");
-    return null;
+    return SchemaIrWildcardNormalization.processContents(
+        node.kind().manifestName(), value, invalidComponentDiagnostic(document, state));
   }
 
   private SchemaIrAnyAttribute combineAnyAttribute(
@@ -1792,7 +1656,9 @@ public final class SchemaIrBuilder {
       return left;
     }
     return new SchemaIrAnyAttribute(
-        union, stricterProcessContents(left.processContents(), right.processContents()));
+        union,
+        SchemaIrWildcardNormalization.stricterProcessContents(
+            left.processContents(), right.processContents()));
   }
 
   private SchemaIrWildcardNamespace unionWildcardNamespaces(
@@ -1800,89 +1666,21 @@ public final class SchemaIrBuilder {
       SchemaIrWildcardNamespace left,
       SchemaIrWildcardNamespace right,
       BuildState state) {
-    if ("any".equals(left.kind()) || "any".equals(right.kind())) {
-      return new SchemaIrWildcardNamespace("any", List.of());
-    }
-    if (left.kind().equals(right.kind()) && left.namespaces().equals(right.namespaces())) {
-      return left;
-    }
-    if ("explicit".equals(left.kind()) && "explicit".equals(right.kind())) {
-      Set<String> namespaces = new LinkedHashSet<>(left.namespaces());
-      namespaces.addAll(right.namespaces());
-      return new SchemaIrWildcardNamespace("explicit", new ArrayList<>(namespaces));
-    }
-    diagnostic(
-        state,
-        DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-        document.resourceId(),
-        "anyAttribute wildcard namespace composition is unsupported for overlapping ##other constraints.");
-    return null;
-  }
-
-  private String stricterProcessContents(String left, String right) {
-    if ("strict".equals(left) || "strict".equals(right)) {
-      return "strict";
-    }
-    if ("lax".equals(left) || "lax".equals(right)) {
-      return "lax";
-    }
-    return "skip";
+    return SchemaIrWildcardNormalization.union(
+        left, right, invalidComponentDiagnostic(document, state));
   }
 
   private SchemaIrWildcardNamespace wildcardNamespace(
       XsdSyntaxDocument document, String value, BuildState state) {
-    String normalized = value == null || value.isBlank() ? "##any" : value.trim();
-    List<String> tokens = List.of(normalized.split("\\s+"));
-    Set<String> unique = new LinkedHashSet<>(tokens);
-    if (unique.size() != tokens.size()) {
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:any namespace constraint contains duplicate tokens.");
-      return null;
-    }
-    if (tokens.contains("##any")) {
-      if (tokens.size() == 1) {
-        return new SchemaIrWildcardNamespace("any", List.of());
-      }
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:any namespace ##any cannot be combined with other namespace tokens.");
-      return null;
-    }
-    if (tokens.contains("##other")) {
-      if (tokens.size() == 1) {
-        return new SchemaIrWildcardNamespace("other", List.of(schemaNamespace(document)));
-      }
-      diagnostic(
-          state,
-          DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-          document.resourceId(),
-          "xs:any namespace ##other cannot be combined with other namespace tokens.");
-      return null;
-    }
-    List<String> explicitNamespaces = new ArrayList<>();
-    for (String token : tokens) {
-      if ("##local".equals(token)) {
-        explicitNamespaces.add("");
-      } else if ("##targetNamespace".equals(token)) {
-        explicitNamespaces.add(schemaNamespace(document));
-      } else if (token.startsWith("##")) {
+    return SchemaIrWildcardNormalization.namespace(
+        value, schemaNamespace(document), invalidComponentDiagnostic(document, state));
+  }
+
+  private Consumer<String> invalidComponentDiagnostic(
+      XsdSyntaxDocument document, BuildState state) {
+    return message ->
         diagnostic(
-            state,
-            DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
-            document.resourceId(),
-            "Unsupported xs:any namespace token " + token + ".");
-        return null;
-      } else {
-        explicitNamespaces.add(token);
-      }
-    }
-    return new SchemaIrWildcardNamespace(
-        "explicit", new ArrayList<>(new LinkedHashSet<>(explicitNamespaces)));
+            state, DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT, document.resourceId(), message);
   }
 
   private SchemaIrSequence normalizeGroupReferenceAsSequence(
@@ -1926,7 +1724,9 @@ public final class SchemaIrBuilder {
     if (group.sequence().particles().size() == 1) {
       return new SchemaIrSequence(
           SchemaCardinality.ONE,
-          List.of(withCardinality(group.sequence().particles().getFirst(), cardinality)));
+          List.of(
+              SchemaIrParticleNormalization.withCardinality(
+                  group.sequence().particles().getFirst(), cardinality)));
     }
     return new SchemaIrSequence(
         SchemaCardinality.ONE,
@@ -2944,7 +2744,7 @@ public final class SchemaIrBuilder {
       XsdSyntaxDocument document, XsdSyntaxNode node, BuildState state, boolean global) {
     String ref = node.attributes().get("ref");
     if (ref != null) {
-      if (semanticAttributes(node).hasAny()) {
+      if (SchemaIrAttributeNormalization.semantics(node.attributes()).hasAny()) {
         diagnostic(
             state,
             DiagnosticCode.SCHEMA_IR_INVALID_COMPONENT,
@@ -2986,33 +2786,18 @@ public final class SchemaIrBuilder {
     if (typeReference == null) {
       return null;
     }
-    SchemaIrValueSemantics semantics = semanticAttributes(node);
+    SchemaIrValueSemantics semantics = SchemaIrAttributeNormalization.semantics(node.attributes());
     return new SchemaIrAttribute(
-        attributeName(document, node, localName, global),
+        SchemaIrAttributeNormalization.name(
+            schemaNamespace(document),
+            document.schemaAttributes(),
+            node.attributes(),
+            localName,
+            global),
         typeReference,
         node.attributes().get("use"),
         semantics,
         false);
-  }
-
-  private SchemaQName attributeName(
-      XsdSyntaxDocument document, XsdSyntaxNode node, String localName, boolean global) {
-    if (global) {
-      return new SchemaQName(schemaNamespace(document), localName);
-    }
-    String form = node.attributes().get("form");
-    boolean qualified =
-        "qualified".equals(form)
-            || (form == null
-                && "qualified".equals(document.schemaAttributes().get("attributeFormDefault")));
-    return new SchemaQName(qualified ? schemaNamespace(document) : "", localName);
-  }
-
-  private SchemaIrValueSemantics semanticAttributes(XsdSyntaxNode node) {
-    return new SchemaIrValueSemantics(
-        "true".equals(node.attributes().get("nillable")),
-        node.attributes().get("default"),
-        node.attributes().get("fixed"));
   }
 
   private SchemaIrTypeReference resolveTypeReference(

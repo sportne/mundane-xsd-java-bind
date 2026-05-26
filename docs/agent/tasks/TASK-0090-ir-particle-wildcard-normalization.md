@@ -1,6 +1,6 @@
 # TASK-0090: ir-particle-wildcard-normalization
 
-Status: draft.
+Status: accepted.
 
 Task ID: `TASK-0090`
 Priority: P2
@@ -24,3 +24,23 @@ Commands to run: `./gradlew :modules:generator-core:check --console=plain`,
 Acceptance criteria: particle/attribute/wildcard normalization has explicit helper ownership;
 `SchemaIrBuilder.build(...)` behavior remains unchanged.
 Rollback notes: revert schema IR helper extraction, tests, and docs.
+
+## Completion notes
+
+`TASK-0090` accepted the content-particle and wildcard normalization tranche.
+Package-private `SchemaIrParticleNormalization` now owns nested sequence flattening, particle
+cardinality composition, group-reference cardinality wrapping, and wildcard ambiguity input
+collection. Package-private `SchemaIrAttributeNormalization` now owns attribute namespace
+qualification and attribute value-semantics extraction. Package-private
+`SchemaIrWildcardNormalization` now owns wildcard namespace token normalization, wildcard
+matching/overlap/subset policy, anyAttribute namespace union, and processContents ordering.
+`SchemaIrBuilder` still owns syntax traversal, component lookup, profile gates, and diagnostic
+emission, so IR output and diagnostics remain unchanged.
+
+## Evidence
+
+- `./gradlew :modules:generator-core:compileJava :modules:generator-core:compileTestJava --console=plain`
+- `./gradlew :modules:generator-core:test --tests 'io.github.mundanej.mxjb.generator.core.schema.SchemaIrAttributeNormalizationTest' --tests 'io.github.mundanej.mxjb.generator.core.schema.SchemaIrParticleNormalizationTest' --tests 'io.github.mundanej.mxjb.generator.core.schema.SchemaIrWildcardNormalizationTest' --console=plain`
+- `./gradlew :modules:generator-core:check --console=plain`
+- `./gradlew validateDesignControlPack qualityGate --console=plain`
+- `git diff --check`
