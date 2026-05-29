@@ -7,7 +7,6 @@
 | `ci.yml` | Java 21 and Java 25 build/check matrix. |
 | `native-image.yml` | GraalVM Native Image lane. |
 | `docs.yml` | Documentation and design-control checks. |
-| `nightly.yml` | Scheduled clean quality-gate run. |
 
 ## Required CI stages
 
@@ -54,7 +53,7 @@ The root `nativeConformance` aggregate currently covers:
 - `TASK-0043` adds the explicit `./gradlew benchmarkSmoke --console=plain` lane and keeps it
   outside default `qualityGate`; `TASK-0071` adds generator and javac observations to that same
   advisory lane. `TASK-0082` adds benchmark-only generator phase timing and large-schema
-  source-growth observations. It may run in scheduled CI after baselines are stable.
+  source-growth observations. It remains opt-in rather than scheduled.
 - `TASK-0044` adds selected Native Image conformance execution beside `nativeSmoke`, without
   weakening existing smoke checks.
 - `TASK-0045` adds `./gradlew -Pmxjb.version=0.6.0-alpha.0 publicationDryRun --console=plain` as
@@ -66,7 +65,9 @@ The root `nativeConformance` aggregate currently covers:
 
 `qualityGate` remains the required JVM-focused gate, `benchmarkSmoke` is advisory and opt-in, and
 `nativeSmoke` plus `nativeConformance` remain GraalVM-only lanes. `publicationDryRun` and
-`w3cXsd10Conformance` are opt-in evidence lanes and are not wired into `qualityGate`.
+`w3cXsd10Conformance` are opt-in evidence lanes and are not wired into `qualityGate`. The project
+does not run scheduled nightly workflows; CI runs on pushes, pull requests, explicit workflow
+dispatches where configured, and release tags.
 
 Local Native Image evidence uses SDKMAN GraalVM:
 
