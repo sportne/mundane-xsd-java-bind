@@ -16,12 +16,12 @@ jobs:
       matrix:
         java: [ '21', '25' ]
     steps:
-      - uses: actions/checkout@v4
-      - uses: graalvm/setup-graalvm@v1
+      - uses: actions/checkout@v6.0.2
+      - uses: graalvm/setup-graalvm@v1.5.0
         with:
           java-version: ${{ matrix.java }}
           distribution: 'graalvm'
           native-image-job-reports: 'true'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5.0.2
       - name: Native smoke and selected conformance
         run: ./gradlew validateDesignControlPack nativeSmoke nativeConformance --console=plain
