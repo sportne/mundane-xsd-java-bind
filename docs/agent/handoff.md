@@ -2,6 +2,9 @@
 
 This file gives the next exact sequence of tasks. Agents must not skip ahead to product implementation.
 
+The owner-requested October 2026 workflow refresh is scoped separately in
+[`maintenance-2026-10.md`](maintenance-2026-10.md); it does not change the product task sequence.
+
 ## Current repository state
 
 - Design-Control Pack v0.1 scaffold exists and phase-one readiness has accepted the initial `XP-DATA-10` requirement baseline.
